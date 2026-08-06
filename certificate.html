@@ -3,11 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Certificate — QT GenAI Testing Academy</title>
+<title>My Certificates — QT GenAI Testing Academy</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="app.css">
+<style>
+  .cert-level{display:inline-block;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    font-weight:800;padding:4px 14px;border-radius:999px;margin-bottom:6px}
+  .cert-level.basic{background:#E9F3FF;color:#1D63B8}
+  .cert-level.advanced{background:var(--amber-tint);color:#B45309}
+  .cert-level.expert{background:#FDEBE6;color:var(--orange)}
+  .cert-wrap + .cert-wrap{margin-top:28px}
+  @media print{
+    .cert-wrap{page-break-after:always}
+    .cert-wrap:last-child{page-break-after:auto}
+  }
+</style>
 </head>
 <body>
 <nav class="topbar" id="topbar"></nav>
@@ -25,41 +37,58 @@
   renderTopbar("cert");
   const box = document.getElementById("box");
 
-  const { data: certs, error } = await sb.from("certificates").select("*").order("issued_at", { ascending: false });
+  const { data: certs, error } = await sb.from("certificates").select("*").order("issued_at");
   if (error) { box.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+
   if (!certs || !certs.length) {
     box.innerHTML = `<div class="card" style="text-align:center;padding:48px 20px">
       <div style="font-size:52px">🎓</div>
       <h2>No certificate yet</h2>
-      <p class="muted">Complete the course materials and pass the final assessment to earn your certificate.</p>
-      <a class="btn btn-primary" href="app.html">Go to materials</a></div>`;
+      <p class="muted">Work through the modules, then pass the Basic, Advanced or Expert exam.
+        Each level earns its own certificate.</p>
+      <a class="btn btn-primary" href="app.html">Go to my course</a></div>`;
     return;
   }
 
-  const c = certs[0];
+  const ORDER = { basic: 1, advanced: 2, expert: 3 };
+  certs.sort((a, b) => (ORDER[a.level] || 9) - (ORDER[b.level] || 9));
+  const base = location.origin + location.pathname.replace(/[^/]*$/, "");
+
   box.innerHTML = `
-    <div style="text-align:center;margin-bottom:14px" class="no-print">
-      <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save as PDF</button>
-      <button class="btn btn-ghost" onclick="copyLink()">🔗 Copy verification link</button>
-    </div>
-    <div class="cert">
-      <div class="cert-org">${escapeHtml(window.QT_CONFIG.ORG_NAME)} · School of Technology</div>
-      <h1>Certificate of Completion</h1>
-      <p class="muted" style="margin:0">This is to certify that</p>
-      <div class="cert-name">${escapeHtml(c.full_name)}</div>
-      <p class="cert-course">has successfully completed the training program<br>
-        <strong style="color:var(--navy)">${escapeHtml(c.course)}</strong><br>
-        with a final assessment score of <strong>${c.percent ?? "—"}%</strong>.</p>
-      <div class="cert-meta">
-        <div>Certificate No.<br><span class="cert-no">${escapeHtml(c.cert_number)}</span></div>
-        <div>Issued on<br><strong>${fmtDate(c.issued_at)}</strong></div>
-        <div>Verify at<br><strong>${location.origin + location.pathname.replace(/[^/]*$/, "")}verify.html</strong></div>
+    <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+      <div>
+        <h1 style="margin:0;font-size:24px">My Certificates</h1>
+        <p class="muted" style="margin:2px 0 0">${certs.length} earned${
+          certs.length < 3 ? " · keep going to earn the rest" : " · full set 🎉"}</p>
       </div>
-    </div>`;
-  window.copyLink = function () {
-    const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "verify.html?q=" + encodeURIComponent(c.cert_number);
-    navigator.clipboard.writeText(url).then(() => showToast("Verification link copied!"));
-  };
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save as PDF</button>
+    </div>` +
+    certs.map((c, i) => `
+    <div class="cert-wrap">
+      <div class="cert">
+        <div class="cert-org">${escapeHtml(window.QT_CONFIG.ORG_NAME)} · School of Technology</div>
+        ${c.level ? `<div class="cert-level ${c.level}">${escapeHtml(c.level)} level</div>` : ""}
+        <h1>Certificate of Completion</h1>
+        <p class="muted" style="margin:0">This is to certify that</p>
+        <div class="cert-name">${escapeHtml(c.full_name)}</div>
+        <p class="cert-course">has successfully completed the training program<br>
+          <strong style="color:var(--navy)">${escapeHtml(c.course)}</strong><br>
+          with an assessment score of <strong>${c.percent ?? "—"}%</strong>.</p>
+        <div class="cert-meta">
+          <div>Certificate No.<br><span class="cert-no">${escapeHtml(c.cert_number)}</span></div>
+          <div>Issued on<br><strong>${fmtDate(c.issued_at)}</strong></div>
+          <div>Verify at<br><strong>${base}verify.html</strong></div>
+        </div>
+      </div>
+      <div class="no-print" style="text-align:center;margin-top:10px">
+        <button class="btn btn-ghost btn-sm" data-n="${escapeHtml(c.cert_number)}">🔗 Copy verification link</button>
+      </div>
+    </div>`).join("");
+
+  box.querySelectorAll("button[data-n]").forEach(b => b.onclick = () => {
+    navigator.clipboard.writeText(base + "verify.html?q=" + encodeURIComponent(b.dataset.n))
+      .then(() => showToast("Verification link copied!"));
+  });
 })();
 </script>
 </body>

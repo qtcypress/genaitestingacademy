@@ -3,27 +3,64 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Materials — QT GenAI Testing Academy</title>
+<title>My Course — QT GenAI Testing Academy</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
 <link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="app.css">
+<style>
+  .mod{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+  .mod-head{display:flex;gap:14px;align-items:center;padding:16px 18px;cursor:pointer;user-select:none}
+  .mod-head:hover{background:var(--cream)}
+  .mod-num{flex-shrink:0;width:42px;height:42px;border-radius:10px;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+  .mod.done .mod-num{background:var(--mint)}
+  .mod-t{flex:1;min-width:0}
+  .mod-t h3{margin:0 0 3px;font-size:16px}
+  .mod-meta{font-size:12.5px;color:var(--slate-soft)}
+  .mod-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+  .mod-bar{width:84px}
+  .chev{color:var(--slate-soft);font-size:13px;transition:transform .18s}
+  .mod.open .chev{transform:rotate(90deg)}
+  .mod-body{display:none;padding:0 18px 18px;border-top:1px dashed var(--line)}
+  .mod.open .mod-body{display:block}
+  .plan{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:16px 0}
+  @media (max-width:700px){.plan{grid-template-columns:1fr}}
+  .plan h4{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:0 0 8px}
+  .plan ul{margin:0;padding-left:18px;font-size:14px;color:var(--ink)}
+  .plan li{margin:5px 0;line-height:1.45}
+  .mat-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line-2,#F3F4F6);font-size:14.5px}
+  .mat-row:first-of-type{border-top:none}
+  .mat-row .grow{flex:1;min-width:0}
+  .mat-row .grow b{font-weight:600}
+  .empty{font-size:13.5px;color:var(--slate-soft);padding:10px 0;font-style:italic}
+  .lvl{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .lvl-card{border:1.5px solid var(--line);border-radius:var(--radius);padding:18px;background:var(--paper)}
+  .lvl-card.basic{border-top:4px solid #4E9DE3}
+  .lvl-card.advanced{border-top:4px solid var(--amber)}
+  .lvl-card.expert{border-top:4px solid var(--orange)}
+  .lvl-card h3{margin:0 0 4px;font-size:16px}
+  .lvl-card .foot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+</style>
 </head>
 <body>
 <nav class="topbar" id="topbar"></nav>
 
 <main class="wrap section">
-  <div class="card" id="progressCard" style="margin-bottom:20px">
+  <div class="card" style="margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-      <h2 style="margin:0" id="hello">Welcome 👋</h2>
+      <div>
+        <h2 style="margin:0" id="hello">Welcome 👋</h2>
+        <p class="muted" id="courseName" style="margin:4px 0 0"></p>
+      </div>
       <span class="muted" id="progressText">Loading…</span>
     </div>
     <div class="pbar" style="margin-top:12px"><i id="progressFill" style="width:0%"></i></div>
-    <div id="certCta" style="margin-top:14px"></div>
+    <div id="certCta" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
   </div>
 
-  <div id="quizzesBox"></div>
-  <div id="materialsBox"><div class="spin"></div></div>
+  <div id="syllabus"><div class="spin"></div></div>
+  <div id="examsBox"></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -34,76 +71,147 @@
   await requireLogin();
   renderTopbar("app");
   const profile = await getProfile();
-  if (profile) document.getElementById("hello").textContent = `Welcome, ${profile.full_name || profile.email} 👋`;
+  if (profile) document.getElementById("hello").textContent =
+    `Welcome, ${profile.full_name || profile.email} 👋`;
 
-  const [{ data: materials, error: mErr }, { data: prog }, { data: quizzes }] = await Promise.all([
-    sb.from("materials").select("*").eq("published", true).order("module").order("sort_order"),
-    sb.from("progress").select("material_id,status"),
-    sb.from("quizzes").select("*").eq("published", true).order("is_final")
-  ]);
-  if (mErr) { showToast("Could not load materials: " + mErr.message, true); return; }
+  /* ---------- load course, modules, materials, progress, exams ---------- */
+  const { data: courses } = await sb.from("courses").select("*")
+    .eq("published", true).order("sort_order").limit(1);
+  const course = (courses || [])[0];
+
+  if (!course) {
+    document.getElementById("syllabus").innerHTML =
+      `<div class="card"><p class="muted" style="margin:0">No course has been published yet — check back soon.</p></div>`;
+    document.getElementById("progressText").textContent = "";
+    return;
+  }
+  document.getElementById("courseName").textContent = course.title + (course.subtitle ? " — " + course.subtitle : "");
+
+  const [{ data: modules }, { data: materials }, { data: prog }, { data: quizzes }, { data: certs }] =
+    await Promise.all([
+      sb.from("modules").select("*").eq("course_id", course.id).eq("published", true).order("number"),
+      sb.from("materials").select("*").eq("published", true).order("sort_order"),
+      sb.from("progress").select("material_id,status"),
+      sb.from("quizzes").select("*").eq("published", true).eq("course_id", course.id).order("pass_percent"),
+      sb.from("certificates").select("cert_number,level,percent")
+    ]);
 
   const progMap = {};
   (prog || []).forEach(p => (progMap[p.material_id] = p.status));
+  const byModule = {};
+  (materials || []).forEach(m => { if (m.module_id) (byModule[m.module_id] = byModule[m.module_id] || []).push(m); });
 
-  /* ---- progress summary ---- */
-  const total = materials.length;
-  const done = materials.filter(m => progMap[m.id] === "completed").length;
-  const pct = total ? Math.round((100 * done) / total) : 0;
-  document.getElementById("progressText").textContent = `${done} of ${total} materials completed · ${pct}%`;
+  /* ---------- overall progress ---------- */
+  const all = (materials || []).filter(m => m.module_id);
+  const done = all.filter(m => progMap[m.id] === "completed").length;
+  const pct = all.length ? Math.round(100 * done / all.length) : 0;
+  document.getElementById("progressText").textContent =
+    `${done} of ${all.length} materials completed · ${pct}%`;
   document.getElementById("progressFill").style.width = pct + "%";
 
-  /* ---- certificate CTA ---- */
-  const { data: certs } = await sb.from("certificates").select("cert_number").limit(1);
+  const certByLevel = {};
+  (certs || []).forEach(c => { if (c.level) certByLevel[c.level] = c; });
   if (certs && certs.length) {
-    document.getElementById("certCta").innerHTML =
-      `<a class="btn btn-primary btn-sm" href="certificate.html">🎓 View your certificate — ${certs[0].cert_number}</a>`;
+    document.getElementById("certCta").innerHTML = certs.map(c =>
+      `<a class="btn btn-primary btn-sm" href="certificate.html">🎓 ${c.level ? c.level[0].toUpperCase()+c.level.slice(1) : "Certificate"} — ${escapeHtml(c.cert_number)}</a>`
+    ).join("");
   }
 
-  /* ---- quizzes ---- */
-  if (quizzes && quizzes.length) {
-    const { data: attempts } = await sb.from("attempts").select("quiz_id,percent,passed").order("created_at", { ascending: false });
-    const best = {};
-    (attempts || []).forEach(a => {
-      if (!best[a.quiz_id] || a.percent > best[a.quiz_id].percent) best[a.quiz_id] = a;
-    });
-    document.getElementById("quizzesBox").innerHTML =
-      `<div class="section"><h2>Assessments</h2><div class="grid grid-2">` +
-      quizzes.map(q => {
-        const b = best[q.id];
-        const status = b
-          ? (b.passed ? `<span class="pill pill-done">Passed · ${b.percent}%</span>`
-                      : `<span class="pill pill-new">Best · ${b.percent}%</span>`)
-          : `<span class="pill pill-new">Not attempted</span>`;
-        return `<div class="card mat">
-          <h3>${q.is_final ? "🎓 " : "📝 "}${escapeHtml(q.title)}</h3>
-          <p class="muted" style="margin:0">${escapeHtml(q.description || "")}</p>
-          <div class="mat-foot">${status}
-            <a class="btn btn-navy btn-sm" href="quiz.html?id=${q.id}">${b ? "Retake" : "Start"}</a></div>
+  /* ---------- syllabus: modules with lesson plans ---------- */
+  const TYPE_LABEL = { handout:"Handout", slides:"Slides", lab:"Lab", reading:"Reading",
+                       template:"Template", recording:"Recording", material:"Material" };
+  const totalHours = (modules || []).reduce((s, m) => s + (Number(m.duration_hours) || 0), 0);
+
+  document.getElementById("syllabus").innerHTML =
+    `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+       <h2 style="margin:0">Syllabus</h2>
+       <span class="muted">${modules.length} modules${totalHours ? " · ~" + totalHours + " hours" : ""}</span>
+     </div>` +
+    modules.map(m => {
+      const mats = byModule[m.id] || [];
+      const mdone = mats.filter(x => progMap[x.id] === "completed").length;
+      const mpct = mats.length ? Math.round(100 * mdone / mats.length) : 0;
+      const complete = mats.length > 0 && mdone === mats.length;
+      const objectives = Array.isArray(m.objectives) ? m.objectives : [];
+      const topics = Array.isArray(m.topics) ? m.topics : [];
+      return `
+      <div class="mod ${complete ? "done" : ""}" data-mod="${m.id}">
+        <div class="mod-head">
+          <div class="mod-num">${complete ? "✓" : m.number}</div>
+          <div class="mod-t">
+            <h3>${escapeHtml(m.title)}</h3>
+            <div class="mod-meta">${mats.length} item${mats.length === 1 ? "" : "s"}${
+              m.duration_hours ? " · ~" + m.duration_hours + "h" : ""}${
+              mats.length ? " · " + mdone + "/" + mats.length + " done" : ""}</div>
+          </div>
+          <div class="mod-right">
+            ${mats.length ? `<div class="pbar mod-bar"><i style="width:${mpct}%"></i></div>` : ""}
+            <span class="chev">▶</span>
+          </div>
+        </div>
+        <div class="mod-body">
+          ${m.summary ? `<p class="muted" style="margin:14px 0 0">${escapeHtml(m.summary)}</p>` : ""}
+          <div class="plan">
+            ${objectives.length ? `<div><h4>By the end you can</h4><ul>${
+              objectives.map(o => `<li>${escapeHtml(o)}</li>`).join("")}</ul></div>` : ""}
+            ${topics.length ? `<div><h4>Lesson plan</h4><ul>${
+              topics.map(t => `<li>${escapeHtml(t)}</li>`).join("")}</ul></div>` : ""}
+          </div>
+          <h4 style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:6px 0 4px">Handouts &amp; materials</h4>
+          ${mats.length ? mats.map(x => `
+            <div class="mat-row">
+              <span class="pill pill-${x.kind}">${escapeHtml(TYPE_LABEL[x.material_type] || x.kind)}</span>
+              <span class="grow"><b>${escapeHtml(x.title)}</b>
+                ${progMap[x.id] === "completed" ? ' <span class="pill pill-done">✓</span>' : ""}
+                ${x.description ? `<br><span class="muted">${escapeHtml(x.description)}</span>` : ""}</span>
+              <a class="btn btn-primary btn-sm" href="viewer.html?id=${x.id}">Open</a>
+            </div>`).join("")
+          : `<div class="empty">No materials uploaded for this module yet.</div>`}
+        </div>
+      </div>`;
+    }).join("");
+
+  document.querySelectorAll(".mod-head").forEach(h =>
+    h.onclick = () => h.parentElement.classList.toggle("open"));
+
+  /* ---------- the three exam levels ---------- */
+  const { data: attempts } = await sb.from("attempts").select("quiz_id,percent,passed");
+  const best = {};
+  (attempts || []).forEach(a => {
+    if (!best[a.quiz_id] || a.percent > best[a.quiz_id].percent) best[a.quiz_id] = a;
+  });
+  const ORDER = { basic: 1, advanced: 2, expert: 3 };
+  const levelled = (quizzes || []).filter(q => q.level).sort((a, b) => ORDER[a.level] - ORDER[b.level]);
+  const other = (quizzes || []).filter(q => !q.level);
+
+  if (levelled.length || other.length) {
+    document.getElementById("examsBox").innerHTML = `
+      <div class="section"><h2>Certification</h2>
+      <p class="muted" style="margin:-4px 0 14px">Each level draws on all ${modules.length} modules and issues its own certificate.
+        Basic tests concepts, Advanced tests application, Expert tests judgement.</p>
+      <div class="lvl">` +
+      levelled.map(q => {
+        const b = best[q.id], cert = certByLevel[q.level];
+        const status = cert ? `<span class="pill pill-done">🎓 Certified · ${b ? b.percent : cert.percent}%</span>`
+          : b ? `<span class="pill pill-new">Best ${b.percent}% · need ${q.pass_percent}%</span>`
+              : `<span class="pill pill-new">Not attempted</span>`;
+        return `<div class="lvl-card ${q.level}">
+          <h3>${escapeHtml(q.title)}</h3>
+          <p class="muted" style="margin:0 0 6px">${q.pass_percent}% to pass · ${q.time_limit_minutes} min</p>
+          <p class="muted" style="margin:0;font-size:13px">${escapeHtml(q.description || "")}</p>
+          <div class="foot">${status}
+            <a class="btn ${cert ? "btn-ghost" : "btn-navy"} btn-sm" href="quiz.html?id=${q.id}">${
+              cert ? "Retake" : b ? "Try again" : "Start"}</a></div>
         </div>`;
-      }).join("") + `</div></div>`;
+      }).join("") +
+      other.map(q => `<div class="lvl-card">
+          <h3>${escapeHtml(q.title)}</h3>
+          <p class="muted" style="margin:0 0 6px">${q.pass_percent}% to pass · ${q.time_limit_minutes} min</p>
+          <div class="foot">${best[q.id] ? `<span class="pill pill-new">Best ${best[q.id].percent}%</span>` : `<span class="pill pill-new">Not attempted</span>`}
+            <a class="btn btn-navy btn-sm" href="quiz.html?id=${q.id}">Start</a></div>
+        </div>`).join("") +
+      `</div></div>`;
   }
-
-  /* ---- materials grouped by module ---- */
-  const modules = {};
-  materials.forEach(m => { (modules[m.module] = modules[m.module] || []).push(m); });
-
-  document.getElementById("materialsBox").innerHTML = Object.keys(modules).map(mod => `
-    <div class="section"><h2>${escapeHtml(mod)}</h2>
-      <div class="grid grid-2">${modules[mod].map(m => {
-        const st = progMap[m.id];
-        const badge = st === "completed" ? `<span class="pill pill-done">✓ Completed</span>`
-                     : st === "viewed"   ? `<span class="pill pill-new">In progress</span>` : "";
-        return `<div class="card mat">
-          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
-            <span class="pill pill-${m.kind}">${KIND_LABEL[m.kind] || m.kind}</span>${badge}</div>
-          <h3>${escapeHtml(m.title)}</h3>
-          <p class="muted" style="margin:0">${escapeHtml(m.description || "")}</p>
-          <div class="mat-foot"><span class="muted">${fmtBytes(m.file_size)}</span>
-            <a class="btn btn-primary btn-sm" href="viewer.html?id=${m.id}">Open</a></div>
-        </div>`;
-      }).join("")}</div>
-    </div>`).join("") || `<div class="card"><p class="muted" style="margin:0">No materials published yet — check back soon!</p></div>`;
 })();
 </script>
 </body>

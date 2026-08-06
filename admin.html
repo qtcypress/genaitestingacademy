@@ -10,9 +10,20 @@
 <link rel="stylesheet" href="app.css">
 <style>
   .tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
-  .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:34px;text-align:center;color:var(--slate-soft);cursor:pointer;background:#fff;transition:border-color .15s}
+  .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:30px;text-align:center;
+    color:var(--slate-soft);cursor:pointer;background:#fff;transition:border-color .15s}
   .drop.on{border-color:var(--orange);color:var(--orange)}
   .qrow{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:#fff}
+  .modrow{border:1px solid var(--line);border-radius:10px;margin:10px 0;background:#fff;overflow:hidden}
+  .modrow-h{display:flex;gap:12px;align-items:center;padding:12px 14px;cursor:pointer}
+  .modrow-h:hover{background:var(--cream)}
+  .modrow-h .n{width:34px;height:34px;border-radius:8px;background:var(--navy);color:#fff;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+  .modrow-b{display:none;padding:0 14px 14px;border-top:1px dashed var(--line)}
+  .modrow.open .modrow-b{display:block}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:700px){.grid2{grid-template-columns:1fr}}
+  details.add > summary{cursor:pointer;font-weight:600;color:var(--navy);padding:6px 0}
 </style>
 </head>
 <body>
@@ -21,28 +32,71 @@
 <main class="wrap section">
   <h1>Admin Panel</h1>
   <div class="tabs no-print">
-    <button class="btn btn-navy btn-sm" data-tab="materials">📚 Materials</button>
-    <button class="btn btn-ghost btn-sm" data-tab="quizzes">📝 Assessments</button>
-    <button class="btn btn-ghost btn-sm" data-tab="students">👥 Student Progress</button>
+    <button class="btn btn-navy btn-sm" data-tab="curriculum">📘 Courses &amp; Modules</button>
+    <button class="btn btn-ghost btn-sm" data-tab="materials">📂 Materials</button>
+    <button class="btn btn-ghost btn-sm" data-tab="exams">📝 Exams</button>
+    <button class="btn btn-ghost btn-sm" data-tab="students">👥 Students</button>
   </div>
 
-  <!-- ============ MATERIALS TAB ============ -->
-  <section id="tab-materials">
+  <!-- ============ CURRICULUM ============ -->
+  <section id="tab-curriculum">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Create a course</h3>
+      <div class="grid2">
+        <div><label class="f">Title</label><input class="f" id="c_title" placeholder="e.g. GenAI Testing"></div>
+        <div><label class="f">Short code</label><input class="f" id="c_code" placeholder="e.g. GENAI-TESTING"></div>
+      </div>
+      <label class="f">Subtitle</label><input class="f" id="c_sub">
+      <label class="f">Description</label><textarea class="f" id="c_desc" rows="2"></textarea>
+      <button class="btn btn-primary" style="margin-top:12px" id="c_create">Create course</button>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <label class="f" style="margin-top:0">Working on course</label>
+      <select class="f" id="courseSel"></select>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Add a module</h3>
+      <div class="grid2">
+        <div><label class="f">Module number</label><input class="f" id="m_num" type="number" min="1"></div>
+        <div><label class="f">Duration (hours)</label><input class="f" id="m_hrs" type="number" step="0.5"></div>
+      </div>
+      <label class="f">Title</label><input class="f" id="m_title" placeholder="e.g. Prompt Engineering">
+      <label class="f">Summary</label><textarea class="f" id="m_sum" rows="2"></textarea>
+      <div class="grid2">
+        <div><label class="f">Learning objectives — one per line</label>
+          <textarea class="f" id="m_obj" rows="5" placeholder="Write clear, constrained prompts&#10;Apply few-shot prompting"></textarea></div>
+        <div><label class="f">Lesson plan topics — one per line</label>
+          <textarea class="f" id="m_top" rows="5" placeholder="Anatomy of a prompt&#10;Structured output&#10;Hands-on exercise"></textarea></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:12px" id="m_create">Add module</button>
+    </div>
+
+    <div id="modList"><div class="spin"></div></div>
+  </section>
+
+  <!-- ============ MATERIALS ============ -->
+  <section id="tab-materials" style="display:none">
     <div class="card" style="margin-bottom:18px">
-      <h3>Upload material</h3>
-      <p class="muted">HTML lessons, images, animated GIFs, PDFs, PowerPoint, Word documents, or Excel files
-        (Excel is displayed to students as interactive tables).</p>
+      <h3 style="margin-top:0">Upload a handout or material</h3>
+      <p class="muted">HTML lessons, images, animated GIFs, PDFs, PowerPoint, Word, or Excel
+        (Excel is shown to students as interactive tables).</p>
       <div class="drop" id="drop">📂 Tap to choose a file — or drag &amp; drop here</div>
       <input type="file" id="file" hidden
         accept=".html,.htm,.png,.jpg,.jpeg,.webp,.svg,.gif,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.csv">
       <div id="uploadForm" style="display:none">
         <label class="f">Title</label><input class="f" id="u_title">
         <label class="f">Description (optional)</label><input class="f" id="u_desc">
-        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
-          <div><label class="f">Module / section</label><input class="f" id="u_module" list="modlist" placeholder="e.g. GenAI Basics">
-            <datalist id="modlist"></datalist></div>
-          <div><label class="f">Sort order</label><input class="f" id="u_sort" type="number" value="100"></div>
+        <div class="grid2">
+          <div><label class="f">Module</label><select class="f" id="u_module"></select></div>
+          <div><label class="f">Type</label><select class="f" id="u_type">
+            <option value="handout">Handout</option><option value="slides">Slides</option>
+            <option value="lab">Lab</option><option value="reading">Reading</option>
+            <option value="template">Template</option><option value="recording">Recording</option>
+            <option value="material">Other material</option></select></div>
         </div>
+        <label class="f">Sort order within the module</label><input class="f" id="u_sort" type="number" value="100" style="max-width:140px">
         <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn btn-primary" id="u_go">⬆ Upload &amp; publish</button>
           <span class="muted" id="u_info"></span>
@@ -52,24 +106,30 @@
     <div id="matList"><div class="spin"></div></div>
   </section>
 
-  <!-- ============ QUIZZES TAB ============ -->
-  <section id="tab-quizzes" style="display:none">
+  <!-- ============ EXAMS ============ -->
+  <section id="tab-exams" style="display:none">
     <div class="card" style="margin-bottom:18px">
-      <h3>Create assessment</h3>
-      <label class="f">Title</label><input class="f" id="qz_title" placeholder="e.g. Final Certification Exam">
+      <h3 style="margin-top:0">Create an exam</h3>
+      <label class="f">Title</label><input class="f" id="qz_title" placeholder="e.g. Module 1–5 Checkpoint">
       <label class="f">Description</label><input class="f" id="qz_desc">
-      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="grid2">
         <div><label class="f">Pass %</label><input class="f" id="qz_pass" type="number" value="70" min="1" max="100"></div>
         <div><label class="f">Time limit (min)</label><input class="f" id="qz_time" type="number" value="30"></div>
-        <div><label class="f">Type</label><select class="f" id="qz_final">
-          <option value="false">Practice quiz</option><option value="true">🎓 FINAL (grants certificate)</option></select></div>
       </div>
-      <button class="btn btn-primary" style="margin-top:14px" id="qz_create">Create assessment</button>
+      <label class="f">Certification level</label>
+      <select class="f" id="qz_level">
+        <option value="">Practice — no certificate</option>
+        <option value="basic">🎓 Basic — issues Basic certificate</option>
+        <option value="advanced">🎓 Advanced — issues Advanced certificate</option>
+        <option value="expert">🎓 Expert — issues Expert certificate</option>
+      </select>
+      <p class="muted" style="margin:6px 0 0">A student can hold one certificate per level, per course.</p>
+      <button class="btn btn-primary" style="margin-top:12px" id="qz_create">Create exam</button>
     </div>
     <div id="quizList"><div class="spin"></div></div>
   </section>
 
-  <!-- ============ STUDENTS TAB ============ -->
+  <!-- ============ STUDENTS ============ -->
   <section id="tab-students" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
       <input class="f" id="stuSearch" placeholder="🔍 Search name / email / GitHub…" style="max-width:320px">
@@ -87,26 +147,152 @@
   await requireAdmin();
   renderTopbar("admin");
 
+  let courses = [], modules = [], currentCourse = null;
+  const lines = el => document.getElementById(el).value.split("\n").map(s => s.trim()).filter(Boolean);
+
   /* ---------- tabs ---------- */
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.className = "btn btn-ghost btn-sm");
     b.className = "btn btn-navy btn-sm";
-    ["materials", "quizzes", "students"].forEach(t =>
+    ["curriculum","materials","exams","students"].forEach(t =>
       document.getElementById("tab-" + t).style.display = (t === b.dataset.tab ? "" : "none"));
     if (b.dataset.tab === "students") loadStudents();
-    if (b.dataset.tab === "quizzes") loadQuizzes();
+    if (b.dataset.tab === "exams") loadQuizzes();
+    if (b.dataset.tab === "materials") loadMaterials();
   });
+
+  /* ================= COURSES ================= */
+  async function loadCourses() {
+    const { data } = await sb.from("courses").select("*").order("sort_order");
+    courses = data || [];
+    const sel = document.getElementById("courseSel");
+    sel.innerHTML = courses.map(c => `<option value="${c.id}">${escapeHtml(c.title)}</option>`).join("")
+      || `<option value="">— no course yet —</option>`;
+    if (courses.length) { currentCourse = sel.value = currentCourse || courses[0].id; }
+    sel.onchange = () => { currentCourse = sel.value; loadModules(); };
+    await loadModules();
+  }
+  document.getElementById("c_create").onclick = async () => {
+    const title = document.getElementById("c_title").value.trim();
+    if (!title) { showToast("Give the course a title", true); return; }
+    const { error } = await sb.from("courses").insert({
+      title,
+      code: document.getElementById("c_code").value.trim() || null,
+      subtitle: document.getElementById("c_sub").value.trim() || null,
+      description: document.getElementById("c_desc").value.trim() || null,
+      published: true
+    });
+    if (error) showToast(error.message, true);
+    else { showToast("Course created"); document.getElementById("c_title").value = ""; loadCourses(); }
+  };
+
+  /* ================= MODULES ================= */
+  document.getElementById("m_create").onclick = async () => {
+    if (!currentCourse) { showToast("Create a course first", true); return; }
+    const title = document.getElementById("m_title").value.trim();
+    const num = parseInt(document.getElementById("m_num").value, 10);
+    if (!title || !num) { showToast("Module number and title are required", true); return; }
+    const { error } = await sb.from("modules").insert({
+      course_id: currentCourse, number: num, title,
+      summary: document.getElementById("m_sum").value.trim() || null,
+      objectives: lines("m_obj"), topics: lines("m_top"),
+      duration_hours: parseFloat(document.getElementById("m_hrs").value) || null,
+      sort_order: num * 10, published: true
+    });
+    if (error) showToast(error.message, true);
+    else {
+      showToast("Module added");
+      ["m_title","m_sum","m_obj","m_top","m_hrs"].forEach(i => document.getElementById(i).value = "");
+      document.getElementById("m_num").value = num + 1;
+      loadModules();
+    }
+  };
+
+  async function loadModules() {
+    const el = document.getElementById("modList");
+    if (!currentCourse) { el.innerHTML = `<div class="card muted">Create a course to add modules.</div>`; return; }
+    const [{ data: mods }, { data: mats }] = await Promise.all([
+      sb.from("modules").select("*").eq("course_id", currentCourse).order("number"),
+      sb.from("materials").select("id,module_id")
+    ]);
+    modules = mods || [];
+    const counts = {};
+    (mats || []).forEach(m => { if (m.module_id) counts[m.module_id] = (counts[m.module_id] || 0) + 1; });
+
+    // keep the material-upload module picker in sync
+    document.getElementById("u_module").innerHTML =
+      modules.map(m => `<option value="${m.id}">${m.number}. ${escapeHtml(m.title)}</option>`).join("")
+      || `<option value="">— no modules yet —</option>`;
+    const nextNum = modules.length ? Math.max(...modules.map(m => m.number)) + 1 : 1;
+    if (!document.getElementById("m_num").value) document.getElementById("m_num").value = nextNum;
+
+    el.innerHTML = `<h3>Modules (${modules.length})</h3>` + (modules.map(m => `
+      <div class="modrow" data-id="${m.id}">
+        <div class="modrow-h">
+          <div class="n">${m.number}</div>
+          <div style="flex:1;min-width:0">
+            <strong>${escapeHtml(m.title)}</strong>
+            <div class="muted" style="font-size:12.5px">${counts[m.id] || 0} material(s)${
+              m.duration_hours ? " · ~" + m.duration_hours + "h" : ""} · ${
+              (Array.isArray(m.objectives)?m.objectives.length:0)} objectives · ${
+              (Array.isArray(m.topics)?m.topics.length:0)} topics ${m.published ? "" : "· 🕒 hidden"}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">
+            <button class="btn btn-ghost btn-sm" onclick="togglePubMod('${m.id}',${!m.published})">${m.published ? "Hide" : "Publish"}</button>
+            <button class="btn btn-danger btn-sm" onclick="delMod('${m.id}')">✕</button>
+          </div>
+        </div>
+        <div class="modrow-b">
+          <label class="f">Title</label><input class="f" id="e_title_${m.id}" value="${escapeHtml(m.title)}">
+          <label class="f">Summary</label><textarea class="f" id="e_sum_${m.id}" rows="2">${escapeHtml(m.summary || "")}</textarea>
+          <div class="grid2">
+            <div><label class="f">Objectives — one per line</label>
+              <textarea class="f" id="e_obj_${m.id}" rows="5">${escapeHtml((Array.isArray(m.objectives)?m.objectives:[]).join("\n"))}</textarea></div>
+            <div><label class="f">Lesson plan topics — one per line</label>
+              <textarea class="f" id="e_top_${m.id}" rows="5">${escapeHtml((Array.isArray(m.topics)?m.topics:[]).join("\n"))}</textarea></div>
+          </div>
+          <div class="grid2">
+            <div><label class="f">Module number</label><input class="f" id="e_num_${m.id}" type="number" value="${m.number}"></div>
+            <div><label class="f">Duration (hours)</label><input class="f" id="e_hrs_${m.id}" type="number" step="0.5" value="${m.duration_hours ?? ""}"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="saveMod('${m.id}')">Save changes</button>
+        </div>
+      </div>`).join("") || `<div class="card muted">No modules yet.</div>`);
+
+    document.querySelectorAll(".modrow-h").forEach(h =>
+      h.onclick = () => h.parentElement.classList.toggle("open"));
+  }
+  window.saveMod = async id => {
+    const g = p => document.getElementById(p + id).value;
+    const { error } = await sb.from("modules").update({
+      title: g("e_title_").trim(),
+      summary: g("e_sum_").trim() || null,
+      objectives: g("e_obj_").split("\n").map(s=>s.trim()).filter(Boolean),
+      topics: g("e_top_").split("\n").map(s=>s.trim()).filter(Boolean),
+      number: parseInt(g("e_num_"), 10),
+      sort_order: parseInt(g("e_num_"), 10) * 10,
+      duration_hours: parseFloat(g("e_hrs_")) || null
+    }).eq("id", id);
+    if (error) showToast(error.message, true); else { showToast("Module saved"); loadModules(); }
+  };
+  window.togglePubMod = async (id, pub) => {
+    const { error } = await sb.from("modules").update({ published: pub }).eq("id", id);
+    if (error) showToast(error.message, true); else loadModules();
+  };
+  window.delMod = async id => {
+    if (!confirm("Delete this module? Its materials stay uploaded but become unassigned.")) return;
+    const { error } = await sb.from("modules").delete().eq("id", id);
+    if (error) showToast(error.message, true); else { showToast("Module deleted"); loadModules(); }
+  };
 
   /* ================= MATERIALS ================= */
   const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
   let pendingFile = null;
-
   drop.onclick = () => fileInput.click();
   drop.ondragover = e => { e.preventDefault(); drop.classList.add("on"); };
   drop.ondragleave = () => drop.classList.remove("on");
   drop.ondrop = e => { e.preventDefault(); drop.classList.remove("on"); if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]); };
   fileInput.onchange = () => { if (fileInput.files[0]) pickFile(fileInput.files[0]); };
-
   function pickFile(f) {
     pendingFile = f;
     drop.textContent = "📄 " + f.name + " (" + fmtBytes(f.size) + ")";
@@ -116,14 +302,14 @@
 
   document.getElementById("u_go").onclick = async () => {
     if (!pendingFile) return;
+    const moduleId = document.getElementById("u_module").value;
+    if (!moduleId) { showToast("Create a module first", true); return; }
     const btn = document.getElementById("u_go"); btn.disabled = true;
     const info = document.getElementById("u_info"); info.textContent = "Uploading…";
     try {
       const kind = kindFromFile(pendingFile.name);
       const safe = pendingFile.name.replace(/[^\w.\-]+/g, "_");
       const path = Date.now() + "_" + safe;
-      /* Record an accurate MIME type so downloads behave correctly. (Supabase still
-         serves stored HTML as text/plain for security — the viewer handles that.) */
       const MIME = { html: "text/html;charset=utf-8", gif: "image/gif", pdf: "application/pdf",
         pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -134,7 +320,9 @@
       const { error: insErr } = await sb.from("materials").insert({
         title: document.getElementById("u_title").value.trim() || pendingFile.name,
         description: document.getElementById("u_desc").value.trim() || null,
-        module: document.getElementById("u_module").value.trim() || "General",
+        module_id: moduleId,
+        material_type: document.getElementById("u_type").value,
+        module: (modules.find(m => m.id === moduleId) || {}).title || "General",
         kind, storage_path: path, file_name: pendingFile.name, file_size: pendingFile.size,
         sort_order: parseInt(document.getElementById("u_sort").value, 10) || 100
       });
@@ -143,22 +331,27 @@
       pendingFile = null;
       drop.textContent = "📂 Tap to choose a file — or drag & drop here";
       document.getElementById("uploadForm").style.display = "none";
-      loadMaterials();
+      loadMaterials(); loadModules();
     } catch (e) { showToast("Upload failed: " + e.message, true, 6000); }
     btn.disabled = false; info.textContent = "";
   };
 
   async function loadMaterials() {
-    const { data, error } = await sb.from("materials").select("*").order("module").order("sort_order");
+    const [{ data, error }, { data: mods }] = await Promise.all([
+      sb.from("materials").select("*").order("sort_order"),
+      sb.from("modules").select("id,number,title")
+    ]);
+    const modName = {};
+    (mods || []).forEach(m => modName[m.id] = m.number + ". " + m.title);
     const el = document.getElementById("matList");
     if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
-    const mods = [...new Set(data.map(m => m.module))];
-    document.getElementById("modlist").innerHTML = mods.map(m => `<option value="${escapeHtml(m)}">`).join("");
     el.innerHTML = `<div class="table-wrap"><table class="qt"><thead>
-      <tr><th>Title</th><th>Module</th><th>Type</th><th>Size</th><th>Status</th><th></th></tr></thead><tbody>` +
-      data.map(m => `<tr>
+      <tr><th>Title</th><th>Module</th><th>Type</th><th>Format</th><th>Size</th><th>Status</th><th></th></tr>
+      </thead><tbody>` +
+      (data || []).map(m => `<tr>
         <td><strong>${escapeHtml(m.title)}</strong><br><span class="muted">${escapeHtml(m.file_name)}</span></td>
-        <td>${escapeHtml(m.module)}</td>
+        <td>${escapeHtml(modName[m.module_id] || "— unassigned —")}</td>
+        <td>${escapeHtml(m.material_type || "material")}</td>
         <td><span class="pill pill-${m.kind}">${m.kind}</span></td>
         <td>${fmtBytes(m.file_size)}</td>
         <td>${m.published ? "✅ Published" : "🕒 Hidden"}</td>
@@ -178,20 +371,21 @@
     const { error } = await sb.from("materials").delete().eq("id", id);
     if (error) showToast(error.message, true); else { showToast("Deleted"); loadMaterials(); }
   };
-  loadMaterials();
 
-  /* ================= QUIZZES ================= */
+  /* ================= EXAMS ================= */
   document.getElementById("qz_create").onclick = async () => {
     const title = document.getElementById("qz_title").value.trim();
-    if (!title) { showToast("Give the assessment a title", true); return; }
+    if (!title) { showToast("Give the exam a title", true); return; }
+    const level = document.getElementById("qz_level").value || null;
     const { error } = await sb.from("quizzes").insert({
-      title, description: document.getElementById("qz_desc").value.trim() || null,
+      title, course_id: currentCourse,
+      description: document.getElementById("qz_desc").value.trim() || null,
       pass_percent: parseInt(document.getElementById("qz_pass").value, 10) || 70,
       time_limit_minutes: parseInt(document.getElementById("qz_time").value, 10) || 30,
-      is_final: document.getElementById("qz_final").value === "true", published: false
+      level, is_final: false, published: false
     });
     if (error) showToast(error.message, true);
-    else { showToast("Assessment created — now add questions, then publish"); document.getElementById("qz_title").value = ""; loadQuizzes(); }
+    else { showToast("Exam created — add questions, then publish"); document.getElementById("qz_title").value = ""; loadQuizzes(); }
   };
 
   async function loadQuizzes() {
@@ -206,8 +400,9 @@
       div.className = "card"; div.style.marginBottom = "16px";
       div.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <h3 style="margin:0">${q.is_final ? "🎓 " : "📝 "}${escapeHtml(q.title)}
-            <span class="muted" style="font-weight:400">· ${questions.length} questions · pass ${q.pass_percent}%</span></h3>
+          <h3 style="margin:0">${q.level ? "🎓 " : "📝 "}${escapeHtml(q.title)}
+            <span class="muted" style="font-weight:400">· ${questions.length} questions · pass ${q.pass_percent}%${
+              q.level ? " · " + q.level + " certificate" : " · no certificate"}</span></h3>
           <div>
             <button class="btn btn-ghost btn-sm" onclick="togglePubQuiz('${q.id}',${!q.published})">${q.published ? "Unpublish" : "▶ Publish"}</button>
             <button class="btn btn-danger btn-sm" onclick="delQuiz('${q.id}')">✕</button>
@@ -219,7 +414,7 @@
               (i === qq.correct_index ? "✅ " : "· ") + escapeHtml(o)).join(" &nbsp; ")}</span>
             <button class="btn btn-danger btn-sm" style="float:right" onclick="delQ('${qq.id}')">✕</button>
           </div>`).join("")}</div>
-        <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:var(--navy)">＋ Add question</summary>
+        <details class="add" style="margin-top:10px"><summary>＋ Add question</summary>
           <label class="f">Question</label><input class="f" id="nq_text_${q.id}">
           <label class="f">Options (one per line, 2–6)</label>
           <textarea class="f" id="nq_opts_${q.id}" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
@@ -229,14 +424,14 @@
         </details>`;
       el.appendChild(div);
     }
-    if (!data.length) el.innerHTML = "<div class='card muted'>No assessments yet — create one above.</div>";
+    if (!data.length) el.innerHTML = "<div class='card muted'>No exams yet.</div>";
   }
   window.togglePubQuiz = async (id, pub) => {
     const { error } = await sb.from("quizzes").update({ published: pub }).eq("id", id);
     if (error) showToast(error.message, true); else loadQuizzes();
   };
   window.delQuiz = async id => {
-    if (!confirm("Delete this assessment and all its questions/attempts?")) return;
+    if (!confirm("Delete this exam and all its questions and attempts?")) return;
     const { error } = await sb.from("quizzes").delete().eq("id", id);
     if (error) showToast(error.message, true); else loadQuizzes();
   };
@@ -264,40 +459,43 @@
     el.innerHTML = "<div class='spin'></div>";
     const { data, error } = await sb.rpc("admin_progress_report");
     if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
-    stuData = data || [];
-    renderStudents();
+    stuData = data || []; renderStudents();
   }
   function renderStudents() {
     const q = (document.getElementById("stuSearch").value || "").toLowerCase();
-    const rows = stuData.filter(s =>
-      !q || (s.full_name || "").toLowerCase().includes(q) ||
-      (s.email || "").toLowerCase().includes(q) || (s.github_user || "").toLowerCase().includes(q));
+    const rows = stuData.filter(s => !q ||
+      (s.full_name || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q) ||
+      (s.github_user || "").toLowerCase().includes(q));
+    const pc = v => v == null ? "—" : v + "%";
     document.getElementById("stuList").innerHTML = `<div class="table-wrap"><table class="qt"><thead>
-      <tr><th>Student</th><th>GitHub</th><th>Progress</th><th>Final exam</th><th>Certified</th><th>Last active</th></tr></thead><tbody>` +
+      <tr><th>Student</th><th>GitHub</th><th>Materials</th><th>Basic</th><th>Advanced</th><th>Expert</th><th>Certs</th><th>Last active</th></tr>
+      </thead><tbody>` +
       rows.map(s => {
         const pct = s.total_published ? Math.round(100 * s.completed / s.total_published) : 0;
         return `<tr>
           <td><strong>${escapeHtml(s.full_name || "—")}</strong><br><span class="muted">${escapeHtml(s.email || "")}</span></td>
           <td>${escapeHtml(s.github_user || "—")}</td>
-          <td style="min-width:150px">${s.completed}/${s.total_published}
+          <td style="min-width:140px">${s.completed}/${s.total_published}
             <div class="pbar" style="margin-top:4px"><i style="width:${pct}%"></i></div></td>
-          <td>${s.best_final_percent != null ? s.best_final_percent + "%" : "—"}</td>
-          <td>${s.certified ? "🎓 Yes" : "—"}</td>
+          <td>${pc(s.best_basic)}</td><td>${pc(s.best_advanced)}</td><td>${pc(s.best_expert)}</td>
+          <td>${s.certificates > 0 ? "🎓 " + s.certificates : "—"}</td>
           <td class="muted">${s.last_active ? fmtDate(s.last_active) : "—"}</td></tr>`;
-      }).join("") + "</tbody></table></div>" +
-      `<p class="muted" style="margin-top:8px">${rows.length} student(s)</p>`;
+      }).join("") + `</tbody></table></div><p class="muted" style="margin-top:8px">${rows.length} student(s)</p>`;
   }
   document.getElementById("stuSearch").oninput = renderStudents;
   document.getElementById("csvBtn").onclick = () => {
-    const head = "Name,Email,GitHub,Completed,TotalPublished,BestFinalPercent,Certified,LastActive\n";
-    const csv = head + stuData.map(s =>
-      [s.full_name, s.email, s.github_user, s.completed, s.total_published,
-       s.best_final_percent ?? "", s.certified ? "yes" : "no", s.last_active ?? ""]
+    const head = "Name,Email,GitHub,Completed,TotalMaterials,Basic,Advanced,Expert,Certificates,LastActive\n";
+    const csv = head + stuData.map(s => [s.full_name, s.email, s.github_user, s.completed,
+      s.total_published, s.best_basic ?? "", s.best_advanced ?? "", s.best_expert ?? "",
+      s.certificates, s.last_active ?? ""]
       .map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = "student_progress.csv"; a.click();
   };
+
+  await loadCourses();
 })();
 </script>
 </body>

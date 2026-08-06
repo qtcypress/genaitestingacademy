@@ -103,7 +103,8 @@
         <p style="font-size:18px">Score: <strong>${data.score}/${data.total}</strong> (${data.percent}%) ·
            pass mark ${quiz.pass_percent}%</p>
         ${passed && data.cert_number
-          ? `<p>Your certificate number is <strong style="font-family:monospace">${data.cert_number}</strong></p>
+          ? `<p>${data.level ? `You have earned your <strong>${data.level[0].toUpperCase()+data.level.slice(1)} Level</strong> certificate.<br>` : ""}
+             Certificate number <strong style="font-family:monospace">${data.cert_number}</strong></p>
              <a class="btn btn-primary" href="certificate.html">🎓 View your certificate</a>`
           : passed ? `<a class="btn btn-primary" href="app.html">Back to dashboard</a>`
           : `<p class="muted">Review the materials and try again — your best score is kept.</p>
