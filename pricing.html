@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pricing — QT GenAI Testing Academy</title>
+<meta name="description" content="Full access to the 16-module GenAI Application Testing course and all three certification levels. Monthly, quarterly and yearly plans.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<style>
+  .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:8px}
+  .plan{background:var(--paper);border:1.5px solid var(--line);border-radius:var(--radius);
+    padding:24px;position:relative;display:flex;flex-direction:column}
+  .plan.featured{border-color:var(--orange);box-shadow:0 10px 30px rgba(238,76,18,.12)}
+  .plan .badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);
+    background:var(--orange);color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;padding:4px 12px;border-radius:999px;white-space:nowrap}
+  .plan h3{margin:0;font-size:17px}
+  .price{font-size:38px;font-weight:800;color:var(--navy);margin:10px 0 2px;letter-spacing:-.02em}
+  .price small{font-size:15px;font-weight:600;color:var(--slate-soft)}
+  .per{font-size:13px;color:var(--slate-soft);margin-bottom:14px}
+  .plan p.desc{font-size:14px;color:var(--slate);margin:0 0 16px;line-height:1.5}
+  .plan .buy{margin-top:auto}
+  .incl{margin:26px 0 0;padding:0;list-style:none}
+  .incl li{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;margin:8px 0}
+  .incl .tick{color:var(--mint);font-weight:800;flex-shrink:0}
+  .status{background:var(--amber-tint);border:1.5px solid var(--amber);border-radius:var(--radius);
+    padding:14px 18px;margin-bottom:18px;font-size:14.5px}
+  .status.ok{background:#EAFBF5;border-color:var(--mint)}
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<header class="hero" style="padding:40px 0">
+  <div class="wrap">
+    <h1>Full access to <span class="accent">GenAI Testing</span></h1>
+    <p>16 modules · ~93 hours · three certification levels. Module 1 is free to preview —
+       one payment unlocks everything else for the period you choose. No auto-renewal.</p>
+  </div>
+</header>
+
+<main class="wrap section">
+  <div id="statusBox"></div>
+  <div id="plansBox"><div class="spin"></div></div>
+
+  <div class="card" style="margin-top:26px">
+    <h3 style="margin-top:0">Every plan includes</h3>
+    <ul class="incl" style="margin-top:6px">
+      <li><span class="tick">✓</span> All 16 modules with lesson plans, handouts, slides, labs and templates</li>
+      <li><span class="tick">✓</span> All three certification exams — Basic, Advanced and Expert</li>
+      <li><span class="tick">✓</span> A separate verifiable certificate for each level you pass</li>
+      <li><span class="tick">✓</span> Both capstone projects (RAG, and MCP with multi-agents)</li>
+      <li><span class="tick">✓</span> Progress tracking, and any new modules added while your access is live</li>
+      <li><span class="tick">✓</span> Installable on your phone — no app store needed</li>
+    </ul>
+    <p class="muted" style="margin:18px 0 0">Payments are processed by Razorpay. We never see or store your card details.
+      Buying again while you still have time left <strong>adds</strong> to your remaining days rather than replacing them.</p>
+  </div>
+</main>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("pricing");
+  const session = await getSession();
+  const statusBox = document.getElementById("statusBox");
+  const plansBox = document.getElementById("plansBox");
+
+  /* ---------- current access status ---------- */
+  let access = null;
+  if (session) {
+    const { data } = await sb.rpc("my_access");
+    access = (data || [])[0] || null;
+    if (access && access.is_admin) {
+      statusBox.innerHTML = `<div class="status ok">You're an <strong>admin</strong> — you already have full access
+        without a subscription. This page is what your students will see.</div>`;
+    } else if (access && access.has_access) {
+      statusBox.innerHTML = `<div class="status ok">✓ Your access is active —
+        <strong>${access.days_left} day${access.days_left === 1 ? "" : "s"} left</strong>
+        (until ${fmtDate(access.expires_at)}). Buying again extends it.</div>`;
+    }
+  } else {
+    statusBox.innerHTML = `<div class="status">You'll need to sign in with GitHub before paying,
+      so we can attach the access to your account. <a href="index.html">Sign in →</a></div>`;
+  }
+
+  /* ---------- plans ---------- */
+  const { data: plans, error } = await sb.from("plans").select("*")
+    .eq("active", true).order("sort_order");
+  if (error || !plans || !plans.length) {
+    plansBox.innerHTML = `<div class="card"><p class="muted" style="margin:0">
+      Plans aren't available right now${error ? ": " + escapeHtml(error.message) : ""}.</p></div>`;
+    return;
+  }
+
+  const rupees = p => "₹" + (p / 100).toLocaleString("en-IN");
+  const perMonth = pl => {
+    const months = pl.duration_days / 30;
+    return months >= 2 ? rupees(Math.round(pl.amount_paise / months)) + "/month equivalent" : "";
+  };
+  const cheapestPerDay = Math.min(...plans.map(p => p.amount_paise / p.duration_days));
+
+  plansBox.innerHTML = `<div class="plans">` + plans.map(pl => {
+    const saving = Math.round(100 - 100 * (pl.amount_paise / pl.duration_days) /
+      Math.max(...plans.map(p => p.amount_paise / p.duration_days)));
+    return `<div class="plan ${pl.badge ? "featured" : ""}">
+      ${pl.badge ? `<div class="badge">${escapeHtml(pl.badge)}</div>` : ""}
+      <h3>${escapeHtml(pl.name)}</h3>
+      <div class="price">${rupees(pl.amount_paise)} <small>${escapeHtml(pl.currency)}</small></div>
+      <div class="per">${perMonth(pl)}${saving > 0 ? " · save ~" + saving + "%" : ""}</div>
+      <p class="desc">${escapeHtml(pl.description || "")}</p>
+      <div class="buy">
+        <button class="btn btn-primary" style="width:100%" data-plan="${escapeHtml(pl.id)}">
+          ${session ? "Get " + escapeHtml(pl.name) + " access" : "Sign in to buy"}
+        </button>
+      </div>
+    </div>`;
+  }).join("") + `</div>`;
+
+  /* ---------- checkout ---------- */
+  plansBox.querySelectorAll("button[data-plan]").forEach(btn => btn.onclick = async () => {
+    if (!session) { loginWithGitHub("pricing.html"); return; }
+    const planId = btn.dataset.plan;
+    const original = btn.textContent;
+    btn.disabled = true; btn.textContent = "Preparing…";
+
+    try {
+      // 1. ask our server to create the order (it decides the amount)
+      const { data: order, error: fnErr } = await sb.functions.invoke("razorpay-create-order", {
+        body: { plan_id: planId }
+      });
+      if (fnErr || !order || order.error) {
+        throw new Error((order && order.error) || fnErr?.message || "could not start checkout");
+      }
+
+      // 2. hand off to Razorpay Checkout
+      await new Promise((resolve) => {
+        const rzp = new Razorpay({
+          key: order.key_id,
+          amount: order.amount_paise,
+          currency: order.currency,
+          order_id: order.order_id,
+          name: window.QT_CONFIG.ORG_NAME,
+          description: window.QT_CONFIG.SITE_NAME + " — " + order.plan.name + " access",
+          image: location.origin + location.pathname.replace(/[^/]*$/, "") + "icon-192.png",
+          prefill: { email: order.prefill.email, name: order.prefill.name },
+          theme: { color: "#1F3864" },
+          modal: {
+            ondismiss: () => { showToast("Payment cancelled — nothing was charged."); resolve(); }
+          },
+          handler: async (resp) => {
+            btn.textContent = "Confirming…";
+            const { data: v, error: vErr } = await sb.functions.invoke("razorpay-verify-payment", {
+              body: {
+                razorpay_order_id: resp.razorpay_order_id,
+                razorpay_payment_id: resp.razorpay_payment_id,
+                razorpay_signature: resp.razorpay_signature
+              }
+            });
+            if (vErr || !v || v.error || !v.ok) {
+              showToast("Payment received but activation failed. Your payment is recorded — please contact us.", true, 9000);
+            } else {
+              showToast("Payment successful — access unlocked 🎉");
+              setTimeout(() => location.href = "app.html", 1200);
+            }
+            resolve();
+          }
+        });
+        rzp.on("payment.failed", (e) => {
+          showToast("Payment failed: " + (e?.error?.description || "please try again"), true, 7000);
+          resolve();
+        });
+        rzp.open();
+      });
+    } catch (e) {
+      showToast(e.message || String(e), true, 7000);
+    }
+    btn.disabled = false; btn.textContent = original;
+  });
+})();
+</script>
+</body>
+</html>

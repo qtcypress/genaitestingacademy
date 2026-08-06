@@ -57,6 +57,7 @@
     </div>
     <div class="pbar" style="margin-top:12px"><i id="progressFill" style="width:0%"></i></div>
     <div id="certCta" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
+    <div id="lockBanner"></div>
   </div>
 
   <div id="syllabus"><div class="spin"></div></div>
@@ -87,6 +88,10 @@
   }
   document.getElementById("courseName").textContent = course.title + (course.subtitle ? " — " + course.subtitle : "");
 
+  const { data: accessRows } = await sb.rpc("my_access");
+  const access = (accessRows || [])[0] || { has_access: false, is_admin: false };
+  const unlocked = !!(access.has_access || access.is_admin);
+
   const [{ data: modules }, { data: materials }, { data: prog }, { data: quizzes }, { data: certs }] =
     await Promise.all([
       sb.from("modules").select("*").eq("course_id", course.id).eq("published", true).order("number"),
@@ -108,6 +113,16 @@
   document.getElementById("progressText").textContent =
     `${done} of ${all.length} materials completed · ${pct}%`;
   document.getElementById("progressFill").style.width = pct + "%";
+
+  if (!unlocked) {
+    document.getElementById("lockBanner").innerHTML =
+      `<div style="margin-top:14px;background:var(--amber-tint);border:1.5px solid var(--amber);
+         border-radius:var(--radius);padding:14px 18px;font-size:14.5px">
+         <strong>Module 1 is free to preview.</strong> Unlock modules 2\u201316 and all three
+         certification exams from \u20b9499.
+         <a class="btn btn-primary btn-sm" style="margin-left:10px" href="pricing.html">See plans</a>
+       </div>`;
+  }
 
   const certByLevel = {};
   (certs || []).forEach(c => { if (c.level) certByLevel[c.level] = c; });
@@ -131,16 +146,18 @@
       const mats = byModule[m.id] || [];
       const mdone = mats.filter(x => progMap[x.id] === "completed").length;
       const mpct = mats.length ? Math.round(100 * mdone / mats.length) : 0;
-      const complete = mats.length > 0 && mdone === mats.length;
+      const locked = !unlocked && !m.is_free;
+      const complete = !locked && mats.length > 0 && mdone === mats.length;
       const objectives = Array.isArray(m.objectives) ? m.objectives : [];
       const topics = Array.isArray(m.topics) ? m.topics : [];
       return `
       <div class="mod ${complete ? "done" : ""}" data-mod="${m.id}">
         <div class="mod-head">
-          <div class="mod-num">${complete ? "✓" : m.number}</div>
+          <div class="mod-num"${locked ? ' style="background:var(--slate-soft)"' : ""}>${
+            locked ? "🔒" : complete ? "✓" : m.number}</div>
           <div class="mod-t">
-            <h3>${escapeHtml(m.title)}</h3>
-            <div class="mod-meta">${mats.length} item${mats.length === 1 ? "" : "s"}${
+            <h3>${escapeHtml(m.title)}${m.is_free && !unlocked ? ' <span class="pill pill-done">Free</span>' : ""}</h3>
+            <div class="mod-meta">${locked ? "Locked · " : mats.length + " item" + (mats.length === 1 ? "" : "s")}${
               m.duration_hours ? " · ~" + m.duration_hours + "h" : ""}${
               mats.length ? " · " + mdone + "/" + mats.length + " done" : ""}</div>
           </div>
@@ -158,7 +175,12 @@
               topics.map(t => `<li>${escapeHtml(t)}</li>`).join("")}</ul></div>` : ""}
           </div>
           <h4 style="font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin:6px 0 4px">Handouts &amp; materials</h4>
-          ${mats.length ? mats.map(x => `
+          ${locked ? `<div style="background:var(--cream);border:1px dashed var(--amber);border-radius:10px;
+              padding:16px;text-align:center">
+              <div style="font-size:26px">\u{1F512}</div>
+              <p style="margin:6px 0 10px;font-size:14.5px">This module's materials are part of the paid course.</p>
+              <a class="btn btn-primary btn-sm" href="pricing.html">Unlock from \u20b9499</a></div>`
+          : mats.length ? mats.map(x => `
             <div class="mat-row">
               <span class="pill pill-${x.kind}">${escapeHtml(TYPE_LABEL[x.material_type] || x.kind)}</span>
               <span class="grow"><b>${escapeHtml(x.title)}</b>
@@ -192,6 +214,14 @@
       <div class="lvl">` +
       levelled.map(q => {
         const b = best[q.id], cert = certByLevel[q.level];
+        if (!unlocked) {
+          return `<div class="lvl-card ${q.level}">
+            <h3>\u{1F512} ${escapeHtml(q.title)}</h3>
+            <p class="muted" style="margin:0 0 6px">${q.pass_percent}% to pass \u00b7 ${q.time_limit_minutes} min</p>
+            <p class="muted" style="margin:0;font-size:13px">${escapeHtml(q.description || "")}</p>
+            <div class="foot"><span class="pill pill-new">Subscription required</span>
+              <a class="btn btn-primary btn-sm" href="pricing.html">Unlock</a></div></div>`;
+        }
         const status = cert ? `<span class="pill pill-done">🎓 Certified · ${b ? b.percent : cert.percent}%</span>`
           : b ? `<span class="pill pill-new">Best ${b.percent}% · need ${q.pass_percent}%</span>`
               : `<span class="pill pill-new">Not attempted</span>`;

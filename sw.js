@@ -3,10 +3,10 @@
    Data (Supabase) always goes to the network. */
 /* Bump this version on every deploy — it evicts the old cache so returning
    students (and installed-app users) never get served a stale app shell. */
-const CACHE = "qt-academy-v3";
+const CACHE = "qt-academy-v4";
 const SHELL = [
   "./", "index.html", "app.html", "viewer.html", "quiz.html",
-  "certificate.html", "verify.html",
+  "certificate.html", "verify.html", "pricing.html",
   "app.css", "app.js", "config.js",
   "icon-192.png", "icon-512.png", "manifest.webmanifest"
 ];

@@ -36,7 +36,23 @@
   ]);
   if (qErr || !quiz) { box.innerHTML = "<div class='card'>Quiz not found.</div>"; return; }
   if (qsErr) { box.innerHTML = "<div class='card'>" + escapeHtml(qsErr.message) + "</div>"; return; }
-  if (!questions.length) { box.innerHTML = "<div class='card'>This quiz has no questions yet.</div>"; return; }
+  if (!questions.length) {
+    let locked = false;
+    try {
+      const { data: acc } = await sb.rpc("my_access");
+      const a0 = (acc || [])[0];
+      locked = !(a0 && (a0.has_access || a0.is_admin));
+    } catch (e) { /* ignore */ }
+    box.innerHTML = locked
+      ? `<div class="card" style="text-align:center;padding:44px 20px">
+           <div style="font-size:44px">\u{1F512}</div>
+           <h2 style="margin:8px 0">An active subscription is required</h2>
+           <p class="muted">The certification exams are part of the paid course.</p>
+           <a class="btn btn-primary" href="pricing.html">See plans</a>
+           <a class="btn btn-ghost" href="app.html">Back to my course</a></div>`
+      : "<div class='card'>This quiz has no questions yet.</div>";
+    return;
+  }
 
   let secondsLeft = (quiz.time_limit_minutes || 30) * 60;
   let timerH = null;

@@ -44,8 +44,29 @@
   const stage = document.getElementById("stage");
   if (!id) { stage.innerHTML = "<div class='card'>No material selected.</div>"; return; }
 
-  const { data: m, error } = await sb.from("materials").select("*").eq("id", id).single();
-  if (error || !m) { stage.innerHTML = "<div class='card'>Material not found.</div>"; return; }
+  const { data: m, error } = await sb.from("materials").select("*").eq("id", id).maybeSingle();
+  if (!m) {
+    /* Row-level security hides paid materials, so "no row" usually means locked
+       rather than missing. Check access to give the right message. */
+    let locked = false;
+    try {
+      const { data: acc } = await sb.rpc("my_access");
+      const a0 = (acc || [])[0];
+      locked = !(a0 && (a0.has_access || a0.is_admin));
+    } catch (e) { /* fall through to generic message */ }
+    stage.innerHTML = locked
+      ? `<div class="card" style="text-align:center;padding:44px 20px">
+           <div style="font-size:44px">\u{1F512}</div>
+           <h2 style="margin:8px 0">This material is part of the paid course</h2>
+           <p class="muted">Module 1 is free to preview. Unlock every module and all three
+             certification exams from \u20b9499.</p>
+           <a class="btn btn-primary" href="pricing.html">See plans</a>
+           <a class="btn btn-ghost" href="app.html">Back to my course</a></div>`
+      : `<div class="card">Material not found.${error ? " " + escapeHtml(error.message) : ""}</div>`;
+    document.getElementById("title").textContent = locked ? "Locked" : "Not found";
+    document.querySelector(".no-print").style.display = "none";
+    return;
+  }
 
   document.title = m.title + " — QT GenAI Testing Academy";
   document.getElementById("title").textContent = m.title;

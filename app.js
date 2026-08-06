@@ -79,13 +79,27 @@ async function renderTopbar(active) {
         adminLink = `<a class="navlink ${active === "admin" ? "active" : ""}" href="admin.html">Admin</a>`;
     } catch (e) { /* ignore */ }
   }
+  /* access badge: days left, or a prompt to subscribe */
+  let accessHtml = "";
+  if (session) {
+    try {
+      const { data } = await sb.rpc("my_access");
+      const a = (data || [])[0];
+      if (a && a.is_admin) accessHtml = `<span class="pill pill-done" style="margin-right:6px">Admin</span>`;
+      else if (a && a.has_access) accessHtml =
+        `<a class="navlink" href="pricing.html" title="Extend your access">\u2713 ${a.days_left}d left</a>`;
+      else accessHtml = `<a class="btn btn-primary btn-sm" style="margin-right:8px" href="pricing.html">Unlock full access</a>`;
+    } catch (e) { /* non-fatal */ }
+  }
+
   el.innerHTML = `<div class="topbar-inner">
     <a class="logo" href="${session ? "app.html" : "index.html"}"><span class="logo-dot"></span>${window.QT_CONFIG.SITE_NAME}</a>
     <span class="spacer"></span>
-    ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="app.html">Materials</a>
-    <a class="navlink ${active === "cert" ? "active" : ""}" href="certificate.html">My Certificate</a>` : ""}
+    ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="app.html">My Course</a>
+    <a class="navlink ${active === "cert" ? "active" : ""}" href="certificate.html">Certificates</a>` : ""}
+    <a class="navlink ${active === "pricing" ? "active" : ""}" href="pricing.html">Pricing</a>
     <a class="navlink ${active === "verify" ? "active" : ""}" href="verify.html">Verify</a>
-    ${adminLink} ${userHtml}</div>`;
+    ${adminLink} ${accessHtml} ${userHtml}</div>`;
 }
 
 /* ---------- misc ---------- */

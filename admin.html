@@ -36,6 +36,7 @@
     <button class="btn btn-ghost btn-sm" data-tab="materials">📂 Materials</button>
     <button class="btn btn-ghost btn-sm" data-tab="exams">📝 Exams</button>
     <button class="btn btn-ghost btn-sm" data-tab="students">👥 Students</button>
+    <button class="btn btn-ghost btn-sm" data-tab="billing">💳 Pricing &amp; Payments</button>
   </div>
 
   <!-- ============ CURRICULUM ============ -->
@@ -129,6 +130,33 @@
     <div id="quizList"><div class="spin"></div></div>
   </section>
 
+  <!-- ============ BILLING ============ -->
+  <section id="tab-billing" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Plan prices</h3>
+      <p class="muted">Prices are stored server-side. The checkout reads the amount from here, so a
+        student cannot pay less by tampering with the page.</p>
+      <div id="planEditor"><div class="spin"></div></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Grant access manually</h3>
+      <p class="muted">For bank transfer, cash, or comped students. Adds to any time they already have.</p>
+      <div class="grid2">
+        <div><label class="f">Student email</label><input class="f" id="g_email" placeholder="student@example.com"></div>
+        <div><label class="f">Plan</label><select class="f" id="g_plan"></select></div>
+      </div>
+      <label class="f">Note (optional)</label><input class="f" id="g_note" placeholder="e.g. NEFT ref 12345">
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="g_go">Grant access</button>
+        <button class="btn btn-danger" id="g_revoke">Revoke access</button>
+      </div>
+    </div>
+
+    <div id="billingList"><div class="spin"></div></div>
+    <div id="paymentsList" style="margin-top:16px"></div>
+  </section>
+
   <!-- ============ STUDENTS ============ -->
   <section id="tab-students" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
@@ -154,11 +182,12 @@
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.className = "btn btn-ghost btn-sm");
     b.className = "btn btn-navy btn-sm";
-    ["curriculum","materials","exams","students"].forEach(t =>
+    ["curriculum","materials","exams","students","billing"].forEach(t =>
       document.getElementById("tab-" + t).style.display = (t === b.dataset.tab ? "" : "none"));
     if (b.dataset.tab === "students") loadStudents();
     if (b.dataset.tab === "exams") loadQuizzes();
     if (b.dataset.tab === "materials") loadMaterials();
+    if (b.dataset.tab === "billing") loadBilling();
   });
 
   /* ================= COURSES ================= */
@@ -450,6 +479,106 @@
       p_options: opts, p_correct_index: correct, p_sort_order: 100
     });
     if (error) showToast(error.message, true); else { showToast("Question added"); loadQuizzes(); }
+  };
+
+  /* ================= BILLING ================= */
+  const rupees = pa => "\u20b9" + (pa / 100).toLocaleString("en-IN");
+
+  async function loadBilling() {
+    const { data: plans } = await sb.from("plans").select("*").order("sort_order");
+    document.getElementById("g_plan").innerHTML =
+      (plans || []).map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} — ${rupees(p.amount_paise)}</option>`).join("");
+    document.getElementById("planEditor").innerHTML = (plans || []).map(p => `
+      <div class="qrow">
+        <div class="grid2">
+          <div><label class="f">${escapeHtml(p.name)} — price in ${escapeHtml(p.currency)}</label>
+            <input class="f" id="pp_${p.id}" type="number" min="0" step="1" value="${(p.amount_paise/100)}"></div>
+          <div><label class="f">Access duration (days)</label>
+            <input class="f" id="pd_${p.id}" type="number" min="1" value="${p.duration_days}"></div>
+        </div>
+        <label class="f">Badge (blank for none)</label>
+        <input class="f" id="pb_${p.id}" value="${escapeHtml(p.badge || "")}">
+        <label class="f">Description shown to students</label>
+        <textarea class="f" id="pdesc_${p.id}" rows="2">${escapeHtml(p.description || "")}</textarea>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="savePlan('${p.id}')">Save ${escapeHtml(p.name)}</button>
+          <button class="btn btn-ghost btn-sm" onclick="togglePlan('${p.id}',${!p.active})">${p.active ? "Hide from pricing page" : "Show on pricing page"}</button>
+          <span class="muted">${p.active ? "\u2705 live" : "\ud83d\udd52 hidden"}</span>
+        </div>
+      </div>`).join("");
+
+    const { data: rows, error } = await sb.rpc("admin_billing_report");
+    const el = document.getElementById("billingList");
+    if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+    const paying = (rows || []).filter(r => r.expires_at);
+    const revenue = (rows || []).reduce((s, r) => s + Number(r.total_paid_paise || 0), 0);
+    el.innerHTML = `<div class="card" style="margin-bottom:12px">
+        <h3 style="margin-top:0">Revenue &amp; access</h3>
+        <p style="margin:0;font-size:15px"><strong>${rupees(revenue)}</strong> collected \u00b7
+          <strong>${paying.length}</strong> student(s) with active access \u00b7
+          <strong>${(rows || []).length}</strong> registered</p>
+      </div>
+      <div class="table-wrap"><table class="qt"><thead>
+      <tr><th>Student</th><th>Plan</th><th>Days left</th><th>Expires</th><th>Source</th><th>Paid</th></tr>
+      </thead><tbody>` +
+      (rows || []).map(r => `<tr>
+        <td><strong>${escapeHtml(r.full_name || "\u2014")}</strong><br><span class="muted">${escapeHtml(r.email || "")}</span></td>
+        <td>${escapeHtml(r.plan_id || "\u2014")}</td>
+        <td>${r.days_left ?? "\u2014"}</td>
+        <td>${r.expires_at ? fmtDate(r.expires_at) : "\u2014"}</td>
+        <td>${escapeHtml(r.source || "\u2014")}</td>
+        <td>${r.total_paid_paise ? rupees(r.total_paid_paise) : "\u2014"}</td>
+      </tr>`).join("") + `</tbody></table></div>`;
+
+    const { data: pays } = await sb.from("payments")
+      .select("created_at,status,amount_paise,plan_id,razorpay_order_id,razorpay_payment_id")
+      .order("created_at", { ascending: false }).limit(50);
+    document.getElementById("paymentsList").innerHTML =
+      `<h3>Recent payment attempts</h3><div class="table-wrap"><table class="qt"><thead>
+       <tr><th>When</th><th>Plan</th><th>Amount</th><th>Status</th><th>Razorpay order</th></tr></thead><tbody>` +
+      ((pays || []).map(x => `<tr>
+        <td class="muted">${fmtDate(x.created_at)}</td>
+        <td>${escapeHtml(x.plan_id || "")}</td>
+        <td>${rupees(x.amount_paise)}</td>
+        <td>${x.status === "paid" ? "\u2705 paid" : x.status === "failed" ? "\u274c failed" : "\u23f3 created"}</td>
+        <td style="font-family:monospace;font-size:12px">${escapeHtml(x.razorpay_order_id || "")}</td>
+      </tr>`).join("") || `<tr><td colspan="5" class="muted">No payment attempts yet.</td></tr>`) +
+      `</tbody></table></div>`;
+  }
+
+  window.savePlan = async id => {
+    const rup = parseFloat(document.getElementById("pp_" + id).value);
+    const days = parseInt(document.getElementById("pd_" + id).value, 10);
+    if (!(rup >= 0) || !(days > 0)) { showToast("Price and duration must be valid", true); return; }
+    const { error } = await sb.from("plans").update({
+      amount_paise: Math.round(rup * 100),
+      duration_days: days,
+      badge: document.getElementById("pb_" + id).value.trim() || null,
+      description: document.getElementById("pdesc_" + id).value.trim() || null
+    }).eq("id", id);
+    if (error) showToast(error.message, true); else { showToast("Plan saved"); loadBilling(); }
+  };
+  window.togglePlan = async (id, active) => {
+    const { error } = await sb.from("plans").update({ active }).eq("id", id);
+    if (error) showToast(error.message, true); else loadBilling();
+  };
+  document.getElementById("g_go").onclick = async () => {
+    const email = document.getElementById("g_email").value.trim();
+    if (!email) { showToast("Enter the student's email", true); return; }
+    const { error } = await sb.rpc("admin_grant_access", {
+      p_email: email,
+      p_plan_id: document.getElementById("g_plan").value,
+      p_note: document.getElementById("g_note").value.trim() || "manual"
+    });
+    if (error) showToast(error.message, true);
+    else { showToast("Access granted to " + email); document.getElementById("g_email").value = ""; loadBilling(); }
+  };
+  document.getElementById("g_revoke").onclick = async () => {
+    const email = document.getElementById("g_email").value.trim();
+    if (!email) { showToast("Enter the student's email", true); return; }
+    if (!confirm("Revoke active access for " + email + "?")) return;
+    const { error } = await sb.rpc("admin_revoke_access", { p_email: email });
+    if (error) showToast(error.message, true); else { showToast("Access revoked"); loadBilling(); }
   };
 
   /* ================= STUDENTS ================= */
