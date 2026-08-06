@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify a Certificate — QT GenAI Testing Academy</title>
+<meta name="description" content="Publicly verify any Quality Thought GenAI Testing certificate by certificate number or GitHub email.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<header class="hero" style="padding:36px 0">
+  <div class="wrap">
+    <h1>Verify a <span class="accent">Certificate</span></h1>
+    <p>Enter a certificate number (e.g. <strong style="color:#fff">QT-2026-A1B2C3D4</strong>) or the
+       GitHub email of the certificate holder. No login needed.</p>
+  </div>
+</header>
+
+<main class="wrap section" style="max-width:640px">
+  <form class="card" id="vform">
+    <label class="f" for="q">Certificate number or email</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input class="f" id="q" style="flex:1;min-width:200px" placeholder="QT-2026-XXXXXXXX or student@example.com" required>
+      <button class="btn btn-primary" type="submit">Verify</button>
+    </div>
+  </form>
+  <div id="out" style="margin-top:18px"></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+renderTopbar("verify");
+const out = document.getElementById("out");
+
+async function verify(q) {
+  out.innerHTML = "<div class='spin'></div>";
+  const { data, error } = await sb.rpc("verify_certificate", { p_query: q });
+  if (error) { out.innerHTML = "<div class='card'>Error: " + escapeHtml(error.message) + "</div>"; return; }
+  if (!data || !data.length) {
+    out.innerHTML = `<div class="card" style="border-color:var(--rose)">
+      <h3 style="color:var(--rose)">✗ No certificate found</h3>
+      <p class="muted" style="margin:0">Nothing matches “${escapeHtml(q)}”. Check the certificate number or email and try again.</p></div>`;
+    return;
+  }
+  out.innerHTML = data.map(c => `
+    <div class="card" style="border-color:var(--mint)">
+      <h3 style="color:var(--mint)">✓ Valid certificate</h3>
+      <div class="table-wrap" style="margin-top:10px"><table class="qt" style="min-width:0">
+        <tbody>
+          <tr><td><strong>Certificate No.</strong></td><td style="font-family:monospace">${escapeHtml(c.cert_number)}</td></tr>
+          <tr><td><strong>Name</strong></td><td>${escapeHtml(c.full_name)}</td></tr>
+          <tr><td><strong>Email</strong></td><td>${escapeHtml(c.email)}</td></tr>
+          <tr><td><strong>Course</strong></td><td>${escapeHtml(c.course)}</td></tr>
+          <tr><td><strong>Score</strong></td><td>${c.percent ?? "—"}%</td></tr>
+          <tr><td><strong>Issued</strong></td><td>${fmtDate(c.issued_at)}</td></tr>
+        </tbody></table></div>
+      <p class="muted" style="margin:10px 0 0">Issued by ${escapeHtml(window.QT_CONFIG.ORG_NAME)} — GenAI Application Testing program.</p>
+    </div>`).join("");
+}
+
+document.getElementById("vform").addEventListener("submit", e => {
+  e.preventDefault();
+  verify(document.getElementById("q").value.trim());
+});
+
+/* support verify.html?q=QT-2026-XXXX deep links (used on the certificate page) */
+const pre = new URLSearchParams(location.search).get("q");
+if (pre) { document.getElementById("q").value = pre; verify(pre); }
+</script>
+</body>
+</html>

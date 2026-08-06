@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Materials — QT GenAI Testing Academy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section">
+  <div class="card" id="progressCard" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
+      <h2 style="margin:0" id="hello">Welcome 👋</h2>
+      <span class="muted" id="progressText">Loading…</span>
+    </div>
+    <div class="pbar" style="margin-top:12px"><i id="progressFill" style="width:0%"></i></div>
+    <div id="certCta" style="margin-top:14px"></div>
+  </div>
+
+  <div id="quizzesBox"></div>
+  <div id="materialsBox"><div class="spin"></div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  await requireLogin();
+  renderTopbar("app");
+  const profile = await getProfile();
+  if (profile) document.getElementById("hello").textContent = `Welcome, ${profile.full_name || profile.email} 👋`;
+
+  const [{ data: materials, error: mErr }, { data: prog }, { data: quizzes }] = await Promise.all([
+    sb.from("materials").select("*").eq("published", true).order("module").order("sort_order"),
+    sb.from("progress").select("material_id,status"),
+    sb.from("quizzes").select("*").eq("published", true).order("is_final")
+  ]);
+  if (mErr) { showToast("Could not load materials: " + mErr.message, true); return; }
+
+  const progMap = {};
+  (prog || []).forEach(p => (progMap[p.material_id] = p.status));
+
+  /* ---- progress summary ---- */
+  const total = materials.length;
+  const done = materials.filter(m => progMap[m.id] === "completed").length;
+  const pct = total ? Math.round((100 * done) / total) : 0;
+  document.getElementById("progressText").textContent = `${done} of ${total} materials completed · ${pct}%`;
+  document.getElementById("progressFill").style.width = pct + "%";
+
+  /* ---- certificate CTA ---- */
+  const { data: certs } = await sb.from("certificates").select("cert_number").limit(1);
+  if (certs && certs.length) {
+    document.getElementById("certCta").innerHTML =
+      `<a class="btn btn-primary btn-sm" href="certificate.html">🎓 View your certificate — ${certs[0].cert_number}</a>`;
+  }
+
+  /* ---- quizzes ---- */
+  if (quizzes && quizzes.length) {
+    const { data: attempts } = await sb.from("attempts").select("quiz_id,percent,passed").order("created_at", { ascending: false });
+    const best = {};
+    (attempts || []).forEach(a => {
+      if (!best[a.quiz_id] || a.percent > best[a.quiz_id].percent) best[a.quiz_id] = a;
+    });
+    document.getElementById("quizzesBox").innerHTML =
+      `<div class="section"><h2>Assessments</h2><div class="grid grid-2">` +
+      quizzes.map(q => {
+        const b = best[q.id];
+        const status = b
+          ? (b.passed ? `<span class="pill pill-done">Passed · ${b.percent}%</span>`
+                      : `<span class="pill pill-new">Best · ${b.percent}%</span>`)
+          : `<span class="pill pill-new">Not attempted</span>`;
+        return `<div class="card mat">
+          <h3>${q.is_final ? "🎓 " : "📝 "}${escapeHtml(q.title)}</h3>
+          <p class="muted" style="margin:0">${escapeHtml(q.description || "")}</p>
+          <div class="mat-foot">${status}
+            <a class="btn btn-navy btn-sm" href="quiz.html?id=${q.id}">${b ? "Retake" : "Start"}</a></div>
+        </div>`;
+      }).join("") + `</div></div>`;
+  }
+
+  /* ---- materials grouped by module ---- */
+  const modules = {};
+  materials.forEach(m => { (modules[m.module] = modules[m.module] || []).push(m); });
+
+  document.getElementById("materialsBox").innerHTML = Object.keys(modules).map(mod => `
+    <div class="section"><h2>${escapeHtml(mod)}</h2>
+      <div class="grid grid-2">${modules[mod].map(m => {
+        const st = progMap[m.id];
+        const badge = st === "completed" ? `<span class="pill pill-done">✓ Completed</span>`
+                     : st === "viewed"   ? `<span class="pill pill-new">In progress</span>` : "";
+        return `<div class="card mat">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center">
+            <span class="pill pill-${m.kind}">${KIND_LABEL[m.kind] || m.kind}</span>${badge}</div>
+          <h3>${escapeHtml(m.title)}</h3>
+          <p class="muted" style="margin:0">${escapeHtml(m.description || "")}</p>
+          <div class="mat-foot"><span class="muted">${fmtBytes(m.file_size)}</span>
+            <a class="btn btn-primary btn-sm" href="viewer.html?id=${m.id}">Open</a></div>
+        </div>`;
+      }).join("")}</div>
+    </div>`).join("") || `<div class="card"><p class="muted" style="margin:0">No materials published yet — check back soon!</p></div>`;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Certificate — QT GenAI Testing Academy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section">
+  <div id="box"><div class="spin"></div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  await requireLogin();
+  renderTopbar("cert");
+  const box = document.getElementById("box");
+
+  const { data: certs, error } = await sb.from("certificates").select("*").order("issued_at", { ascending: false });
+  if (error) { box.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+  if (!certs || !certs.length) {
+    box.innerHTML = `<div class="card" style="text-align:center;padding:48px 20px">
+      <div style="font-size:52px">🎓</div>
+      <h2>No certificate yet</h2>
+      <p class="muted">Complete the course materials and pass the final assessment to earn your certificate.</p>
+      <a class="btn btn-primary" href="app.html">Go to materials</a></div>`;
+    return;
+  }
+
+  const c = certs[0];
+  box.innerHTML = `
+    <div style="text-align:center;margin-bottom:14px" class="no-print">
+      <button class="btn btn-primary" onclick="window.print()">🖨 Print / Save as PDF</button>
+      <button class="btn btn-ghost" onclick="copyLink()">🔗 Copy verification link</button>
+    </div>
+    <div class="cert">
+      <div class="cert-org">${escapeHtml(window.QT_CONFIG.ORG_NAME)} · School of Technology</div>
+      <h1>Certificate of Completion</h1>
+      <p class="muted" style="margin:0">This is to certify that</p>
+      <div class="cert-name">${escapeHtml(c.full_name)}</div>
+      <p class="cert-course">has successfully completed the training program<br>
+        <strong style="color:var(--navy)">${escapeHtml(c.course)}</strong><br>
+        with a final assessment score of <strong>${c.percent ?? "—"}%</strong>.</p>
+      <div class="cert-meta">
+        <div>Certificate No.<br><span class="cert-no">${escapeHtml(c.cert_number)}</span></div>
+        <div>Issued on<br><strong>${fmtDate(c.issued_at)}</strong></div>
+        <div>Verify at<br><strong>${location.origin + location.pathname.replace(/[^/]*$/, "")}verify.html</strong></div>
+      </div>
+    </div>`;
+  window.copyLink = function () {
+    const url = location.origin + location.pathname.replace(/[^/]*$/, "") + "verify.html?q=" + encodeURIComponent(c.cert_number);
+    navigator.clipboard.writeText(url).then(() => showToast("Verification link copied!"));
+  };
+})();
+</script>
+</body>
+</html>

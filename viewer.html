@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Material — QT GenAI Testing Academy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<style>
+  .viewer-frame{width:100%;height:calc(100vh - 210px);min-height:420px;border:1px solid var(--line);border-radius:var(--radius);background:#fff}
+  .viewer-img{display:block;margin:0 auto;max-height:calc(100vh - 220px);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .sheet-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+    <div>
+      <a href="app.html" class="muted" style="text-decoration:none">← Back to materials</a>
+      <h1 id="title" style="margin:4px 0 0;font-size:clamp(19px,3.4vw,26px)">Loading…</h1>
+      <p class="muted" id="desc" style="margin:2px 0 0"></p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap" class="no-print">
+      <a class="btn btn-ghost btn-sm" id="downloadBtn" href="#" download>⬇ Download</a>
+      <button class="btn btn-primary btn-sm" id="doneBtn">✓ Mark as completed</button>
+    </div>
+  </div>
+  <div id="stage"><div class="spin"></div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  await requireLogin();
+  renderTopbar("app");
+
+  const id = new URLSearchParams(location.search).get("id");
+  const stage = document.getElementById("stage");
+  if (!id) { stage.innerHTML = "<div class='card'>No material selected.</div>"; return; }
+
+  const { data: m, error } = await sb.from("materials").select("*").eq("id", id).single();
+  if (error || !m) { stage.innerHTML = "<div class='card'>Material not found.</div>"; return; }
+
+  document.title = m.title + " — QT GenAI Testing Academy";
+  document.getElementById("title").textContent = m.title;
+  document.getElementById("desc").textContent = m.description || "";
+
+  let url;
+  try { url = await signedUrl(m.storage_path, 3600); }
+  catch (e) { stage.innerHTML = "<div class='card'>Could not open file: " + escapeHtml(e.message) + "</div>"; return; }
+
+  document.getElementById("downloadBtn").href = url;
+  document.getElementById("downloadBtn").setAttribute("download", m.file_name);
+
+  /* record that the student opened it */
+  markProgress(m.id, "viewed");
+  document.getElementById("doneBtn").onclick = async () => {
+    await markProgress(m.id, "completed");
+    showToast("Marked as completed 🎉");
+    document.getElementById("doneBtn").textContent = "✓ Completed";
+    document.getElementById("doneBtn").disabled = true;
+  };
+
+  /* ---- render by kind ---- */
+  if (m.kind === "html" || m.kind === "pdf") {
+    stage.innerHTML = `<iframe class="viewer-frame" src="${url}" title="${escapeHtml(m.title)}" sandbox="allow-scripts allow-same-origin"></iframe>`;
+  }
+  else if (m.kind === "image" || m.kind === "gif") {
+    stage.innerHTML = `<img class="viewer-img" src="${url}" alt="${escapeHtml(m.title)}">`;
+  }
+  else if (m.kind === "pptx" || m.kind === "docx") {
+    const office = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(url);
+    stage.innerHTML = `
+      <iframe class="viewer-frame" src="${office}" title="${escapeHtml(m.title)}"></iframe>
+      <p class="muted" style="margin-top:8px">Preview powered by Microsoft Office online viewer.
+      If it doesn't load, use <strong>⬇ Download</strong> above to open the file locally.</p>`;
+  }
+  else if (m.kind === "xlsx") {
+    stage.innerHTML = `<div class="spin"></div>`;
+    /* Excel → interactive tables, rendered client-side with SheetJS */
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+    s.onload = async () => {
+      try {
+        const buf = await (await fetch(url)).arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        let html = `<div class="sheet-tabs no-print">` + wb.SheetNames.map((n, i) =>
+          `<button class="btn btn-sm ${i === 0 ? "btn-navy" : "btn-ghost"}" data-i="${i}">${escapeHtml(n)}</button>`).join("") + `</div>`;
+        html += wb.SheetNames.map((n, i) => {
+          const tbl = XLSX.utils.sheet_to_html(wb.Sheets[n], { id: "sheet" + i });
+          return `<div class="table-wrap sheet-pane" id="pane${i}" style="${i ? "display:none" : ""}">${tbl}</div>`;
+        }).join("");
+        stage.innerHTML = html;
+        stage.querySelectorAll("table").forEach(t => t.classList.add("qt"));
+        stage.querySelectorAll(".sheet-tabs button").forEach(b => b.onclick = () => {
+          stage.querySelectorAll(".sheet-pane").forEach(p => (p.style.display = "none"));
+          stage.querySelectorAll(".sheet-tabs button").forEach(x => x.className = "btn btn-sm btn-ghost");
+          b.className = "btn btn-sm btn-navy";
+          document.getElementById("pane" + b.dataset.i).style.display = "";
+        });
+      } catch (e) { stage.innerHTML = "<div class='card'>Could not parse spreadsheet: " + escapeHtml(e.message) + "</div>"; }
+    };
+    document.body.appendChild(s);
+  }
+  else {
+    stage.innerHTML = `<div class="card" style="text-align:center;padding:48px">
+      <h3>${escapeHtml(m.file_name)}</h3>
+      <p class="muted">This file type opens outside the browser.</p>
+      <a class="btn btn-primary" href="${url}" download="${escapeHtml(m.file_name)}">⬇ Download file</a></div>`;
+  }
+})();
+</script>
+</body>
+</html>

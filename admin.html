@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — QT GenAI Testing Academy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+<style>
+  .tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
+  .drop{border:2px dashed var(--line);border-radius:var(--radius);padding:34px;text-align:center;color:var(--slate-soft);cursor:pointer;background:#fff;transition:border-color .15s}
+  .drop.on{border-color:var(--orange);color:var(--orange)}
+  .qrow{border:1px solid var(--line);border-radius:10px;padding:12px;margin:10px 0;background:#fff}
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section">
+  <h1>Admin Panel</h1>
+  <div class="tabs no-print">
+    <button class="btn btn-navy btn-sm" data-tab="materials">📚 Materials</button>
+    <button class="btn btn-ghost btn-sm" data-tab="quizzes">📝 Assessments</button>
+    <button class="btn btn-ghost btn-sm" data-tab="students">👥 Student Progress</button>
+  </div>
+
+  <!-- ============ MATERIALS TAB ============ -->
+  <section id="tab-materials">
+    <div class="card" style="margin-bottom:18px">
+      <h3>Upload material</h3>
+      <p class="muted">HTML lessons, images, animated GIFs, PDFs, PowerPoint, Word documents, or Excel files
+        (Excel is displayed to students as interactive tables).</p>
+      <div class="drop" id="drop">📂 Tap to choose a file — or drag &amp; drop here</div>
+      <input type="file" id="file" hidden
+        accept=".html,.htm,.png,.jpg,.jpeg,.webp,.svg,.gif,.pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.csv">
+      <div id="uploadForm" style="display:none">
+        <label class="f">Title</label><input class="f" id="u_title">
+        <label class="f">Description (optional)</label><input class="f" id="u_desc">
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:12px">
+          <div><label class="f">Module / section</label><input class="f" id="u_module" list="modlist" placeholder="e.g. GenAI Basics">
+            <datalist id="modlist"></datalist></div>
+          <div><label class="f">Sort order</label><input class="f" id="u_sort" type="number" value="100"></div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary" id="u_go">⬆ Upload &amp; publish</button>
+          <span class="muted" id="u_info"></span>
+        </div>
+      </div>
+    </div>
+    <div id="matList"><div class="spin"></div></div>
+  </section>
+
+  <!-- ============ QUIZZES TAB ============ -->
+  <section id="tab-quizzes" style="display:none">
+    <div class="card" style="margin-bottom:18px">
+      <h3>Create assessment</h3>
+      <label class="f">Title</label><input class="f" id="qz_title" placeholder="e.g. Final Certification Exam">
+      <label class="f">Description</label><input class="f" id="qz_desc">
+      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><label class="f">Pass %</label><input class="f" id="qz_pass" type="number" value="70" min="1" max="100"></div>
+        <div><label class="f">Time limit (min)</label><input class="f" id="qz_time" type="number" value="30"></div>
+        <div><label class="f">Type</label><select class="f" id="qz_final">
+          <option value="false">Practice quiz</option><option value="true">🎓 FINAL (grants certificate)</option></select></div>
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px" id="qz_create">Create assessment</button>
+    </div>
+    <div id="quizList"><div class="spin"></div></div>
+  </section>
+
+  <!-- ============ STUDENTS TAB ============ -->
+  <section id="tab-students" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+      <input class="f" id="stuSearch" placeholder="🔍 Search name / email / GitHub…" style="max-width:320px">
+      <button class="btn btn-ghost btn-sm" id="csvBtn">⬇ Export CSV</button>
+    </div>
+    <div id="stuList"><div class="spin"></div></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  await requireAdmin();
+  renderTopbar("admin");
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+    document.querySelectorAll(".tabs button").forEach(x => x.className = "btn btn-ghost btn-sm");
+    b.className = "btn btn-navy btn-sm";
+    ["materials", "quizzes", "students"].forEach(t =>
+      document.getElementById("tab-" + t).style.display = (t === b.dataset.tab ? "" : "none"));
+    if (b.dataset.tab === "students") loadStudents();
+    if (b.dataset.tab === "quizzes") loadQuizzes();
+  });
+
+  /* ================= MATERIALS ================= */
+  const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
+  let pendingFile = null;
+
+  drop.onclick = () => fileInput.click();
+  drop.ondragover = e => { e.preventDefault(); drop.classList.add("on"); };
+  drop.ondragleave = () => drop.classList.remove("on");
+  drop.ondrop = e => { e.preventDefault(); drop.classList.remove("on"); if (e.dataTransfer.files[0]) pickFile(e.dataTransfer.files[0]); };
+  fileInput.onchange = () => { if (fileInput.files[0]) pickFile(fileInput.files[0]); };
+
+  function pickFile(f) {
+    pendingFile = f;
+    drop.textContent = "📄 " + f.name + " (" + fmtBytes(f.size) + ")";
+    document.getElementById("uploadForm").style.display = "";
+    document.getElementById("u_title").value = f.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ");
+  }
+
+  document.getElementById("u_go").onclick = async () => {
+    if (!pendingFile) return;
+    const btn = document.getElementById("u_go"); btn.disabled = true;
+    const info = document.getElementById("u_info"); info.textContent = "Uploading…";
+    try {
+      const kind = kindFromFile(pendingFile.name);
+      const safe = pendingFile.name.replace(/[^\w.\-]+/g, "_");
+      const path = Date.now() + "_" + safe;
+      const { error: upErr } = await sb.storage.from("materials").upload(path, pendingFile, { upsert: false });
+      if (upErr) throw upErr;
+      const { error: insErr } = await sb.from("materials").insert({
+        title: document.getElementById("u_title").value.trim() || pendingFile.name,
+        description: document.getElementById("u_desc").value.trim() || null,
+        module: document.getElementById("u_module").value.trim() || "General",
+        kind, storage_path: path, file_name: pendingFile.name, file_size: pendingFile.size,
+        sort_order: parseInt(document.getElementById("u_sort").value, 10) || 100
+      });
+      if (insErr) throw insErr;
+      showToast("Uploaded ✔ — students can see it now");
+      pendingFile = null;
+      drop.textContent = "📂 Tap to choose a file — or drag & drop here";
+      document.getElementById("uploadForm").style.display = "none";
+      loadMaterials();
+    } catch (e) { showToast("Upload failed: " + e.message, true, 6000); }
+    btn.disabled = false; info.textContent = "";
+  };
+
+  async function loadMaterials() {
+    const { data, error } = await sb.from("materials").select("*").order("module").order("sort_order");
+    const el = document.getElementById("matList");
+    if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+    const mods = [...new Set(data.map(m => m.module))];
+    document.getElementById("modlist").innerHTML = mods.map(m => `<option value="${escapeHtml(m)}">`).join("");
+    el.innerHTML = `<div class="table-wrap"><table class="qt"><thead>
+      <tr><th>Title</th><th>Module</th><th>Type</th><th>Size</th><th>Status</th><th></th></tr></thead><tbody>` +
+      data.map(m => `<tr>
+        <td><strong>${escapeHtml(m.title)}</strong><br><span class="muted">${escapeHtml(m.file_name)}</span></td>
+        <td>${escapeHtml(m.module)}</td>
+        <td><span class="pill pill-${m.kind}">${m.kind}</span></td>
+        <td>${fmtBytes(m.file_size)}</td>
+        <td>${m.published ? "✅ Published" : "🕒 Hidden"}</td>
+        <td style="white-space:nowrap">
+          <a class="btn btn-ghost btn-sm" href="viewer.html?id=${m.id}">View</a>
+          <button class="btn btn-ghost btn-sm" onclick="togglePub('${m.id}',${!m.published})">${m.published ? "Hide" : "Publish"}</button>
+          <button class="btn btn-danger btn-sm" onclick="delMat('${m.id}','${m.storage_path}')">✕</button>
+        </td></tr>`).join("") + "</tbody></table></div>";
+  }
+  window.togglePub = async (id, pub) => {
+    const { error } = await sb.from("materials").update({ published: pub }).eq("id", id);
+    if (error) showToast(error.message, true); else loadMaterials();
+  };
+  window.delMat = async (id, path) => {
+    if (!confirm("Delete this material? Student progress rows for it are removed too.")) return;
+    await sb.storage.from("materials").remove([path]);
+    const { error } = await sb.from("materials").delete().eq("id", id);
+    if (error) showToast(error.message, true); else { showToast("Deleted"); loadMaterials(); }
+  };
+  loadMaterials();
+
+  /* ================= QUIZZES ================= */
+  document.getElementById("qz_create").onclick = async () => {
+    const title = document.getElementById("qz_title").value.trim();
+    if (!title) { showToast("Give the assessment a title", true); return; }
+    const { error } = await sb.from("quizzes").insert({
+      title, description: document.getElementById("qz_desc").value.trim() || null,
+      pass_percent: parseInt(document.getElementById("qz_pass").value, 10) || 70,
+      time_limit_minutes: parseInt(document.getElementById("qz_time").value, 10) || 30,
+      is_final: document.getElementById("qz_final").value === "true", published: false
+    });
+    if (error) showToast(error.message, true);
+    else { showToast("Assessment created — now add questions, then publish"); document.getElementById("qz_title").value = ""; loadQuizzes(); }
+  };
+
+  async function loadQuizzes() {
+    const { data, error } = await sb.from("quizzes").select("*").order("created_at");
+    const el = document.getElementById("quizList");
+    if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+    el.innerHTML = "";
+    for (const q of data) {
+      const qs = await sb.rpc("admin_get_questions", { p_quiz_id: q.id });
+      const questions = qs.data || [];
+      const div = document.createElement("div");
+      div.className = "card"; div.style.marginBottom = "16px";
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <h3 style="margin:0">${q.is_final ? "🎓 " : "📝 "}${escapeHtml(q.title)}
+            <span class="muted" style="font-weight:400">· ${questions.length} questions · pass ${q.pass_percent}%</span></h3>
+          <div>
+            <button class="btn btn-ghost btn-sm" onclick="togglePubQuiz('${q.id}',${!q.published})">${q.published ? "Unpublish" : "▶ Publish"}</button>
+            <button class="btn btn-danger btn-sm" onclick="delQuiz('${q.id}')">✕</button>
+          </div>
+        </div>
+        <div>${questions.map(qq => `
+          <div class="qrow"><strong>${escapeHtml(qq.question)}</strong><br>
+            <span class="muted">${(qq.options || []).map((o, i) =>
+              (i === qq.correct_index ? "✅ " : "· ") + escapeHtml(o)).join(" &nbsp; ")}</span>
+            <button class="btn btn-danger btn-sm" style="float:right" onclick="delQ('${qq.id}')">✕</button>
+          </div>`).join("")}</div>
+        <details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600;color:var(--navy)">＋ Add question</summary>
+          <label class="f">Question</label><input class="f" id="nq_text_${q.id}">
+          <label class="f">Options (one per line, 2–6)</label>
+          <textarea class="f" id="nq_opts_${q.id}" rows="4" placeholder="Option A&#10;Option B&#10;Option C&#10;Option D"></textarea>
+          <label class="f">Correct option number (1 = first line)</label>
+          <input class="f" id="nq_correct_${q.id}" type="number" min="1" value="1" style="max-width:120px">
+          <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="addQ('${q.id}')">Add question</button>
+        </details>`;
+      el.appendChild(div);
+    }
+    if (!data.length) el.innerHTML = "<div class='card muted'>No assessments yet — create one above.</div>";
+  }
+  window.togglePubQuiz = async (id, pub) => {
+    const { error } = await sb.from("quizzes").update({ published: pub }).eq("id", id);
+    if (error) showToast(error.message, true); else loadQuizzes();
+  };
+  window.delQuiz = async id => {
+    if (!confirm("Delete this assessment and all its questions/attempts?")) return;
+    const { error } = await sb.from("quizzes").delete().eq("id", id);
+    if (error) showToast(error.message, true); else loadQuizzes();
+  };
+  window.delQ = async id => {
+    const { error } = await sb.from("questions").delete().eq("id", id);
+    if (error) showToast(error.message, true); else loadQuizzes();
+  };
+  window.addQ = async quizId => {
+    const text = document.getElementById("nq_text_" + quizId).value.trim();
+    const opts = document.getElementById("nq_opts_" + quizId).value.split("\n").map(s => s.trim()).filter(Boolean);
+    const correct = parseInt(document.getElementById("nq_correct_" + quizId).value, 10) - 1;
+    if (!text || opts.length < 2) { showToast("Need a question and at least 2 options", true); return; }
+    if (correct < 0 || correct >= opts.length) { showToast("Correct option number is out of range", true); return; }
+    const { error } = await sb.rpc("admin_upsert_question", {
+      p_id: null, p_quiz_id: quizId, p_question: text,
+      p_options: opts, p_correct_index: correct, p_sort_order: 100
+    });
+    if (error) showToast(error.message, true); else { showToast("Question added"); loadQuizzes(); }
+  };
+
+  /* ================= STUDENTS ================= */
+  let stuData = [];
+  async function loadStudents() {
+    const el = document.getElementById("stuList");
+    el.innerHTML = "<div class='spin'></div>";
+    const { data, error } = await sb.rpc("admin_progress_report");
+    if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
+    stuData = data || [];
+    renderStudents();
+  }
+  function renderStudents() {
+    const q = (document.getElementById("stuSearch").value || "").toLowerCase();
+    const rows = stuData.filter(s =>
+      !q || (s.full_name || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q) || (s.github_user || "").toLowerCase().includes(q));
+    document.getElementById("stuList").innerHTML = `<div class="table-wrap"><table class="qt"><thead>
+      <tr><th>Student</th><th>GitHub</th><th>Progress</th><th>Final exam</th><th>Certified</th><th>Last active</th></tr></thead><tbody>` +
+      rows.map(s => {
+        const pct = s.total_published ? Math.round(100 * s.completed / s.total_published) : 0;
+        return `<tr>
+          <td><strong>${escapeHtml(s.full_name || "—")}</strong><br><span class="muted">${escapeHtml(s.email || "")}</span></td>
+          <td>${escapeHtml(s.github_user || "—")}</td>
+          <td style="min-width:150px">${s.completed}/${s.total_published}
+            <div class="pbar" style="margin-top:4px"><i style="width:${pct}%"></i></div></td>
+          <td>${s.best_final_percent != null ? s.best_final_percent + "%" : "—"}</td>
+          <td>${s.certified ? "🎓 Yes" : "—"}</td>
+          <td class="muted">${s.last_active ? fmtDate(s.last_active) : "—"}</td></tr>`;
+      }).join("") + "</tbody></table></div>" +
+      `<p class="muted" style="margin-top:8px">${rows.length} student(s)</p>`;
+  }
+  document.getElementById("stuSearch").oninput = renderStudents;
+  document.getElementById("csvBtn").onclick = () => {
+    const head = "Name,Email,GitHub,Completed,TotalPublished,BestFinalPercent,Certified,LastActive\n";
+    const csv = head + stuData.map(s =>
+      [s.full_name, s.email, s.github_user, s.completed, s.total_published,
+       s.best_final_percent ?? "", s.certified ? "yes" : "no", s.last_active ?? ""]
+      .map(v => '"' + String(v ?? "").replace(/"/g, '""') + '"').join(",")).join("\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = "student_progress.csv"; a.click();
+  };
+})();
+</script>
+</body>
+</html>

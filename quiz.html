@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assessment — QT GenAI Testing Academy</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section" style="max-width:760px">
+  <a href="app.html" class="muted" style="text-decoration:none">← Back to dashboard</a>
+  <div id="box" style="margin-top:12px"><div class="spin"></div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  await requireLogin();
+  renderTopbar("app");
+
+  const id = new URLSearchParams(location.search).get("id");
+  const box = document.getElementById("box");
+  if (!id) { box.innerHTML = "<div class='card'>No quiz selected.</div>"; return; }
+
+  const [{ data: quiz, error: qErr }, { data: questions, error: qsErr }] = await Promise.all([
+    sb.from("quizzes").select("*").eq("id", id).single(),
+    // correct_index is blocked by column grants — students only ever see the options
+    sb.from("questions").select("id,question,options,sort_order").eq("quiz_id", id).order("sort_order")
+  ]);
+  if (qErr || !quiz) { box.innerHTML = "<div class='card'>Quiz not found.</div>"; return; }
+  if (qsErr) { box.innerHTML = "<div class='card'>" + escapeHtml(qsErr.message) + "</div>"; return; }
+  if (!questions.length) { box.innerHTML = "<div class='card'>This quiz has no questions yet.</div>"; return; }
+
+  let secondsLeft = (quiz.time_limit_minutes || 30) * 60;
+  let timerH = null;
+
+  box.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <h1 style="margin:0;font-size:22px">${quiz.is_final ? "🎓 " : "📝 "}${escapeHtml(quiz.title)}</h1>
+        <span class="pill pill-new" id="timer"></span>
+      </div>
+      <p class="muted" style="margin:8px 0 0">${escapeHtml(quiz.description || "")} ·
+        ${questions.length} questions · pass mark ${quiz.pass_percent}%</p>
+    </div>
+    <form id="quizForm">
+      ${questions.map((q, qi) => `
+        <div class="card q-card">
+          <h3 style="font-size:15.5px;margin-bottom:4px">Q${qi + 1}. ${escapeHtml(q.question)}</h3>
+          ${(q.options || []).map((opt, oi) => `
+            <label class="q-opt"><input type="radio" name="q_${q.id}" value="${oi}">
+              <span>${escapeHtml(opt)}</span></label>`).join("")}
+        </div>`).join("")}
+      <button type="submit" class="btn btn-primary" style="width:100%;font-size:15px">Submit answers</button>
+    </form>
+    <div id="result"></div>`;
+
+  /* highlight selected option */
+  box.addEventListener("change", e => {
+    if (e.target.type !== "radio") return;
+    e.target.closest(".q-card").querySelectorAll(".q-opt").forEach(l => l.classList.remove("sel"));
+    e.target.closest(".q-opt").classList.add("sel");
+  });
+
+  const timerEl = document.getElementById("timer");
+  function tick() {
+    const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+    const ss = String(secondsLeft % 60).padStart(2, "0");
+    timerEl.textContent = "⏱ " + mm + ":" + ss;
+    if (secondsLeft-- <= 0) { clearInterval(timerH); submit(); }
+  }
+  timerH = setInterval(tick, 1000); tick();
+
+  let submitted = false;
+  async function submit() {
+    if (submitted) return; submitted = true;
+    clearInterval(timerH);
+    const answers = {};
+    questions.forEach(q => {
+      const sel = document.querySelector(`input[name="q_${q.id}"]:checked`);
+      if (sel) answers[q.id] = parseInt(sel.value, 10);
+    });
+    document.getElementById("quizForm").style.display = "none";
+    document.getElementById("result").innerHTML = "<div class='spin'></div>";
+
+    const { data, error } = await sb.rpc("grade_quiz", { p_quiz_id: id, p_answers: answers });
+    if (error) {
+      document.getElementById("result").innerHTML = "<div class='card'>Grading failed: " + escapeHtml(error.message) + "</div>";
+      return;
+    }
+    const passed = data.passed;
+    document.getElementById("result").innerHTML = `
+      <div class="card" style="text-align:center;padding:40px 20px">
+        <div style="font-size:54px">${passed ? "🎉" : "📖"}</div>
+        <h2 style="margin-top:8px">${passed ? "Congratulations — you passed!" : "Not this time"}</h2>
+        <p style="font-size:18px">Score: <strong>${data.score}/${data.total}</strong> (${data.percent}%) ·
+           pass mark ${quiz.pass_percent}%</p>
+        ${passed && data.cert_number
+          ? `<p>Your certificate number is <strong style="font-family:monospace">${data.cert_number}</strong></p>
+             <a class="btn btn-primary" href="certificate.html">🎓 View your certificate</a>`
+          : passed ? `<a class="btn btn-primary" href="app.html">Back to dashboard</a>`
+          : `<p class="muted">Review the materials and try again — your best score is kept.</p>
+             <a class="btn btn-navy" href="app.html">Back to materials</a>
+             <a class="btn btn-ghost" href="quiz.html?id=${id}" onclick="location.reload()">Retake now</a>`}
+      </div>`;
+  }
+  document.getElementById("quizForm").addEventListener("submit", e => { e.preventDefault(); submit(); });
+})();
+</script>
+</body>
+</html>
