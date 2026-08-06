@@ -122,7 +122,14 @@
       const kind = kindFromFile(pendingFile.name);
       const safe = pendingFile.name.replace(/[^\w.\-]+/g, "_");
       const path = Date.now() + "_" + safe;
-      const { error: upErr } = await sb.storage.from("materials").upload(path, pendingFile, { upsert: false });
+      /* Record an accurate MIME type so downloads behave correctly. (Supabase still
+         serves stored HTML as text/plain for security — the viewer handles that.) */
+      const MIME = { html: "text/html;charset=utf-8", gif: "image/gif", pdf: "application/pdf",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" };
+      const { error: upErr } = await sb.storage.from("materials")
+        .upload(path, pendingFile, { upsert: false, contentType: MIME[kind] || pendingFile.type || undefined });
       if (upErr) throw upErr;
       const { error: insErr } = await sb.from("materials").insert({
         title: document.getElementById("u_title").value.trim() || pendingFile.name,

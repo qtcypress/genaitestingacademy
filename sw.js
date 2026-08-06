@@ -1,7 +1,9 @@
 /* QT GenAI Testing Academy — service worker
    Caches the app shell so the site opens instantly and works as an installed app.
    Data (Supabase) always goes to the network. */
-const CACHE = "qt-academy-v1";
+/* Bump this version on every deploy — it evicts the old cache so returning
+   students (and installed-app users) never get served a stale app shell. */
+const CACHE = "qt-academy-v2";
 const SHELL = [
   "./", "index.html", "app.html", "viewer.html", "quiz.html",
   "certificate.html", "verify.html",

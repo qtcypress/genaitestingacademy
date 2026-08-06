@@ -67,12 +67,47 @@
     document.getElementById("doneBtn").disabled = true;
   };
 
-  /* ---- render by kind ---- */
-  if (m.kind === "html" || m.kind === "pdf") {
-    stage.innerHTML = `<iframe class="viewer-frame" src="${url}" title="${escapeHtml(m.title)}" sandbox="allow-scripts allow-same-origin"></iframe>`;
+  /* ---- render by kind ----
+     NOTE: Supabase Storage deliberately serves stored HTML/SVG as text/plain
+     (anti-XSS: it won't serve markup from its own domain). Loading the signed URL
+     straight into an iframe therefore shows raw source. So for those types we fetch
+     the bytes and re-serve them locally as a blob with the correct MIME type,
+     which also restores UTF-8 so emoji render properly. */
+  const asBlobUrl = async (mime) => {
+    const buf = await (await fetch(url)).arrayBuffer();
+    const objUrl = URL.createObjectURL(new Blob([buf], { type: mime }));
+    window.addEventListener("pagehide", () => URL.revokeObjectURL(objUrl));
+    return objUrl;
+  };
+  const failCard = (e) => `<div class="card"><h3>Couldn't display this file</h3>
+      <p class="muted">${escapeHtml(e.message || String(e))}</p>
+      <a class="btn btn-primary btn-sm" href="${url}" download="${escapeHtml(m.file_name)}">⬇ Download instead</a></div>`;
+  const isSvg = /\.svg$/i.test(m.file_name);
+
+  if (m.kind === "html") {
+    stage.innerHTML = `<div class="spin"></div>`;
+    try {
+      /* sandbox WITHOUT allow-same-origin: the lesson gets an opaque origin, so its
+         scripts/animations still run but it cannot read this page or the student's session. */
+      stage.innerHTML = `<iframe class="viewer-frame" src="${await asBlobUrl("text/html;charset=utf-8")}"
+        title="${escapeHtml(m.title)}" sandbox="allow-scripts allow-popups allow-forms"></iframe>`;
+    } catch (e) { stage.innerHTML = failCard(e); }
+  }
+  else if (m.kind === "pdf") {
+    stage.innerHTML = `<div class="spin"></div>`;
+    try {
+      stage.innerHTML = `<iframe class="viewer-frame" src="${await asBlobUrl("application/pdf")}" title="${escapeHtml(m.title)}"></iframe>`;
+    } catch (e) { stage.innerHTML = failCard(e); }
   }
   else if (m.kind === "image" || m.kind === "gif") {
-    stage.innerHTML = `<img class="viewer-img" src="${url}" alt="${escapeHtml(m.title)}">`;
+    if (isSvg) {
+      stage.innerHTML = `<div class="spin"></div>`;
+      try {
+        stage.innerHTML = `<img class="viewer-img" src="${await asBlobUrl("image/svg+xml")}" alt="${escapeHtml(m.title)}">`;
+      } catch (e) { stage.innerHTML = failCard(e); }
+    } else {
+      stage.innerHTML = `<img class="viewer-img" src="${url}" alt="${escapeHtml(m.title)}">`;
+    }
   }
   else if (m.kind === "pptx" || m.kind === "docx") {
     const office = "https://view.officeapps.live.com/op/embed.aspx?src=" + encodeURIComponent(url);
