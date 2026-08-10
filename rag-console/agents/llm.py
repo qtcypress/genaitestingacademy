@@ -80,9 +80,18 @@ def _spend(session_id):
     _shared_used[session_id] = q["used"] + 1
 
 
+UA = "TripSageConsole/1.0 (QT GenAI Testing Academy; +https://genaitesting.online)"
+
+
 def _post(url, payload, headers, timeout=None):
+    # Groq sits behind Cloudflare, which blocks urllib's default
+    # "Python-urllib/3.x" User-Agent and answers with its own "error code: 1010"
+    # — a 403 that has nothing to do with the API key. Sending a real
+    # User-Agent is the fix; without it every request fails identically no
+    # matter how valid the key is.
+    base = {"Content-Type": "application/json", "User-Agent": UA, "Accept": "application/json"}
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
-                                 headers=dict(headers, **{"Content-Type": "application/json"}))
+                                 headers=dict(base, **headers))
     try:
         with urllib.request.urlopen(req, timeout=timeout or TIMEOUT) as r:
             return json.loads(r.read().decode("utf-8"))
@@ -171,10 +180,33 @@ def key_shape():
     return [shape("GROQ_API_KEY", GROQ_KEY, "gsk_"), shape("HF_API_TOKEN", HF_TOKEN, "hf_")]
 
 
+KNOWN_GROQ_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant",
+                     "llama3-70b-8192", "llama3-8b-8192", "gemma2-9b-it")
+
+
+def model_sanity(name):
+    """A model name that *contains* a known name but is longer than it has almost
+    certainly been spliced — which is what happens when you type into a form field
+    that already held a value instead of clearing it first."""
+    for known in KNOWN_GROQ_MODELS:
+        if known == name:
+            return {"model": name, "looks_ok": True}
+    for known in KNOWN_GROQ_MODELS:
+        head = known.split("-")[0] + "-" + known.split("-")[1] if "-" in known else known
+        if name.startswith(head) and len(name) > len(known):
+            return {"model": name, "looks_ok": False,
+                    "why": "this looks like two model names typed over each other — "
+                           "clear the GROQ_MODEL field completely, or delete the variable to "
+                           "fall back to the default"}
+    return {"model": name, "looks_ok": None,
+            "why": "not a name I recognise; it may still be valid"}
+
+
 def probe():
     """Ask the provider for the smallest possible completion and report exactly
     what came back. This is the difference between '403' and a fix."""
-    out = {"keys": key_shape(), "model": GROQ_MODEL if GROQ_KEY else HF_MODEL}
+    out = {"keys": key_shape(), "model": GROQ_MODEL if GROQ_KEY else HF_MODEL,
+           "model_check": model_sanity(GROQ_MODEL) if GROQ_KEY else None}
     if not shared_available():
         out["result"] = "no key configured on the server"
         return out
@@ -199,8 +231,12 @@ def probe():
             out["likely_cause"] = ("The key itself was rejected. Re-copy it from console.groq.com "
                                    "— no spaces, no quotes, and check it went into GROQ_API_KEY "
                                    "rather than another variable.")
+        elif "1010" in low or "cloudflare" in low:
+            out["likely_cause"] = ("This is Cloudflare in front of the provider refusing the "
+                                   "client, not the provider refusing the key — error 1010 is a "
+                                   "blocked User-Agent. Nothing to do with your key.")
         elif "403" in low:
-            out["likely_cause"] = ("Groq accepted the request shape but refused it. Usually either "
-                                   "the key belongs to a different service, or the account has not "
-                                   "been activated. Check the prefix below is gsk_.")
+            out["likely_cause"] = ("Groq accepted the request shape but refused it. Either the key "
+                                   "belongs to a different service, or the account has not been "
+                                   "activated. Check the prefix below is gsk_.")
     return out
