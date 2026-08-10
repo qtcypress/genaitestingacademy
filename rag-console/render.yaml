@@ -1,0 +1,19 @@
+# Render blueprint — deploy with: New → Blueprint → point at this repo folder.
+# Free instance: 750 hours/month, sleeps after 15 min idle, ~1 min cold start.
+services:
+  - type: web
+    name: tripsage-rag-console
+    runtime: python
+    plan: free
+    region: singapore          # closest free region to Hyderabad
+    rootDir: rag-console
+    buildCommand: ""           # nothing to build — standard library only
+    startCommand: python server.py
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: RAG_GATE_SECRET
+        sync: false            # set this by hand in the Render dashboard
+      - key: RAG_GATE_WINDOW_SECONDS
+        value: "43200"
