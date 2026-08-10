@@ -83,6 +83,21 @@ def _spend(session_id):
 UA = "TripSageConsole/1.0 (QT GenAI Testing Academy; +https://genaitesting.online)"
 
 
+RATE_LIMIT_RETRIES = int(os.environ.get("LLM_RATE_LIMIT_RETRIES", "2"))
+RATE_LIMIT_MAX_WAIT = 12          # never hold a request thread longer than this
+
+
+def _retry_after(header, attempt):
+    """How long to wait after a 429. The provider usually says; when it does not,
+    back off geometrically. Capped, because a student is watching a spinner."""
+    if header:
+        try:
+            return min(float(header), RATE_LIMIT_MAX_WAIT)
+        except (TypeError, ValueError):
+            pass
+    return min(2.0 * (attempt + 1), RATE_LIMIT_MAX_WAIT)
+
+
 def _post(url, payload, headers, timeout=None):
     # Groq sits behind Cloudflare, which blocks urllib's default
     # "Python-urllib/3.x" User-Agent and answers with its own "error code: 1010"
@@ -90,15 +105,38 @@ def _post(url, payload, headers, timeout=None):
     # User-Agent is the fix; without it every request fails identically no
     # matter how valid the key is.
     base = {"Content-Type": "application/json", "User-Agent": UA, "Accept": "application/json"}
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            return _post_once(url, payload, dict(base, **headers), timeout)
+        except _RateLimited as rl:
+            # An agent run makes a dozen calls in a few seconds, so a free-tier
+            # token-per-minute limit is normal traffic rather than an error. One
+            # short wait turns a dead run into a slightly slower one. The retry
+            # is bounded so a genuinely exhausted quota still surfaces as itself.
+            if attempt >= RATE_LIMIT_RETRIES:
+                raise LLMError("The provider is rate-limiting us (429) and did not let up after "
+                               "%d retries. Wait a minute, or use your own key or local Ollama. "
+                               "It said: %s" % (RATE_LIMIT_RETRIES, rl.body or "(no body)"))
+            time.sleep(_retry_after(rl.retry_after, attempt))
+
+
+class _RateLimited(Exception):
+    def __init__(self, retry_after, body):
+        Exception.__init__(self, "rate limited")
+        self.retry_after = retry_after
+        self.body = body
+
+
+def _post_once(url, payload, headers, timeout=None):
     req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
-                                 headers=dict(base, **headers))
+                                 headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout or TIMEOUT) as r:
             return json.loads(r.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")[:300]
         if e.code == 429:
-            raise LLMError("The provider is rate-limiting us (429). Wait a moment and retry.")
+            raise _RateLimited((e.headers or {}).get("retry-after"), body)
         if e.code in (401, 403):
             # Never swallow the body here. 401 and 403 are the two cases where the
             # provider's own words are the whole diagnosis: a bad key, a key for a

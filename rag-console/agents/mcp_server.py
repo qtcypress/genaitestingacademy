@@ -95,6 +95,18 @@ class MCPServer:
             self.calls.append(rec)
             raise ToolError("upstream error: %s" % name)
 
+        # Validate against the declared schema before the handler sees the args.
+        # Without this, a null where an int belongs surfaces as the interpreter's
+        # own "int() argument must be a string ... not 'NoneType'", which tells a
+        # caller nothing about which parameter was wrong. An MCP tool's error
+        # message is part of its interface: an agent can only correct a mistake
+        # it can read.
+        bad = self._schema_violation(name, args or {})
+        if bad:
+            rec.update(ok=False, error=bad)
+            self.calls.append(rec)
+            raise ToolError(bad)
+
         try:
             result = self.tools[name]["handler"](args or {})
         except ToolError as ex:
@@ -124,6 +136,29 @@ class MCPServer:
                    contains_instruction=bool(poisoned and INSTRUCTION_IN_DATA.search(poisoned)))
         self.calls.append(rec)
         return result
+
+    def _schema_violation(self, name, args):
+        """Return a caller-readable complaint, or None if the args are usable.
+
+        Deliberately narrow: it checks only the parameters the tool declared as
+        whole numbers, and only when they were actually supplied. Being stricter
+        would start rejecting calls the suites legitimately make, and the point
+        here is a better error message, not a new gate — the gates that matter
+        are the allow-list and the confirmation token.
+        """
+        schema = self.tools[name]["schema"]
+        for key, kind in schema.items():
+            if kind != "int" or key not in args:
+                continue
+            value = args[key]
+            if value is None:
+                return ("%s: '%s' must be a whole number, but was null. Supply a number, or "
+                        "omit it to accept the default." % (name, key))
+            try:
+                int(value)
+            except (TypeError, ValueError):
+                return ("%s: '%s' must be a whole number, but was %r." % (name, key, value))
+        return None
 
     # ------------------------------------------------------------ audit helpers
     def calls_to(self, suffix):
