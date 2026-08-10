@@ -1,0 +1,35 @@
+timestamp,tester,query,chunk_id,doc,verdict
+2026-07-04 06:29:58,tester1,"trip to tokyo
+",tokyo_japan#best_time_to_visit-0,tokyo_japan,relevant
+2026-07-04 07:11:48,Ram,"book a trip to bali
+
+",company_faq#booking-0,company_faq,relevant
+2026-07-04 07:11:53,Ram,"book a trip to bali
+
+",destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-04 07:12:00,Ram,"book a trip to bali
+
+",destination_bali#safety-0,destination_bali,not_relevant
+2026-07-04 07:12:11,Ram,"book a trip to bali
+
+",visa_thailand#visa_on_arrival-0,visa_thailand,not_relevant
+2026-07-06 19:52:39,tester1,what is the best time to visit hyderabad,destination_hyderabad#best_time_to_visit-0,destination_hyderabad,relevant
+2026-07-06 19:52:48,tester1,what is the best time to visit hyderabad,tokyo_japan#best_time_to_visit-0,tokyo_japan,not_relevant
+2026-07-06 19:52:52,tester1,what is the best time to visit hyderabad,goa#best_time_to_visit-0,goa,not_relevant
+2026-07-06 19:52:54,tester1,what is the best time to visit hyderabad,destination_bali#best_time_to_visit-0,destination_bali,not_relevant
+2026-07-06 20:01:13,tester1,what is the best time to visit Europe,destination_europe#best_time_to_visit-0,destination_europe,relevant
+2026-07-06 20:01:14,tester1,what is the best time to visit Europe,tokyo_japan#best_time_to_visit-0,tokyo_japan,not_relevant
+2026-07-06 20:01:16,tester1,what is the best time to visit Europe,goa#best_time_to_visit-0,goa,not_relevant
+2026-07-06 20:01:19,tester1,what is the best time to visit Europe,destination_hyderabad#best_time_to_visit-0,destination_hyderabad,not_relevant
+2026-08-10 20:50:32,tester1,best time to visit hyderabad,destination_hyderabad#best_time_to_visit-0,destination_hyderabad,relevant
+2026-08-10 20:50:33,tester1,best time to visit hyderabad,tokyo_japan#best_time_to_visit-0,tokyo_japan,relevant
+2026-08-10 20:50:34,tester1,best time to visit hyderabad,goa#best_time_to_visit-0,goa,relevant
+2026-08-10 20:50:35,tester1,best time to visit hyderabad,destination_europe#best_time_to_visit-0,destination_europe,relevant
+2026-08-10 20:50:37,tester1,best time to visit hyderabad,destination_barcelona#best_time_to_visit-0,destination_barcelona,relevant
+2026-08-10 20:50:39,tester1,best time to visit hyderabad,destination_barcelona#best_time_to_visit-0,destination_barcelona,not_relevant
+2026-08-10 20:50:42,tester1,best time to visit hyderabad,destination_europe#best_time_to_visit-0,destination_europe,not_relevant
+2026-08-10 20:50:46,tester1,best time to visit hyderabad,goa#best_time_to_visit-0,goa,not_relevant
+2026-08-10 20:50:51,tester1,best time to visit hyderabad,tokyo_japan#best_time_to_visit-0,tokyo_japan,not_relevant
+2026-08-10 20:51:11,tester1,best time to visit hyderabad,hyderabad#best_time_to_visit-0,hyderabad,relevant
+2026-08-10 20:51:47,tester1,best time to visit hyderabad,hyderabad#best_time_to_visit-0,hyderabad,relevant
+2026-08-10 20:51:48,tester1,best time to visit hyderabad,destination_hyderabad#best_time_to_visit-0,destination_hyderabad,relevant

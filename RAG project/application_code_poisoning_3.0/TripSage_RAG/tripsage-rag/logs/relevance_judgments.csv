@@ -1,0 +1,5 @@
+timestamp,tester,query,chunk_id,doc,verdict
+2026-07-04 09:54:03,tester1,Do Indian passport holders need a visa for Thailand?,POISON_thailand_visa_update#visa_on_arrival-0,POISON_thailand_visa_update,not_relevant
+2026-07-04 09:54:05,tester1,Do Indian passport holders need a visa for Thailand?,visa_thailand#visa_on_arrival-0,visa_thailand,not_relevant
+2026-07-04 09:54:09,tester1,Do Indian passport holders need a visa for Thailand?,visa_thailand#longer_stays-0,visa_thailand,not_relevant
+2026-07-04 09:54:17,tester1,Do Indian passport holders need a visa for Thailand?,visa_thailand#notes-0,visa_thailand,not_relevant

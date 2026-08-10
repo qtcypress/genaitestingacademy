@@ -1,0 +1,56 @@
+timestamp,tester,query,chunk_id,doc,verdict
+2026-07-04 06:08:20,tester1,"book a trip to bali
+",company_faq#booking-0,company_faq,relevant
+2026-07-04 06:08:26,tester1,"book a trip to bali
+",destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-04 06:08:38,tester1,"book a trip to bali
+",visa_thailand#visa_on_arrival-0,visa_thailand,relevant
+2026-07-04 06:10:31,tester1,"book a trip to goa
+
+",company_faq#booking-0,company_faq,not_relevant
+2026-07-04 06:10:32,tester1,"book a trip to goa
+
+",visa_thailand#visa_on_arrival-0,visa_thailand,not_relevant
+2026-07-04 06:10:35,tester1,"book a trip to goa
+
+",visa_thailand#longer_stays-0,visa_thailand,not_relevant
+2026-07-04 06:10:37,tester1,"book a trip to goa
+
+",destination_rome#best_time_to_visit-0,destination_rome,not_relevant
+2026-07-04 06:11:19,tester1,"book a trip to mumbai
+
+",visa_thailand#longer_stays-0,visa_thailand,not_relevant
+2026-07-04 06:11:28,tester1,"book a trip to mumbai
+
+",visa_thailand#visa_on_arrival-0,visa_thailand,not_relevant
+2026-07-04 06:11:30,tester1,"book a trip to mumbai
+
+",company_faq#booking-0,company_faq,relevant
+2026-07-04 06:11:42,tester1,"book a trip to mumbai
+
+",destination_rome#best_time_to_visit-0,destination_rome,not_relevant
+2026-07-04 06:13:32,Ram,"book a trip to bali
+
+",company_faq#booking-0,company_faq,relevant
+2026-07-04 06:13:35,Ram,"book a trip to bali
+
+",destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-04 06:14:02,Ram,What is the refund window for Hotel Y?,hotel_y_policy#cancellation_and_refund_-0,hotel_y_policy,relevant
+2026-07-04 06:14:11,Ram,What is the refund window for Hotel Y?,company_faq#refunds-0,company_faq,relevant
+2026-07-06 06:52:56,tester1,"Plan a trip to bali
+",destination_bali#best_time_to_visit-0,destination_bali,not_relevant
+2026-07-06 06:52:58,tester1,"Plan a trip to bali
+",destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-06 06:53:01,tester1,"Plan a trip to bali
+",destination_bali#best_time_to_visit-0,destination_bali,not_relevant
+2026-07-06 06:53:02,tester1,"Plan a trip to bali
+",destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-06 06:56:51,tester1,What is the best time to visit Bali?,destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-07-06 07:13:43,tester1,Do I need a visa for Thailand? Are visas free?,POISON_poison_visa#visa-0,POISON_poison_visa,not_relevant
+2026-07-06 07:13:44,tester1,Do I need a visa for Thailand? Are visas free?,visa_thailand#visa_on_arrival-0,visa_thailand,relevant
+2026-08-10 20:23:23,tester1,I want to travel to goa ,destination_rome#best_time_to_visit-0,destination_rome,not_relevant
+2026-08-10 20:23:28,tester1,I want to travel to goa ,destination_bali#best_time_to_visit-0,destination_bali,not_relevant
+2026-08-10 20:23:34,tester1,I want to travel to goa ,destination_barcelona#best_time_to_visit-0,destination_barcelona,not_relevant
+2026-08-10 20:23:39,tester1,I want to travel to goa ,visa_thailand#notes-0,visa_thailand,not_relevant
+2026-08-10 20:29:09,RAG tester,I want to travel to bali,destination_bali#best_time_to_visit-0,destination_bali,relevant
+2026-08-10 20:29:14,RAG tester,I want to travel to bali,destination_rome#best_time_to_visit-0,destination_rome,not_relevant

@@ -1,0 +1,362 @@
+{
+ "chunks": [
+  {
+   "id": "airline_x_baggage#economy-0",
+   "doc": "airline_x_baggage",
+   "section": "Economy",
+   "text": "Economy class passengers on Airline X are allowed one checked bag up to 23 kg.\nCarry-on is limited to 7 kg with maximum dimensions 55 x 40 x 20 cm.\nExcess baggage is charged at 15 USD per additional kilogram.",
+   "last_updated": "2024-11-01"
+  },
+  {
+   "id": "airline_x_baggage#business-0",
+   "doc": "airline_x_baggage",
+   "section": "Business",
+   "text": "Business class passengers are allowed two checked bags up to 32 kg each.\nCarry-on allowance is 12 kg.",
+   "last_updated": "2024-11-01"
+  },
+  {
+   "id": "airline_x_baggage#refunds_and_changes-0",
+   "doc": "airline_x_baggage",
+   "section": "Refunds and Changes",
+   "text": "Refundable economy tickets can be refunded up to 24 hours before departure.\nDate changes cost 40 USD plus any fare difference.",
+   "last_updated": "2024-11-01"
+  },
+  {
+   "id": "cluade_about_ram#overview-0",
+   "doc": "cluade_about_ram",
+   "section": "Overview",
+   "text": "Work context\nRam is a trainer and course developer at Quality Thought, a tech upskilling company based in Hyderabad, India. His work centers on building educational content for tech professionals, with a current focus on Gen AI and Agentic AI testing curriculum. He also does work connected to Ramanasoft, an organization with a broader product ecosystem.\nPersonal context\nRam is based in Hyderabad and creates training content grounded in Indian cultural context, frequently using cricket and food analogies to make technical concepts accessible to local audiences.\nTop of mind\nRam is deep in building a comprehensive Gen AI and Agentic AI Testing educational ecosystem at Quality Thought, including a 24-week course curriculum split into manual and automation streams targeting manual testers transitioning to AI testing specialists. Recent work has produced detailed trainer materials, professional presentations, capstone projects (AI Trip Planner with a full test suite), agent automation workshop packages, and multi-agent test case documentation across eight agent modules.\nBrief history\nRecent months\nRam has been prolific across several interconnected content and curriculum projects. For Quality Thought's Gen AI Testing course, he developed a full 24-week dual-stream curriculum, week-by-week trainer scripts, PIL-generated diagrams, real-world case studies (e.g., Cohen v. Avianca, NHS chatbot, Amazon hiring bias), and grading rubrics. Presentation work has been iterative — Ram prefers professional, layout-disciplined slides with no overlapping elements, rebuilt until meeting strict visual standards. Capstone and workshop deliverables include a stdlib-only Python API server, self-contained test suites, DeepEval and RAGAS evaluation suites, Playwright UI tests, Postman collections, and one-click run scripts for multiple OS platforms. He also produced a 50-test-case document for a multi-agent travel system covering orchestration, search, booking, payment, memory, and safety filter agents.\nSeparately, Ram developed an 8-slide presentation for Ramanasoft's 24-week internship program covering four phases (induction, core tools, frontend/backend dev, client deployment), referencing tools like GitHub, JIRA, and Agile/Scrum methodology.\nFor college outreach, Ram had a 14-slide partnership presentation built for Quality Thought covering an 8-semester engineering curriculum, certifications (including TCS iON, Infosys Springboard, Wipro TalentNext), hackathons, placement support, and a 200+ hiring partner network.\nHe also requested social media infographic sets (Instagram/Facebook) for a 3-day Gen AI Testing workshop, preferring clean white/light aesthetics with per-day color accents.\nEarlier context\nRam developed 5-day Gen AI Testing training handouts in Word, PDF, and PowerPoint formats for tech professionals, structured around cricket and food analogies. Content spanned Gen AI foundations, prompt engineering (3R Framework), RAGAS evaluation, safety/bias/red teaming, and CI/CD integration. He also explored data centre job roles and detailed job descriptions for mid-experience candidates.\nInteraction preferences\nRam communicates efficiently — often in shorthand or bullet notes — and expects Claude to interpret and expand inputs into polished, finished deliverables with minimal back-and-forth. He iterates through direct feedback rather than upfront detailed specs. Teaching materials are localized for Indian audiences, and he follows a portfolio-first learning model where every course week produces a named GitHub artifact.",
+   "last_updated": ""
+  },
+  {
+   "id": "company_faq#booking-0",
+   "doc": "company_faq",
+   "section": "Booking",
+   "text": "You can book flights and hotels through the TripSage booking portal. A confirmation email is sent after payment.",
+   "last_updated": "2025-02-01"
+  },
+  {
+   "id": "company_faq#support-0",
+   "doc": "company_faq",
+   "section": "Support",
+   "text": "For help with an existing booking, contact support through the Help Centre in your account. TripSage answers general travel questions from its knowledge base.",
+   "last_updated": "2025-02-01"
+  },
+  {
+   "id": "company_faq#refunds-0",
+   "doc": "company_faq",
+   "section": "Refunds",
+   "text": "Refund eligibility depends on the airline or hotel policy for your booking. See the relevant policy for exact windows.",
+   "last_updated": "2025-02-01"
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-0",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "Welcome to Quality Thought's Gen AI testing Workshop - Day #2 !!!!!\nThanks for joining the session\nWe will start the session Very soon !\n=> 1. We need to use AI /Gen AI for our learning \n      => coding or automation \n      => playwright => playwright.dev  => agents  => 3 agents \n                    => planner => test plan\n                    => Generator  => create the test cases and execute then \n                    => Healer  => debug the failure and fix it\n=>2. How to test these AI applications as a tester .\n=> traditional AI \n    => Gen AI \n    => Agent AI\n    => Multi agent AI",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-1",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "=============================================================================\n1. How to ask AI ? \nprompting  => ask a question to the AI \nit is an art to get the right response.\nto do so we do have different types of prompts \na. zero shot prompt => Single shot prompt \nvague prompt  => straight away you are asking the question  => \ndirectly asking the task\nI need a website for my beauty product =>\n=> i want a website ?  -> can ai is able to answer for this ? \n=> AI will give the response not very clearly .",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-2",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "develop travel booking application for my trip planning business \n==============================================================================\nb. few shot prompt \nGiving more information about your task => Examples you are providing to understand your ask very clearly .\nI need a website for my beauty product , with different categories mentioned in the myntra beauty sector or some other beauty product website you are providing as a reference to understand your query or ask in very clear way. so  that i can able to develop an application which may meets your expectation.",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-3",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "I want to build a travel application which is similar to MakeMyTrip, Airbnb and travel triangle . use all best features from these application => deliver best application with great customer experiences. \n==============================================================================\nc. Context based prompt  =>\ncontext will be referred as a temporary memory of AI application\n=> new chat  => fresh context  => nothing is there in my brain you start from scratch.",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-4",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "=> you already ask 5 questions \n => 6th question  => previous 5 questions related information Ai can consider before delivering your responses \n============================================================================\nd. Role based prompt  => \nDoctor  => AI brain think about your role and respond accordingly \nPatient  => AI brain think about your role and responds to you  accordingly \n=> \nSeller  => one sells their products in ecommerce portal\nCustomer => one who buys products or window shoppers \nAdministrator => he can add or edit or del the products or coupons etc..",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-5",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "AI chatbot  => will respond differently for seller /customer and admin\nthey do have different access levels or permissions based on that they can able to get the different responses for same query  by considering their role.\n==============================================================================\n=> \ne. COT chain of thoughts =>\nyou can ask AI , I want to learn python step by step\n=> Good prompt vs bad prompt",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-6",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "As a tester we need to try Good prompt ( positive testing ) \nAs a tester we need to try bad prompts ( Negative testing ) \n==============================================================================\nAi response is varying from person to person \ntool to tool\nAsk  => if you change anything in the query  => response will be altered.\nPlaywright demo with agent  => we understand that we can speedup our leanring or work with the help of playwright agent.",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-7",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "=> We need to understand 2 points \na. Python  => majority of ai applications will work with python \nb. APIs  => api testing with postman  => Postman with AI\nprompt and get the api testing code or outcome very easily . \n => to start your journey as a Gen AI tester . \nNote:  We are not using the AI for our testing purpose , instead we will test the AI agent or gen AI application or multi agent application with \n=> Gen AI manual approach \nPre requisites: STLC / API testing  => Json format",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-8",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "a. Prompt types \nb. prompt rules \nc. Red teaming  => security \nd. Test cases design for above prompts => slight variations \ne. Bug template => severity/Priority \nf. JIRA /ADO ?Linear  => GitHub projects  => AI integrations with these tools\nPre requisites : \nPython /JavaScript\nAutomation approach\na. promptpoo  => \nb. Deepeval  => \nc. Raags  => Langsmith  => to do more on performance \n=> Plan your journey to become a Gen AI tester .\n{\nName: \"ram\",\ncontact : \"9160341834\",\ncountry : \"india\"\n},\n{\nName: \"ram\",\ncontact : \"9160341834\",\ncountry : \"india\"\n}",
+   "last_updated": ""
+  },
+  {
+   "id": "day_2_workshop_16052026#overview-9",
+   "doc": "day_2_workshop_16052026",
+   "section": "Overview",
+   "text": "2. Playwright agents we can try to create test plan/ cases/ debugging \n3. We can see a sample capstone multi agent project => \n    => python or coding is required to test these agents \n    => api ? how api testing is helping the ai testers to test the agents\n4. Road map to transform from your current testing role to Gen AI testing \n    => \n==============================================================================",
+   "last_updated": ""
+  },
+  {
+   "id": "destination_bali#best_time_to_visit-0",
+   "doc": "destination_bali",
+   "section": "Best Time to Visit",
+   "text": "The best time to visit Bali is during the dry season, from April to October, when the weather is sunny with low humidity.\nThe wet season runs from November to March and brings frequent rain.",
+   "last_updated": "2024-08-05"
+  },
+  {
+   "id": "destination_bali#attractions-0",
+   "doc": "destination_bali",
+   "section": "Attractions",
+   "text": "Popular attractions include Ubud's rice terraces, Uluwatu Temple, Seminyak beaches and Mount Batur for sunrise hikes.",
+   "last_updated": "2024-08-05"
+  },
+  {
+   "id": "destination_bali#safety-0",
+   "doc": "destination_bali",
+   "section": "Safety",
+   "text": "Bali is generally safe for tourists. Take normal precautions with valuables and use licensed taxis.",
+   "last_updated": "2024-08-05"
+  },
+  {
+   "id": "destination_barcelona#best_time_to_visit-0",
+   "doc": "destination_barcelona",
+   "section": "Best Time to Visit",
+   "text": "May, June and September are the best months to visit Barcelona, with warm weather and lighter crowds than peak summer.",
+   "last_updated": "2024-10-12"
+  },
+  {
+   "id": "destination_barcelona#attractions-0",
+   "doc": "destination_barcelona",
+   "section": "Attractions",
+   "text": "Barcelona's must-see sights include the Sagrada Familia, Park Guell, Casa Batllo, the Gothic Quarter and La Rambla.\nBarceloneta beach is popular in summer.",
+   "last_updated": "2024-10-12"
+  },
+  {
+   "id": "destination_europe#best_time_to_visit-0",
+   "doc": "destination_europe",
+   "section": "Best time to visit",
+   "text": "June to sep",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_europe#top_attractions-0",
+   "doc": "destination_europe",
+   "section": "Top attractions",
+   "text": "- Scotland\n- London",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_europe#safety_notes-0",
+   "doc": "destination_europe",
+   "section": "Safety notes",
+   "text": "careful with locals",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_europe#good_to_know-0",
+   "doc": "destination_europe",
+   "section": "Good to know",
+   "text": "EUROS",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_hyderabad#best_time_to_visit-0",
+   "doc": "destination_hyderabad",
+   "section": "Best time to visit",
+   "text": "Jan to december",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_hyderabad#top_attractions-0",
+   "doc": "destination_hyderabad",
+   "section": "Top attractions",
+   "text": "- Charminar\n- golkonda",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_hyderabad#safety_notes-0",
+   "doc": "destination_hyderabad",
+   "section": "Safety notes",
+   "text": "Speak in telugu and go with public transport like metro trains , busses",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_hyderabad#good_to_know-0",
+   "doc": "destination_hyderabad",
+   "section": "Good to know",
+   "text": "Indian currency",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "destination_rome#best_time_to_visit-0",
+   "doc": "destination_rome",
+   "section": "Best Time to Visit",
+   "text": "Spring (April to June) and autumn (September to October) offer mild weather and fewer crowds than summer.",
+   "last_updated": "2024-10-10"
+  },
+  {
+   "id": "destination_rome#attractions-0",
+   "doc": "destination_rome",
+   "section": "Attractions",
+   "text": "Rome's top attractions are the Colosseum, the Roman Forum, the Vatican Museums, St Peter's Basilica, the Pantheon and the Trevi Fountain.\nThe Trastevere district is popular for evening dining.",
+   "last_updated": "2024-10-10"
+  },
+  {
+   "id": "destination_rome#getting_around-0",
+   "doc": "destination_rome",
+   "section": "Getting Around",
+   "text": "The historic centre is walkable. The metro and buses cover longer distances.",
+   "last_updated": "2024-10-10"
+  },
+  {
+   "id": "goa#best_time_to_visit-0",
+   "doc": "goa",
+   "section": "Best time to visit",
+   "text": "nov to march",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "goa#top_attractions-0",
+   "doc": "goa",
+   "section": "Top attractions",
+   "text": "- beaches\n- ports",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "goa#safety_notes-0",
+   "doc": "goa",
+   "section": "Safety notes",
+   "text": "do not travel in riany season",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "goa#good_to_know-0",
+   "doc": "goa",
+   "section": "Good to know",
+   "text": "indian currency ,",
+   "last_updated": "2026-07-06"
+  },
+  {
+   "id": "hotel_y_policy#cancellation_and_refund_-0",
+   "doc": "hotel_y_policy",
+   "section": "Cancellation and Refund Window",
+   "text": "Guests at Hotel Y may cancel free of charge up to 48 hours before the check-in date; this 48-hour period is the refund window.\nCancellations of a Hotel Y booking made within 48 hours of check-in are charged one night's stay and are not refundable.",
+   "last_updated": "2025-01-15"
+  },
+  {
+   "id": "hotel_y_policy#deposit_and_no_show-0",
+   "doc": "hotel_y_policy",
+   "section": "Deposit and No-show",
+   "text": "A deposit of one night is taken at booking for Hotel Y.\nNo-shows are charged the full one-night deposit and the remaining nights are released.",
+   "last_updated": "2025-01-15"
+  },
+  {
+   "id": "hotel_y_policy#check_in-0",
+   "doc": "hotel_y_policy",
+   "section": "Check-in",
+   "text": "Check-in at Hotel Y is from 3 PM; check-out is by 11 AM.",
+   "last_updated": "2025-01-15"
+  },
+  {
+   "id": "hyderabad#best_time_to_visit-0",
+   "doc": "hyderabad",
+   "section": "Best time to visit",
+   "text": "365 days",
+   "last_updated": "2026-08-10"
+  },
+  {
+   "id": "hyderabad#top_attractions-0",
+   "doc": "hyderabad",
+   "section": "Top attractions",
+   "text": "- charminar\n- golkonda\n- hitech city",
+   "last_updated": "2026-08-10"
+  },
+  {
+   "id": "hyderabad#safety_notes-0",
+   "doc": "hyderabad",
+   "section": "Safety notes",
+   "text": "use phone pay or any upi - to pay the bills . do not carry cash and gold",
+   "last_updated": "2026-08-10"
+  },
+  {
+   "id": "hyderabad#good_to_know-0",
+   "doc": "hyderabad",
+   "section": "Good to know",
+   "text": "Use metro services to avoid the traffic. if you are not find a metro station use ola/uber /rapido services",
+   "last_updated": "2026-08-10"
+  },
+  {
+   "id": "tokyo_japan#best_time_to_visit-0",
+   "doc": "tokyo_japan",
+   "section": "Best time to visit",
+   "text": "Best time to visit march to july",
+   "last_updated": "2026-07-04"
+  },
+  {
+   "id": "tokyo_japan#top_attractions-0",
+   "doc": "tokyo_japan",
+   "section": "Top attractions",
+   "text": "- Senso ji temple",
+   "last_updated": "2026-07-04"
+  },
+  {
+   "id": "tokyo_japan#safety_notes-0",
+   "doc": "tokyo_japan",
+   "section": "Safety notes",
+   "text": "Use public transportation",
+   "last_updated": "2026-07-04"
+  },
+  {
+   "id": "tokyo_japan#good_to_know-0",
+   "doc": "tokyo_japan",
+   "section": "Good to know",
+   "text": "basic Jananies language, currency convertions",
+   "last_updated": "2026-07-04"
+  },
+  {
+   "id": "visa_thailand#visa_on_arrival-0",
+   "doc": "visa_thailand",
+   "section": "Visa on Arrival",
+   "text": "Indian passport holders can obtain a visa on arrival in Thailand for tourism for a stay of up to 15 days.\nThe visa on arrival fee is 2000 Thai Baht and requires a passport valid for at least 6 months, a return ticket and proof of funds.",
+   "last_updated": "2024-09-20"
+  },
+  {
+   "id": "visa_thailand#longer_stays-0",
+   "doc": "visa_thailand",
+   "section": "Longer Stays",
+   "text": "For stays longer than 15 days, Indian travellers should apply for a tourist visa at a Thai embassy or consulate before travelling.",
+   "last_updated": "2024-09-20"
+  },
+  {
+   "id": "visa_thailand#notes-0",
+   "doc": "visa_thailand",
+   "section": "Notes",
+   "text": "Entry rules change frequently. Always confirm the current requirement with the official Thai embassy before you travel.",
+   "last_updated": "2024-09-20"
+  }
+ ],
+ "num_terms": 825
+}
