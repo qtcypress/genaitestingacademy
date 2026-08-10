@@ -834,7 +834,11 @@ function paintAsk() {
                size="34" style="display:none">
         <input id="pmodel" type="text" placeholder="model, e.g. llama3.2" size="18" style="display:none">
       </div>
-      <p class="muted" id="prov-note" style="margin:8px 0 0"></p></div>` : ""}
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" id="prov-test">Test the server's provider</button>
+      </div>
+      <p class="muted" id="prov-note" style="margin:8px 0 0"></p>
+      <div id="prov-probe"></div></div>` : ""}
     <div id="index-out"><div class="spin"></div></div>
     <div id="ask-out"></div>`;
   document.querySelectorAll("[data-s]").forEach(b =>
@@ -843,7 +847,10 @@ function paintAsk() {
   el("reindex").onclick = () => loadIndex(true);
   el("q").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); };
   ["poison", "def"].forEach(id => { const c = el(id); if (c) c.onchange = () => loadIndex(false); });
-  if (v.caps.llm) loadProviders();
+  if (v.caps.llm) {
+    loadProviders();
+    el("prov-test").onclick = probeProvider;
+  }
   loadIndex(false);
 }
 
@@ -1422,6 +1429,29 @@ async function askViaBrowser(question) {
           flags: poisoned.map(u => "poisoned_source_used:" + u.doc)};
 }
 
+async function probeProvider() {
+  busy("prov-test", true); spin("prov-probe");
+  try {
+    const j = await api("/api/provider-probe", {});
+    const p = j.probe;
+    const keys = p.keys.map(k => `<div class="doc"><span><code>${esc(k.var)}</code></span>
+      <span class="muted">${k.set
+        ? `set · ${k.length} chars · starts <code>${esc(k.starts)}</code> · expected <code>${esc(k.expected_prefix)}</code>${
+            k.prefix_looks_right ? "" : " ← <b>wrong prefix</b>"}${
+            k.has_whitespace ? " ← <b>has stray whitespace</b>" : ""}`
+        : "not set"}</span></div>`).join("");
+    setOut("prov-probe", `
+      <h4>Provider check</h4>
+      <div class="doclist">${keys}</div>
+      <p class="${p.result === "ok" ? "ok" : "err"}" style="margin-top:10px">
+        ${p.result === "ok"
+          ? `Working. <b>${esc(p.provider)}</b> / <code>${esc(p.model)}</code> replied “${esc(p.reply)}”.`
+          : esc(p.error || p.result)}</p>
+      ${p.likely_cause ? `<p class="muted"><b>Most likely:</b> ${esc(p.likely_cause)}</p>` : ""}`);
+  } catch (e) { setOut("prov-probe", errBox(e)); }
+  busy("prov-test", false);
+}
+
 /* --------------------------------------------------- Concierge (multi-agent) */
 const AGENT_SUITES = [["blue", "Blue team — it does the job"],
                       ["red", "Red team — attacks and abuse"],
@@ -1701,7 +1731,7 @@ class Handler(BaseHTTPRequestHandler):
     def route(self, path, body, sess):
         vid = body.get("version")
         if not (path.startswith("/api/agents") or path in
-                ("/api/versions", "/api/logs", "/api/providers")):
+                ("/api/versions", "/api/logs", "/api/providers", "/api/provider-probe")):
             if vid not in ENGINES:
                 raise ValueError("unknown version")
             if ENGINES[vid].get("err"):
@@ -1718,6 +1748,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/providers":
             return {"providers": LLM.describe_providers(),
                     "quota": LLM.shared_quota(sess["sid"])}
+
+        if path == "/api/provider-probe":
+            # Deliberately reports the provider's own words and the *shape* of the
+            # configured key — never the key. "403" is not a diagnosis; what Groq
+            # said is.
+            return {"probe": LLM.probe()}
 
         if path == "/api/retrieve":
             # For the browser-side path: retrieval here, generation there, so a
