@@ -1681,6 +1681,29 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
+    MAX_BODY = 2 * 1024 * 1024        # 2 MB is far more than any request here needs
+
+    def _drain(self):
+        """Read the whole request body, always, before anything can return early.
+
+        With HTTP/1.1 keep-alive, bytes left unread on the socket are parsed as
+        the start of the *next* request on that connection. Refusing a POST
+        without consuming its body therefore corrupts the following request —
+        which surfaced as `501 Unsupported method ('{"sid":""}GET')` on a page
+        load that had nothing wrong with it. The fault is one request earlier
+        than the error, which is what made it confusing.
+        """
+        try:
+            n = int(self.headers.get("Content-Length", 0) or 0)
+        except ValueError:
+            n = 0
+        if n <= 0:
+            return b""
+        if n > self.MAX_BODY:
+            self.close_connection = True   # cannot safely resync; end the connection
+            return None
+        return self.rfile.read(n)
+
     def _send(self, code, body, ctype="application/json"):
         data = body.encode("utf-8") if isinstance(body, str) else body
         self.send_response(code)
@@ -1711,11 +1734,17 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urlparse(self.path)
         q = parse_qs(u.query)
+
+        # Drain first, gate second. The other order leaves unread bytes on a
+        # keep-alive connection whenever a request is refused.
+        raw = self._drain()
+        if raw is None:
+            return self._send(413, json.dumps({"error": "request body too large"}))
+
         if not self._gated(q):
             return self._send(401, json.dumps({"error": "access token missing or expired"}))
         try:
-            n = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(n) or b"{}")
+            body = json.loads(raw or b"{}")
         except Exception:
             return self._send(400, json.dumps({"error": "bad request"}))
 
