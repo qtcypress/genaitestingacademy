@@ -1443,6 +1443,10 @@ async function probeProvider() {
     setOut("prov-probe", `
       <h4>Provider check</h4>
       <div class="doclist">${keys}</div>
+      ${p.model_check ? `<p class="${p.model_check.looks_ok === false ? "err" : "muted"}"
+        style="margin-top:8px">Model <code>${esc(p.model_check.model)}</code>${
+        p.model_check.looks_ok === true ? " — recognised." :
+        " — " + esc(p.model_check.why)}</p>` : ""}
       <p class="${p.result === "ok" ? "ok" : "err"}" style="margin-top:10px">
         ${p.result === "ok"
           ? `Working. <b>${esc(p.provider)}</b> / <code>${esc(p.model)}</code> replied “${esc(p.reply)}”.`
