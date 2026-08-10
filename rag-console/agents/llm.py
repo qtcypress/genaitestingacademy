@@ -91,8 +91,11 @@ def _post(url, payload, headers, timeout=None):
         if e.code == 429:
             raise LLMError("The provider is rate-limiting us (429). Wait a moment and retry.")
         if e.code in (401, 403):
-            raise LLMError("The provider rejected the key (%d). Check it is valid and has quota."
-                           % e.code)
+            # Never swallow the body here. 401 and 403 are the two cases where the
+            # provider's own words are the whole diagnosis: a bad key, a key for a
+            # different service, or an account that is not allowed the model you
+            # asked for all arrive as the same status code.
+            raise LLMError("The provider returned %d and said: %s" % (e.code, body or "(no body)"))
         raise LLMError("Provider returned %d: %s" % (e.code, body))
     except urllib.error.URLError as e:
         raise LLMError("Could not reach the provider: %s" % e.reason)
@@ -152,3 +155,52 @@ def rag_messages(question, chunks):
     context = "\n\n".join("[%s]\n%s" % (c.get("doc", "?"), c.get("text", "")) for c in chunks)
     return [{"role": "system", "content": SYSTEM},
             {"role": "user", "content": "Context:\n%s\n\nQuestion: %s" % (context, question)}]
+
+
+def key_shape():
+    """Describe the configured keys without revealing them. A key pasted into the
+    wrong variable is the most common setup mistake and the cheapest to spot: a
+    Groq key starts `gsk_`, a Hugging Face token starts `hf_`."""
+    def shape(name, value, expect):
+        if not value:
+            return {"var": name, "set": False}
+        return {"var": name, "set": True, "length": len(value),
+                "starts": value[:4], "expected_prefix": expect,
+                "prefix_looks_right": value.startswith(expect),
+                "has_whitespace": value != value.strip()}
+    return [shape("GROQ_API_KEY", GROQ_KEY, "gsk_"), shape("HF_API_TOKEN", HF_TOKEN, "hf_")]
+
+
+def probe():
+    """Ask the provider for the smallest possible completion and report exactly
+    what came back. This is the difference between '403' and a fix."""
+    out = {"keys": key_shape(), "model": GROQ_MODEL if GROQ_KEY else HF_MODEL}
+    if not shared_available():
+        out["result"] = "no key configured on the server"
+        return out
+    try:
+        r = generate([{"role": "user", "content": "Reply with the single word: ok"}],
+                     session_id="__probe__", max_tokens=5)
+        out["result"] = "ok"
+        out["reply"] = (r.get("text") or "").strip()[:60]
+        out["provider"] = r.get("provider")
+        out["model"] = r.get("model")
+    except LLMError as ex:
+        out["result"] = "failed"
+        out["error"] = str(ex)[:500]
+        low = str(ex).lower()
+        if "model" in low and ("not found" in low or "does not exist" in low
+                               or "decommission" in low or "not allowed" in low
+                               or "access" in low):
+            out["likely_cause"] = ("The key is probably fine — this account cannot use model '%s'. "
+                                   "Set GROQ_MODEL to one your account has, e.g. "
+                                   "llama-3.1-8b-instant." % GROQ_MODEL)
+        elif "invalid api key" in low or "unauthorized" in low or "401" in low:
+            out["likely_cause"] = ("The key itself was rejected. Re-copy it from console.groq.com "
+                                   "— no spaces, no quotes, and check it went into GROQ_API_KEY "
+                                   "rather than another variable.")
+        elif "403" in low:
+            out["likely_cause"] = ("Groq accepted the request shape but refused it. Usually either "
+                                   "the key belongs to a different service, or the account has not "
+                                   "been activated. Check the prefix below is gsk_.")
+    return out
