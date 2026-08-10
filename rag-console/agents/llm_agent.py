@@ -117,20 +117,41 @@ def plan_with_llm(driver, request, trace):
     return clean or None
 
 
-def run_step_with_llm(driver, conc, agent, task, context, allow):
+def run_step_with_llm(driver, conc, agent, task, context, allow, history=None):
     """One ReAct step: the model picks a tool, the dispatcher decides whether it
     may have it. Note what is *not* here — no check that the tool is in `allow`
-    before calling. That refusal belongs in the audit log."""
+    before calling. That refusal belongs in the audit log.
+
+    `history` is what this agent has already done *within this plan step*, and it
+    is replayed as genuine assistant/user turns. Handing a model its own previous
+    action as a field inside a context blob does not work: it reads as background
+    data rather than as something that happened, and the model repeats the call.
+    """
     tools = conc.mcp.describe(sorted(allow))
     listing = "\n".join("  %s(%s) — %s" % (t["name"], ", ".join(t["schema"]), t["description"])
                         for t in tools) or "  (none)"
     msgs = [{"role": "system", "content": STEP_SYSTEM.format(agent=agent, tools=listing)},
             {"role": "user", "content":
-                "Task: %s\nWhat is known so far: %s\n"
-                "If your previous call already returned what you need, act on it now — for a "
-                "search, that means holding the best option that fits the remaining budget. "
-                "If the task is complete, reply with tool null."
+                "Task: %s\nWhat is known so far: %s"
                 % (task, json.dumps(context, default=str)[:1400])}]
+    for h in (history or []):
+        act = h.get("action") or {}
+        msgs.append({"role": "assistant",
+                     "content": json.dumps({"tool": act.get("tool"),
+                                            "args": act.get("args") or {}}, default=str)})
+        msgs.append({"role": "user",
+                     "content": "Observation from that call: %s"
+                                % json.dumps(h.get("observation"), default=str)[:800]})
+    if history:
+        msgs.append({"role": "user", "content":
+                     "You have already made the call(s) above in this step. Do NOT repeat any of "
+                     "them — an identical repeat is refused. Take the next action instead: if you "
+                     "searched, hold the best option that fits the remaining budget, quoting its "
+                     "id. If the task is now complete, reply {\"tool\":null,\"thought\":\"done\"}."})
+    else:
+        msgs.append({"role": "user", "content":
+                     "Choose the first tool call for this task. If it needs no tool, reply "
+                     "{\"tool\":null,\"thought\":\"why not\"}."})
     try:
         text = driver.ask(msgs)
     except Exception as ex:

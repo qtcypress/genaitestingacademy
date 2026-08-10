@@ -354,17 +354,39 @@ class Concierge:
             # needs a search *and* then a hold, and with a single shot the agent
             # searched and never held — the trip came out empty and the run read
             # as infeasible when nothing was actually wrong.
-            last = None
+            #
+            # The history is fed back as real conversation turns — the model's own
+            # tool call as an assistant message, the observation as the reply. An
+            # earlier version put the last observation inside the context JSON
+            # instead, and the model simply did not act on it: it searched for
+            # flights three times and never held one, because from its point of
+            # view nothing had happened yet. A ReAct loop has to *look* like a
+            # dialogue or the model will not treat it as one.
+            history = []
             for _ in range(MAX_CALLS_PER_STEP):
                 if len(self.trace.steps) >= self.step_budget:
                     break
                 ctx = llm_agent.build_context(self, req)
-                ctx["last_observation"] = _summarise(last)
+                before = len(self.trace.steps)
                 result = llm_agent.run_step_with_llm(self.driver, self, agent,
-                                                     step.get("task", ""), ctx, ALLOW[agent])
+                                                     step.get("task", ""), ctx, ALLOW[agent],
+                                                     history=history)
                 if result is None:
-                    break                       # the agent said it was done, or errored
-                last = result
+                    # `delegate` returns None for several different things, and they
+                    # do not deserve the same treatment. A tool that rejected its
+                    # arguments is worth one more turn with the error in hand — that
+                    # is a mistake a model can fix. A denial or a loop-guard refusal
+                    # is not: retrying a refused action is precisely how a captured
+                    # agent probes for a way around the allow-list.
+                    failed = (self.trace.steps[-1]
+                              if len(self.trace.steps) > before else None)
+                    if failed and failed.get("error") == "tool_error":
+                        history.append({"action": failed.get("action"),
+                                        "observation": {"error": str(failed.get("observation"))[:200]}})
+                        continue
+                    break                       # the agent said it was done, or gave up
+                history.append({"action": self.trace.steps[-1].get("action"),
+                                "observation": _summarise(result)})
                 # A hold only counts once the budget agrees with it.
                 if isinstance(result, dict) and result.get("hold_id"):
                     if self.state["total"] + result["total"] > budget:
