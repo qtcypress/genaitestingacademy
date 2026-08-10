@@ -123,6 +123,23 @@ def build_plan(req):
     return steps
 
 
+MAX_CALLS_PER_STEP = 3
+
+
+def _summarise(result):
+    """What the agent is told about its own previous call. Trimmed hard: a full
+    search result would crowd out the task and cost tokens for no gain."""
+    if result is None:
+        return None
+    if isinstance(result, list):
+        return [{k: v for k, v in item.items() if k in ("id", "price", "nightly", "name", "dep", "arr")}
+                for item in result[:6] if isinstance(item, dict)]
+    if isinstance(result, dict):
+        return {k: v for k, v in result.items()
+                if k in ("hold_id", "total", "fits", "headroom", "allocation", "city", "ref")}
+    return str(result)[:200]
+
+
 class Concierge:
     def __init__(self, mode="scripted", llm=None, step_budget=C.STEP_BUDGET):
         self.mcp = MCPServer()
@@ -332,21 +349,36 @@ class Concierge:
                                 error="unknown_agent")
                 self.trace.errors.append("plan referenced unknown agent '%s'" % agent)
                 continue
-            ctx = llm_agent.build_context(self, req)
-            result = llm_agent.run_step_with_llm(self.driver, self, agent, step.get("task", ""),
-                                                 ctx, ALLOW[agent])
-            # A hold only counts once the budget agrees with it.
-            if isinstance(result, dict) and result.get("hold_id"):
-                if self.state["total"] + result["total"] > budget:
-                    self.trace.step("That hold would take the trip past the budget.",
-                                    {"tool": None}, "hold rejected: %s" % result["hold_id"],
-                                    "budget", error="over_budget")
-                    self.trace.errors.append("rejected an over-budget hold from %s" % agent)
-                else:
-                    self.state["holds"].append(result)
-                    self.state["total"] += result["total"]
-            if isinstance(result, dict) and result.get("days"):
-                self.state["itinerary"] = result
+            # Up to MAX_CALLS_PER_STEP tool calls per plan step, each observation
+            # fed back. One call per step is not enough: "find and hold a flight"
+            # needs a search *and* then a hold, and with a single shot the agent
+            # searched and never held — the trip came out empty and the run read
+            # as infeasible when nothing was actually wrong.
+            last = None
+            for _ in range(MAX_CALLS_PER_STEP):
+                if len(self.trace.steps) >= self.step_budget:
+                    break
+                ctx = llm_agent.build_context(self, req)
+                ctx["last_observation"] = _summarise(last)
+                result = llm_agent.run_step_with_llm(self.driver, self, agent,
+                                                     step.get("task", ""), ctx, ALLOW[agent])
+                if result is None:
+                    break                       # the agent said it was done, or errored
+                last = result
+                # A hold only counts once the budget agrees with it.
+                if isinstance(result, dict) and result.get("hold_id"):
+                    if self.state["total"] + result["total"] > budget:
+                        self.trace.step("That hold would take the trip past the budget.",
+                                        {"tool": None}, "hold rejected: %s" % result["hold_id"],
+                                        "budget", error="over_budget")
+                        self.trace.errors.append("rejected an over-budget hold from %s" % agent)
+                    else:
+                        self.state["holds"].append(result)
+                        self.state["total"] += result["total"]
+                    break                       # one hold per step is enough
+                if isinstance(result, dict) and result.get("days"):
+                    self.state["itinerary"] = result
+                    break
 
         self.trace.tokens = self.driver.tokens if self.driver else 0
 

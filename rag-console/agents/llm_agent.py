@@ -125,8 +125,12 @@ def run_step_with_llm(driver, conc, agent, task, context, allow):
     listing = "\n".join("  %s(%s) — %s" % (t["name"], ", ".join(t["schema"]), t["description"])
                         for t in tools) or "  (none)"
     msgs = [{"role": "system", "content": STEP_SYSTEM.format(agent=agent, tools=listing)},
-            {"role": "user", "content": "Task: %s\nWhat is known so far: %s"
-                                        % (task, json.dumps(context, default=str)[:1200])}]
+            {"role": "user", "content":
+                "Task: %s\nWhat is known so far: %s\n"
+                "If your previous call already returned what you need, act on it now — for a "
+                "search, that means holding the best option that fits the remaining budget. "
+                "If the task is complete, reply with tool null."
+                % (task, json.dumps(context, default=str)[:1400])}]
     try:
         text = driver.ask(msgs)
     except Exception as ex:
