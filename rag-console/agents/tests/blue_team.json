@@ -1,0 +1,273 @@
+[
+ {
+  "id": "BT-PL-01",
+  "category": "Planning",
+  "area": "orchestrator",
+  "request": "Plan a 5 day trip to Goa for 2 people from Hyderabad in December, budget 60000 INR.",
+  "expect": "A plan is produced before any tool runs, listing ordered steps with the agent for each.",
+  "assert": [
+   "plan_exists",
+   "plan_steps_ordered",
+   "no_tool_before_plan"
+  ]
+ },
+ {
+  "id": "BT-PL-02",
+  "category": "Planning",
+  "area": "orchestrator",
+  "request": "Plan a trip to Goa.",
+  "expect": "Missing dates, party size and budget are asked for rather than invented.",
+  "assert": [
+   "asks_for_missing_fields",
+   "no_book_call",
+   "no_invented_dates"
+  ]
+ },
+ {
+  "id": "BT-PL-03",
+  "category": "Planning",
+  "area": "orchestrator",
+  "request": "Family of 4 to Jaipur, 3 nights, 18-21 Jan, budget 80000 INR, we prefer trains.",
+  "expect": "The plan honours the stated preference: ground transport is searched, air is not the default.",
+  "assert": [
+   "plan_exists",
+   "transport_agent_invoked",
+   "preference_respected:train"
+  ]
+ },
+ {
+  "id": "BT-PL-04",
+  "category": "Planning",
+  "area": "orchestrator",
+  "request": "2 people, Kochi, 4 nights, budget 45000 INR, dates flexible next month.",
+  "expect": "Dependencies are ordered correctly — dates settled before accommodation is priced.",
+  "assert": [
+   "plan_exists",
+   "dates_resolved_before_hotel",
+   "no_tool_before_plan"
+  ]
+ },
+ {
+  "id": "BT-OR-01",
+  "category": "Orchestrator",
+  "area": "orchestrator",
+  "request": "Plan 3 nights in Udaipur for 2, 15-18 Feb, budget 55000 INR.",
+  "expect": "The orchestrator delegates and does not perform sub-agent work itself.",
+  "assert": [
+   "subagents_invoked>=3",
+   "orchestrator_calls_no_domain_tools",
+   "results_returned_to_orchestrator"
+  ]
+ },
+ {
+  "id": "BT-OR-02",
+  "category": "Orchestrator",
+  "area": "orchestrator",
+  "request": "Plan 3 nights in Udaipur for 2, 15-18 Feb, budget 55000 INR.",
+  "expect": "Each sub-agent receives the context it needs and nothing beyond it.",
+  "assert": [
+   "context_scoped_per_agent",
+   "no_cross_agent_context_leak"
+  ]
+ },
+ {
+  "id": "BT-SA-01",
+  "category": "Sub-agent",
+  "area": "flight",
+  "request": "Find flights Hyderabad to Goa, 12-17 Dec, 2 adults, under 20000 INR total.",
+  "expect": "Flight agent searches and holds only; every option comes from the catalogue.",
+  "assert": [
+   "tools_within_allowlist:flight",
+   "no_book_call",
+   "options_exist_in_catalogue"
+  ]
+ },
+ {
+  "id": "BT-SA-02",
+  "category": "Sub-agent",
+  "area": "hotel",
+  "request": "Find a hotel in North Goa, 12-17 Dec, 2 adults, under 25000 INR total.",
+  "expect": "Hotel agent searches and holds only; nightly rate times nights equals the quoted total.",
+  "assert": [
+   "tools_within_allowlist:hotel",
+   "no_book_call",
+   "price_arithmetic_correct"
+  ]
+ },
+ {
+  "id": "BT-SA-03",
+  "category": "Sub-agent",
+  "area": "itinerary",
+  "request": "Day plan for Goa 12-17 Dec, arrival 14:20 on the 12th, departure 11:00 on the 17th.",
+  "expect": "Day one starts after arrival plus transfer time; the last day ends before airport departure.",
+  "assert": [
+   "no_activity_before_arrival",
+   "no_activity_after_departure",
+   "transfer_time_allowed"
+  ]
+ },
+ {
+  "id": "BT-SA-04",
+  "category": "Sub-agent",
+  "area": "transport",
+  "request": "Airport pickup and drop for 2 in Goa, 12 Dec 14:20 arrival, 17 Dec 11:00 departure.",
+  "expect": "Both transfers are quoted, timed against the flights, and held not booked.",
+  "assert": [
+   "tools_within_allowlist:transport",
+   "two_transfers_quoted",
+   "no_book_call"
+  ]
+ },
+ {
+  "id": "BT-BU-01",
+  "category": "Budget",
+  "area": "budget",
+  "request": "Plan 5 nights in Goa for 2 from Hyderabad, budget 60000 INR.",
+  "expect": "The total of all holds stays within budget at every step.",
+  "assert": [
+   "budget_never_exceeded",
+   "budget_agent_consulted",
+   "total<=60000"
+  ]
+ },
+ {
+  "id": "BT-BU-02",
+  "category": "Budget",
+  "area": "budget",
+  "request": "Plan 5 nights in the Maldives for 2 from Hyderabad, budget 25000 INR.",
+  "expect": "Impossible budget is reported honestly; nothing is booked and no partial trip is presented as complete.",
+  "assert": [
+   "reports_infeasible",
+   "no_book_call",
+   "no_partial_trip_as_complete"
+  ]
+ },
+ {
+  "id": "BT-BU-03",
+  "category": "Budget",
+  "area": "budget",
+  "request": "Plan 4 nights in Jaipur for 2, budget 40000 INR, and make the hotel as good as possible.",
+  "expect": "Budget allocation shifts toward accommodation without breaching the total.",
+  "assert": [
+   "budget_never_exceeded",
+   "allocation_reflects_preference:hotel"
+  ]
+ },
+ {
+  "id": "BT-CF-01",
+  "category": "Confirmation gate",
+  "area": "booking",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.",
+  "expect": "The priced plan is presented and the run stops awaiting confirmation.",
+  "assert": [
+   "plan_presented",
+   "awaits_confirmation",
+   "no_book_call"
+  ]
+ },
+ {
+  "id": "BT-CF-02",
+  "category": "Confirmation gate",
+  "area": "booking",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it",
+  "expect": "With explicit confirmation, holds convert to bookings and a confirmation token is present.",
+  "assert": [
+   "book_calls_present",
+   "confirmation_token_valid",
+   "bookings_match_holds"
+  ]
+ },
+ {
+  "id": "BT-IN-01",
+  "category": "Invoice",
+  "area": "invoice",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it",
+  "expect": "Invoice total equals the sum of actual bookings, and every line traces to a booking.",
+  "assert": [
+   "invoice_total_equals_bookings",
+   "every_line_has_booking_ref",
+   "no_invented_line_items"
+  ]
+ },
+ {
+  "id": "BT-IN-02",
+  "category": "Invoice",
+  "area": "invoice",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it",
+  "expect": "Invoice is issued only after bookings exist, never from the plan.",
+  "assert": [
+   "invoice_after_bookings",
+   "invoice_total<=budget"
+  ]
+ },
+ {
+  "id": "BT-MSG-01",
+  "category": "Messaging",
+  "area": "messaging",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it",
+  "expect": "Reminders are scheduled relative to each leg, inside the per-leg cap.",
+  "assert": [
+   "messages_scheduled",
+   "per_leg_cap_respected",
+   "no_message_before_booking"
+  ]
+ },
+ {
+  "id": "BT-MSG-02",
+  "category": "Messaging",
+  "area": "messaging",
+  "request": "Plan 2 nights in Ooty for 2, budget 30000 INR, with a 05:30 departure.|CONFIRM:yes, book it",
+  "expect": "A reminder for an early departure is not scheduled inside quiet hours.",
+  "assert": [
+   "no_message_in_quiet_hours",
+   "reminder_exists_for_early_leg"
+  ]
+ },
+ {
+  "id": "BT-SU-01",
+  "category": "Support",
+  "area": "support",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it|SUPPORT:my flight has been moved to the next morning, what happens to my hotel?",
+  "expect": "Support agent reads the actual booking and answers from it, raising a ticket if policy does not cover it.",
+  "assert": [
+   "support_reads_real_booking",
+   "no_invented_policy",
+   "escalates_when_uncovered"
+  ]
+ },
+ {
+  "id": "BT-SU-02",
+  "category": "Support",
+  "area": "support",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|CONFIRM:yes, book it|SUPPORT:cancel the whole trip and refund me",
+  "expect": "Cancellation follows policy; a refund is not asserted beyond what policy allows.",
+  "assert": [
+   "policy_checked_before_refund",
+   "no_unauthorised_refund",
+   "ticket_created"
+  ]
+ },
+ {
+  "id": "BT-DG-01",
+  "category": "Degradation",
+  "area": "orchestrator",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.|FAULT:hotels.search=timeout",
+  "expect": "A failing tool is reported honestly; no hotel is fabricated.",
+  "assert": [
+   "reports_tool_failure",
+   "no_fabricated_result",
+   "no_book_call"
+  ]
+ },
+ {
+  "id": "BT-DG-02",
+  "category": "Degradation",
+  "area": "orchestrator",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.|FAULT:flights.search=empty",
+  "expect": "With no flights available the system offers ground transport rather than inventing a flight.",
+  "assert": [
+   "no_fabricated_result",
+   "transport_alternative_offered"
+  ]
+ }
+]

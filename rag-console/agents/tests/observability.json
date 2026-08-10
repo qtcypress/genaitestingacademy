@@ -1,0 +1,172 @@
+[
+ {
+  "id": "OB-TR-01",
+  "category": "Trace completeness",
+  "area": "trace",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.",
+  "expect": "The trace contains the plan, every step, every tool call with arguments and results, and the terminal outcome.",
+  "assert": [
+   "trace_has_plan",
+   "trace_has_steps",
+   "tool_calls_have_args",
+   "tool_calls_have_results",
+   "trace_has_outcome"
+  ]
+ },
+ {
+  "id": "OB-TR-02",
+  "category": "Trace completeness",
+  "area": "trace",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.|CONFIRM:yes book it",
+  "expect": "Every state-changing action appears in the trace with its arguments — INV-9.",
+  "assert": [
+   "every_state_change_traced",
+   "tool_calls_have_args"
+  ]
+ },
+ {
+  "id": "OB-TR-03",
+  "category": "Trace completeness",
+  "area": "trace",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.|FAULT:hotels.search=timeout",
+  "expect": "A failure is traced as a failure, with the error, not silently omitted.",
+  "assert": [
+   "trace_records_failure",
+   "failure_has_error_detail"
+  ]
+ },
+ {
+  "id": "OB-TR-04",
+  "category": "Trace completeness",
+  "area": "trace",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.",
+  "expect": "Token and latency counts are reported per step and in total — NFR-4.",
+  "assert": [
+   "tokens_reported",
+   "latency_reported",
+   "totals_match_step_sum"
+  ]
+ },
+ {
+  "id": "OB-HO-01",
+  "category": "Hand-off visibility",
+  "area": "trace",
+  "request": "Plan 4 nights in Jaipur for 2, budget 50000 INR.",
+  "expect": "Every delegation is traced: which agent, what task, what came back.",
+  "assert": [
+   "handoffs_traced",
+   "handoff_has_task",
+   "handoff_has_result"
+  ]
+ },
+ {
+  "id": "OB-HO-02",
+  "category": "Hand-off visibility",
+  "area": "trace",
+  "request": "Plan 4 nights in Jaipur for 2, budget 50000 INR.",
+  "expect": "The trace shows which context each sub-agent received, so scoping is auditable.",
+  "assert": [
+   "context_per_handoff_traced",
+   "no_cross_agent_context_leak"
+  ]
+ },
+ {
+  "id": "OB-RA-01",
+  "category": "ReAct",
+  "area": "react",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.",
+  "expect": "Every step has a thought, then an action, then an observation, in that order.",
+  "assert": [
+   "every_step_has_thought",
+   "no_action_without_thought",
+   "observation_follows_action"
+  ]
+ },
+ {
+  "id": "OB-RA-02",
+  "category": "ReAct",
+  "area": "react",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.",
+  "expect": "Every observation traces to a real tool result — none are written by the model.",
+  "assert": [
+   "observations_traceable_to_tool_results",
+   "no_fabricated_observation"
+  ]
+ },
+ {
+  "id": "OB-RA-03",
+  "category": "ReAct",
+  "area": "react",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR.|FAULT:hotels.search=empty",
+  "expect": "When an observation contradicts the plan, the plan is revised rather than continued.",
+  "assert": [
+   "plan_revised_after_contradiction"
+  ]
+ },
+ {
+  "id": "OB-RA-04",
+  "category": "ReAct",
+  "area": "react",
+  "request": "Plan 3 nights in Coorg for 2, budget 35000 INR. Search hotels, then search hotels again, then again.",
+  "expect": "Repeated identical actions are detected and stopped rather than dutifully executed.",
+  "assert": [
+   "no_repeated_identical_call>2",
+   "reports_loop_detected"
+  ]
+ },
+ {
+  "id": "OB-PL-01",
+  "category": "Plan quality",
+  "area": "planner",
+  "request": "Plan 5 nights in Goa for 2 from Hyderabad in December, budget 60000 INR.",
+  "expect": "Plan steps map to real capabilities — no step describes something no agent can do.",
+  "assert": [
+   "every_step_maps_to_capability",
+   "no_orphan_steps"
+  ]
+ },
+ {
+  "id": "OB-PL-02",
+  "category": "Plan quality",
+  "area": "planner",
+  "request": "Plan 5 nights in Goa for 2 from Hyderabad in December, budget 60000 INR. I have already booked my flights.",
+  "expect": "The plan contains no step for information it already has.",
+  "assert": [
+   "no_redundant_steps",
+   "flight_search_skipped"
+  ]
+ },
+ {
+  "id": "OB-PL-03",
+  "category": "Plan quality",
+  "area": "planner",
+  "request": "Plan 5 nights in Goa for 2, budget 60000 INR.",
+  "expect": "Dependencies are ordered: transfers are planned after flight times are known.",
+  "assert": [
+   "dependency_order_correct",
+   "transfers_after_flights"
+  ]
+ },
+ {
+  "id": "OB-ST-01",
+  "category": "Step budget",
+  "area": "orchestrator",
+  "request": "Plan 7 nights across Goa for 4 people with day trips, budget 150000 INR.",
+  "expect": "Even a large request terminates within the 40-step budget — NFR-2.",
+  "assert": [
+   "step_count<=40",
+   "terminates_within_step_budget"
+  ]
+ },
+ {
+  "id": "OB-ST-02",
+  "category": "Step budget",
+  "area": "orchestrator",
+  "request": "Plan 3 nights in Goa for 2, budget 40000 INR.",
+  "expect": "The step count is reported so a regression in agent chattiness is visible.",
+  "assert": [
+   "step_count_reported",
+   "step_count<=40"
+  ]
+ }
+]
