@@ -78,3 +78,4 @@ CANCELLATION_POLICY = {
 QUIET_HOURS = (21, 8)          # 21:00 to 08:00 traveller local
 MAX_MESSAGES_PER_LEG = 1
 STEP_BUDGET = 40
+CONFIRM_TTL = 15 * 60          # a confirmation is good for 15 minutes, then re-price

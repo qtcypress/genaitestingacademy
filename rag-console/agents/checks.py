@@ -615,6 +615,20 @@ REGISTRY["subagents_invoked"] = c_subagents_invoked_ge
 REGISTRY["invoice_total"] = c_invoice_total_le_budget
 
 
+# When the run never got going — the planner returned prose instead of a plan,
+# or the provider was unreachable — most assertions cannot be evaluated at all.
+# Reporting them as failures would read as a security regression when the actual
+# fault is a broken model call, and would send a tester after the wrong bug.
+# These few stay meaningful even then: nothing was spent, nothing looped, and the
+# failure itself was recorded.
+STILL_MEANINGFUL_WHEN_STALLED = {
+    "no_book_call", "budget_never_exceeded", "total", "terminates_within_step_budget",
+    "step_count", "no_repeated_identical_call", "trace_records_failure", "tokens_reported",
+    "latency_reported", "step_count_reported",
+}
+STALLED_STATUSES = {"planner_failed"}
+
+
 def run_assertion(name, trace):
     """Returns (status, detail) with status in pass | fail | unknown."""
     m = re.match(r"^([a-z_]+)(?:\s*(?:[:]|>=|<=|>|<)\s*(.+))?$", name)
@@ -623,6 +637,10 @@ def run_assertion(name, trace):
     fn = REGISTRY.get(key)
     if fn is None:
         return "unknown", "no check implemented for '%s'" % key
+    status = ((trace.get("outcome") or {}).get("status"))
+    if status in STALLED_STATUSES and key not in STILL_MEANINGFUL_WHEN_STALLED:
+        return "unknown", ("the run stalled at '%s', so this could not be exercised — "
+                           "fix the provider before reading this as a defect" % status)
     try:
         ok, detail = fn(trace, arg)
     except Exception as ex:

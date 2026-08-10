@@ -24,6 +24,7 @@ import time
 
 from . import catalog as C
 from .mcp_server import MCPServer, ToolError, Denied
+from . import llm_agent
 
 # Least privilege. The flight agent cannot book; only the booking agent can, and
 # only with a confirmation token the dispatcher checks.
@@ -127,6 +128,7 @@ class Concierge:
         self.mcp = MCPServer()
         self.mode = mode
         self.llm = llm
+        self.driver = llm_agent.LLMDriver(llm) if (mode == "llm" and llm) else None
         self.step_budget = step_budget
         self.trace = Trace()
         self.state = {"holds": [], "total": 0, "confirmation": None, "plan_presented": False,
@@ -189,8 +191,18 @@ class Concierge:
             self.state["infeasible"] = True
             return self.result()
 
-        self.trace.plan = build_plan(req)
-        self._execute(req)
+        if self.mode == "llm" and self.driver:
+            self.trace.plan = llm_agent.plan_with_llm(self.driver, request, self.trace)
+            if self.trace.plan:
+                self._execute_llm(req)
+            else:
+                # A planner that returns nothing usable is a failure to report,
+                # not a reason to quietly fall back to the scripted path.
+                self.trace.outcome = dict(self.trace.outcome or {}, status="planner_failed")
+                return self.result()
+        else:
+            self.trace.plan = build_plan(req)
+            self._execute(req)
 
         # Assume the manipulation worked on the model, then prove the defences
         # outside the model still hold. Without this the red suite passes because
@@ -302,6 +314,56 @@ class Concierge:
                         "presented the priced plan and stopped for confirmation", "orchestrator")
         self.trace.outcome = dict(self.trace.outcome or {},
                                   status="awaiting_confirmation",
+                                  total=self.state["total"], budget=budget)
+
+    def _execute_llm(self, req):
+        """Work the model's plan, one ReAct step per plan step. The model chooses;
+        `delegate` decides. Budget and confirmation are enforced here regardless of
+        what any step returns."""
+        budget = req["budget"]
+        for step in self.trace.plan:
+            if len(self.trace.steps) >= self.step_budget:
+                self.trace.errors.append("step budget exhausted")
+                break
+            agent = step.get("agent")
+            if agent not in ALLOW:
+                self.trace.step("The plan names '%s', which is not an agent I have." % agent,
+                                {"tool": None}, "step skipped", "orchestrator",
+                                error="unknown_agent")
+                self.trace.errors.append("plan referenced unknown agent '%s'" % agent)
+                continue
+            ctx = llm_agent.build_context(self, req)
+            result = llm_agent.run_step_with_llm(self.driver, self, agent, step.get("task", ""),
+                                                 ctx, ALLOW[agent])
+            # A hold only counts once the budget agrees with it.
+            if isinstance(result, dict) and result.get("hold_id"):
+                if self.state["total"] + result["total"] > budget:
+                    self.trace.step("That hold would take the trip past the budget.",
+                                    {"tool": None}, "hold rejected: %s" % result["hold_id"],
+                                    "budget", error="over_budget")
+                    self.trace.errors.append("rejected an over-budget hold from %s" % agent)
+                else:
+                    self.state["holds"].append(result)
+                    self.state["total"] += result["total"]
+            if isinstance(result, dict) and result.get("days"):
+                self.state["itinerary"] = result
+
+        self.trace.tokens = self.driver.tokens if self.driver else 0
+
+        check = self.delegate("budget", "budget.check",
+                              {"total": self.state["total"], "budget": budget},
+                              "Verify the assembled trip fits the stated budget.")
+        if (check and not check.get("fits")) or not self.state["holds"]:
+            self.state["infeasible"] = True
+            self.trace.outcome = dict(self.trace.outcome or {}, status="infeasible",
+                                      reason="budget cannot be met"
+                                      if check and not check.get("fits")
+                                      else "nothing could be held within the budget")
+            return
+        self.state["plan_presented"] = True
+        self.trace.step("The plan is priced and inside budget.", {"tool": None},
+                        "presented the priced plan and stopped for confirmation", "orchestrator")
+        self.trace.outcome = dict(self.trace.outcome or {}, status="awaiting_confirmation",
                                   total=self.state["total"], budget=budget)
 
     def _hold_best_affordable(self, agent, tool, options, pax, budget, nights=1):

@@ -43,7 +43,7 @@ class MCPServer:
         self.invoices = []
         self.messages = []
         self.tickets = []
-        self.valid_tokens = set()
+        self.valid_tokens = {}          # token -> expiry epoch
         self.poisoned_desc = {}    # tool -> text appended to its description
         self.poisoned_result = {}  # tool -> text appended to its result
         self.faults = {}           # tool -> "timeout" | "empty" | "error_always"
@@ -259,17 +259,29 @@ class MCPServer:
                            "pax": pax, "nights": nights if kind == "hotel" else None}
         return dict(self.holds[hid])
 
-    def issue_token(self, token):
-        """Only tokens this server issued are valid. Checking the shape of a
-        token rather than its provenance would let anyone mint one by typing
-        the right prefix."""
-        self.valid_tokens.add(token)
+    def issue_token(self, token, ttl=None):
+        """Only tokens this server issued are valid, and only for a while.
+
+        The PRD left expiry as an open question; it should not have. An approval
+        given twenty minutes ago, for a plan that has since been re-priced, is
+        not an approval of what would be booked now. Shape-checking a token lets
+        anyone mint one; never expiring it lets a stale one be replayed.
+        """
+        self.valid_tokens[token] = time.time() + (ttl if ttl is not None else C.CONFIRM_TTL)
         return token
+
+    def token_state(self, token):
+        if not isinstance(token, str) or token not in self.valid_tokens:
+            return "unknown"
+        return "live" if time.time() <= self.valid_tokens[token] else "expired"
 
     def _book(self, kind, a):
         token = a.get("confirmation")
-        if not (isinstance(token, str) and token in self.valid_tokens):
+        state = self.token_state(token)
+        if state == "unknown":
             raise ToolError("booking requires a confirmation token this system issued")
+        if state == "expired":
+            raise ToolError("that confirmation has expired — re-price the plan and ask again")
         hold = self.holds.get(a.get("hold_id"))
         if not hold:
             raise ToolError("no such hold: %s" % a.get("hold_id"))
