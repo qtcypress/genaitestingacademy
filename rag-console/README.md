@@ -1,16 +1,44 @@
-# TripSage RAG — comparison console
+# TripSage RAG — testing console
 
-Serves all four versions of the TripSage RAG engine from one process, so a student can send
-one question to several versions at once and see the effect of each single change. Pure Python
+Serves all four versions of the TripSage RAG engine from one process. The student picks a
+version, reads what that version changed, and then works it through a set of tabs. Pure Python
 standard library — no `pip install`, no LLM API key, nothing to pay for per request.
 
 ```
 rag-console/
-  server.py            the console (router + UI + access gate)
+  server.py            the console (router + UI + access gate + session isolation)
   render.yaml          Render blueprint
   Procfile             for hosts that read one
   versions/v1..v4/     the four engines, one folder each
 ```
+
+## Tabs, and which versions have them
+
+Tabs are built from what each engine can actually do, not from a hardcoded list, so adding a
+capability to an engine makes its tab appear.
+
+| Tab | v1 | v2 | v3 | v4 | Backed by |
+|---|:--:|:--:|:--:|:--:|---|
+| Ask | ✓ | ✓ | ✓ | ✓ | `RAGEngine.ask` |
+| Red / blue team | ✓ | ✓ | ✓ | ✓ | `tests/red_team.json`, `tests/blue_team.json` |
+| Documents | | ✓ | ✓ | ✓ | `add_kb_doc` / `list_kb` present |
+| Vector DB | | | ✓ | ✓ | `probe`, `eval_retrieval`, `store.stats` present |
+| Logs | ✓ | ✓ | ✓ | ✓ | traces captured per session |
+
+The Ask tab on v4 also carries a **defences on/off** toggle, because only v4 has `self.defenses`.
+Turning it off reproduces the breach: the same question comes back with
+`BREACH_indirect_injection_executed` instead of `indirect_injection_neutralised`.
+
+## Test verdicts have three outcomes, not two
+
+`pass`, `fail`, and `weak`. **Weak** means the version did not misbehave, but not for the reason
+the case was written to test — it abstained because retrieval came back empty rather than because
+a guardrail fired, for instance. Collapsing that into "pass" hides the thing a tester most needs
+to notice. The rule and its reasoning are printed beside every row so students can disagree.
+
+Poisoning verdicts look at **which document grounded the answer**, not merely at whether a
+poisoned document was cited. Only the first used chunk composes the answer, so a poisoned doc
+appearing further down the citation list is a different (and much less serious) finding.
 
 ---
 
@@ -27,13 +55,21 @@ side by side. This binds `0.0.0.0` on `$PORT`.
 `top_k`, flips poison mode, turns defences off and calls `reindex()` — on the *shared* engine.
 On a laptop with one tester that's the point. On a public URL, one student turning defences off
 changes what every other student sees at that moment, and `reindex()` on demand is free CPU for
-anyone who wants to hammer it. Here all eight indexes (four versions × clean/poisoned) are built
-once at start-up and never mutated. `top_k` and `threshold` are applied per request, and poisoned
-mode picks the pre-built poisoned index instead of re-indexing.
+anyone who wants to hammer it.
 
-**It writes to disk.** `write_trace()` appends every query to `logs/trace.jsonl` and judgments go
-to a CSV. On every free host the filesystem is wiped on restart, and all visitors would share one
-file — so both are patched out at import.
+Here the boot-time indexes are immutable and shared, and any action that *would* mutate one —
+adding a document, turning defences off — instead builds a private overlay engine keyed to that
+browser session. `top_k` and `threshold` are applied per request; poisoned mode selects a
+pre-built poisoned index rather than re-indexing. Sessions are capped (40 sessions, 6 documents
+of 20 KB each per version, 45-minute idle expiry, LRU eviction) so the isolation cannot be turned
+into a memory-exhaustion trick. Verified: one session adding a document that contradicts the
+knowledge base changes only that session's answer, while another session still gets the original.
+
+**It writes to disk.** `write_trace()` appends every query to `logs/trace.jsonl`, judgments and
+retrieval evaluations go to CSVs, and the vector store persists a JSON snapshot. On every free
+host the filesystem is wiped on restart, and all visitors would share one file — so those writes
+are redirected into per-session memory. That is also what makes the Logs tab show *your* run
+rather than everyone's.
 
 ---
 
