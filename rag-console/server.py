@@ -1484,7 +1484,19 @@ function paintAgentRun() {
     <textarea id="areq" placeholder="Plan 5 nights in Goa for 2 from Hyderabad, budget 60000 INR."></textarea>
     <div class="samples">${AGENT_SAMPLES.map((s, i) =>
       `<button data-as="${i}">${esc(s.length > 62 ? s.slice(0, 62) + "…" : s)}</button>`).join("")}</div>
-    <div class="row"><button class="btn" id="ago">Run the Concierge</button></div>
+    <div class="row">
+      <label class="f">Agents run on
+        <select id="amode">
+          <option value="scripted">Deterministic executor</option>
+          <option value="llm">A real LLM</option>
+        </select></label>
+      <button class="btn" id="ago">Run the Concierge</button>
+    </div>
+    <p class="muted" style="margin:8px 0 0">Both modes use the same tools, the same allow-lists,
+      the same confirmation gate and the same trace — only the decision-making differs. That is
+      what makes the 64 cases run unchanged against either. The deterministic mode is free and
+      repeatable, which is why the suites default to it; LLM mode needs a provider configured on
+      the server.</p>
     <div id="arun-out"></div>`;
   document.querySelectorAll("[data-as]").forEach(b =>
     b.onclick = () => { el("areq").value = AGENT_SAMPLES[+b.dataset.as]; });
@@ -1493,7 +1505,7 @@ function paintAgentRun() {
     if (!text) return;
     busy("ago", true); spin("arun-out");
     try {
-      const j = await api("/api/agents/run", {request: text});
+      const j = await api("/api/agents/run", {request: text, mode: el("amode").value});
       setOut("arun-out", runHtml(j.run));
     } catch (e) { setOut("arun-out", errBox(e)); }
     busy("ago", false);
@@ -1754,7 +1766,16 @@ class Handler(BaseHTTPRequestHandler):
             if not text:
                 raise ValueError("no request")
             from agents.orchestrator import run_request
-            t = run_request(text)
+            want_llm = body.get("mode") == "llm"
+            if want_llm and not LLM.shared_available():
+                raise ValueError("LLM mode needs a provider on the server. Set GROQ_API_KEY on "
+                                 "the service, or run the deterministic mode — the tools, "
+                                 "allow-lists, confirmation gate and trace are identical either way.")
+            drv = None
+            if want_llm:
+                sid = sess["sid"]
+                drv = lambda messages: LLM.generate(messages, session_id=sid, max_tokens=400)
+            t = run_request(text, mode="llm" if want_llm else "scripted", llm=drv)
             log_event(sess, "agent run", "concierge",
                       "%s → %s" % (text[:60], (t.get("outcome") or {}).get("status")))
             return {"run": t}
