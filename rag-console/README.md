@@ -21,7 +21,7 @@ capability to an engine makes its tab appear.
 |---|:--:|:--:|:--:|:--:|---|
 | Ask | ✓ | ✓ | ✓ | ✓ | `RAGEngine.ask` |
 | Red / blue team | ✓ | ✓ | ✓ | ✓ | `tests/red_team.json`, `tests/blue_team.json` |
-| Documents | | ✓ | ✓ | ✓ | `add_kb_doc` / `list_kb` present |
+| Knowledge base | | ✓ | ✓ | ✓ | `add_kb_doc` / `list_kb` present |
 | Vector DB | | | ✓ | ✓ | `probe`, `eval_retrieval`, `store.stats` present |
 | Logs | ✓ | ✓ | ✓ | ✓ | traces captured per session |
 

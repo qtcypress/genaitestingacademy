@@ -55,7 +55,7 @@ VERSIONS = [
      "Nothing about the retrieval maths changed; the knowledge base did. More documents means "
      "more candidates competing for the same top_k slots, so the wrong chunk starts winning on "
      "questions the baseline got right. This version can also take new documents at runtime, "
-     "which is the point of the Documents tab: add a plausible page, ask a question it should "
+     "which is the point of the Knowledge base tab: add a plausible page, ask a question it should "
      "not answer, and watch precision fall. That is the failure mode teams meet the week after "
      "they proudly triple their knowledge base."),
 
@@ -229,9 +229,13 @@ def log_event(sess, action, version, summary, detail=None):
 
 
 # ------------------------------------------------------- engine resolution
-def engine_for(sess, vid, poison=False, defenses=True):
+def engine_for(sess, vid, poison=False, defenses=True, force=False):
     """The shared boot-time engine when this session has changed nothing, and a
-    private overlay engine the moment it has. Overlays are cached per session."""
+    private overlay engine the moment it has. Overlays are cached per session.
+
+    `force` rebuilds this session's index from scratch even when nothing was
+    overlaid — that is what the Re-index button calls, so the student sees the
+    ingest actually run rather than a cached answer."""
     v = ENGINES.get(vid)
     if not v or v.get("err"):
         return None, "this version failed to load"
@@ -239,15 +243,16 @@ def engine_for(sess, vid, poison=False, defenses=True):
         return None, "this version has no poisoned knowledge base"
 
     overlay = (sess or {}).get("docs", {}).get(vid) or {}
-    default_def = True
-    needs_overlay = bool(overlay) or (defenses != default_def and v["caps"].get("defenses"))
-    if not needs_overlay:
+    key = "%s|%s|%s|%d" % (vid, int(poison), int(defenses), len(overlay))
+
+    needs_overlay = bool(overlay) or (not defenses and v["caps"].get("defenses"))
+    if not needs_overlay and not force and key not in sess["engines"]:
         return (v["poison"] if poison else v["clean"]), None
 
-    key = "%s|%s|%s|%d" % (vid, int(poison), int(defenses), len(overlay))
-    cached = sess["engines"].get(key)
-    if cached is not None:
-        return cached, None
+    if not force:
+        cached = sess["engines"].get(key)
+        if cached is not None:
+            return cached, None
 
     mod = v["mod"]
     cfg = dict(v["cfg"])
@@ -266,6 +271,29 @@ def engine_for(sess, vid, poison=False, defenses=True):
 
     sess["engines"][key] = eng
     return eng, None
+
+
+def index_report(eng, sess, vid, poison, defenses, scope, ms=None):
+    """What the index currently holds, per document — the ingest summary the
+    original app printed to a terminal nobody can see on a hosted service."""
+    per_doc = {}
+    for c in eng.store.chunks:
+        per_doc[c["doc"]] = per_doc.get(c["doc"], 0) + 1
+    mine = set((sess.get("docs", {}).get(vid) or {}).keys())
+    rep = {
+        "scope": scope,
+        "docs": [{"name": d, "chunks": n, "mine": d in mine, "poisoned": d.startswith("POISON_")}
+                 for d, n in sorted(per_doc.items())],
+        "num_docs": len(per_doc),
+        "chunks": len(eng.store.chunks),
+        "vocab": len(getattr(eng.store, "idf", {}) or {}),
+        "poison": poison,
+        "ms": ms,
+    }
+    # Only versions that actually have a defences switch should report one.
+    if (ENGINES.get(vid) or {}).get("caps", {}).get("defenses"):
+        rep["defenses"] = defenses
+    return rep
 
 
 def run_ask(sess, vid, question, top_k, threshold, poison, defenses):
@@ -443,7 +471,9 @@ border-radius:50%;animation:sp .9s linear infinite;margin:24px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 .doclist{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-top:8px}
 .doc{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:12.5px;background:#fff;
-display:flex;justify-content:space-between;gap:8px;align-items:center}
+display:flex;justify-content:space-between;gap:6px;align-items:center;flex-wrap:wrap}
+.doc>span:first-child{flex:1 1 100%;word-break:break-word}
+.doc>span:last-child{flex:0 0 auto}
 .doc.mine{background:#FFF9F2;border-color:var(--amber)}
 .logline{border-bottom:1px solid var(--line);padding:8px 0;font-size:12.5px}
 .logline .t{color:var(--muted);font-variant-numeric:tabular-nums;margin-right:8px}
@@ -487,7 +517,7 @@ const errBox = e => '<div class="err">' + esc(e.message || e) + '</div>';
 /* ------------------------------------------------------------------ shell */
 function tabsFor(v) {
   const t = [["ask", "Ask"], ["tests", "Red / blue team"]];
-  if (v.caps.docs) t.push(["docs", "Documents"]);
+  if (v.caps.docs) t.push(["docs", "Knowledge base"]);
   if (v.caps.vectors) t.push(["vectors", "Vector DB"]);
   t.push(["logs", "Logs"]);
   return t;
@@ -541,15 +571,60 @@ function paintAsk() {
       ${v.caps.poison ? `<label class="f"><input id="poison" type="checkbox"> poisoned knowledge base</label>` : ""}
       ${v.caps.defenses && v.caps.poison ? `<label class="f"><input id="def" type="checkbox" checked> defences on</label>` : ""}
       <button class="btn" id="go">Ask ${esc(v.label.split("  ")[0])}</button>
+      <button class="btn ghost" id="reindex">Re-index with these settings</button>
     </div>
-    <p class="muted" style="margin:10px 0 0">Indexes are built once at start-up and shared read-only.
-    Anything you add in the Documents tab, or turning defences off, builds a private copy for your
-    session — you cannot change what another student sees.</p>
+    <p class="muted" style="margin:10px 0 0"><b>top_k</b> and <b>threshold</b> are applied to each
+    query as it runs, so they take effect on the next question without a re-index. Switching the
+    ${v.caps.poison ? "poisoned knowledge base" : "knowledge base"}${
+      v.caps.defenses && v.caps.poison ? ", turning defences off," : ""} or changing documents
+    changes what is <em>in</em> the index, so those rebuild it. Re-index below to watch the ingest
+    run and see exactly what the store ends up holding.</p>
+    <div id="index-out"><div class="spin"></div></div>
     <div id="ask-out"></div>`;
   document.querySelectorAll("[data-s]").forEach(b =>
     b.onclick = () => { el("q").value = SAMPLES[+b.dataset.s]; });
   el("go").onclick = ask;
+  el("reindex").onclick = () => loadIndex(true);
   el("q").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); };
+  ["poison", "def"].forEach(id => { const c = el(id); if (c) c.onchange = () => loadIndex(false); });
+  loadIndex(false);
+}
+
+const askOpts = () => ({
+  version: CUR.id,
+  poison: !!(el("poison") && el("poison").checked),
+  defenses: el("def") ? el("def").checked : true
+});
+
+async function loadIndex(rebuild) {
+  if (rebuild) busy("reindex", true);
+  spin("index-out");
+  try {
+    const j = await api("/api/index", Object.assign(askOpts(), {rebuild: !!rebuild}));
+    setOut("index-out", indexCard(j.index, j.rebuilt));
+  } catch (e) { setOut("index-out", errBox(e)); }
+  if (rebuild) busy("reindex", false);
+}
+
+function indexCard(x, rebuilt) {
+  const docs = x.docs.map(d => `<div class="doc ${d.mine ? "mine" : ""}">
+      <span>${esc(d.name)}${d.poisoned ? ' <span class="badge b-flag" style="margin:0">poisoned</span>' :
+        d.mine ? ' <span class="badge b-info" style="margin:0">yours</span>' : ""}</span>
+      <span class="muted">${d.chunks} chunk${d.chunks === 1 ? "" : "s"}</span>
+    </div>`).join("");
+  return `<h4>Index &middot; ${x.scope === "shared" ?
+      "shared, built at start-up" : "your session's private copy"}${
+      rebuilt ? " &middot; rebuilt in " + x.ms + " ms" : ""}</h4>
+    <div class="stats">
+      <div class="stat"><b>${x.num_docs}</b><span>documents</span></div>
+      <div class="stat"><b>${x.chunks}</b><span>chunks</span></div>
+      <div class="stat"><b>${x.vocab}</b><span>vocabulary terms</span></div>
+      <div class="stat"><b>${x.poison ? "poisoned" : "clean"}</b><span>knowledge base</span></div>
+      ${typeof x.defenses === "boolean" ? `<div class="stat"><b>${x.defenses ? "on" : "off"}</b>
+        <span>defences</span></div>` : ""}
+    </div>
+    <details style="margin-top:8px"><summary>What went into the index (${x.num_docs} documents)</summary>
+      <div class="doclist">${docs}</div></details>`;
 }
 
 async function ask() {
@@ -557,12 +632,9 @@ async function ask() {
   if (!q) return;
   busy("go", true); spin("ask-out");
   try {
-    const j = await api("/api/ask", {
-      version: CUR.id, question: q,
-      top_k: +el("topk").value, threshold: +el("thr").value,
-      poison: !!(el("poison") && el("poison").checked),
-      defenses: el("def") ? el("def").checked : true
-    });
+    const j = await api("/api/ask", Object.assign(askOpts(), {
+      question: q, top_k: +el("topk").value, threshold: +el("thr").value
+    }));
     setOut("ask-out", askCard(j.result));
   } catch (e) { setOut("ask-out", errBox(e)); }
   busy("go", false);
@@ -670,14 +742,15 @@ function suiteTable(suite, j) {
 /* -------------------------------------------------------------------- docs */
 function paintDocs() {
   el("p-docs").innerHTML = `
-    <h2>Documents in the knowledge base</h2>
-    <p class="lead">RAG systems are only as good as what they retrieve from, so the fastest way to
-    break one is to feed it something plausible and wrong. Add a document here, then go back to the
-    Ask tab and put a question to it. Anything you add lives in your session only, in memory, and
-    disappears when the server restarts or you close the tab — the shared knowledge base every
-    other student sees is never touched.</p>
+    <h2>Knowledge base</h2>
+    <p class="lead">This is everything TripSage is allowed to answer from. A RAG system is only as
+    good as what it retrieves, so the fastest way to break one is to feed it something plausible
+    and wrong. Add a document here — the index rebuilds immediately — then go back to the Ask tab
+    and put a question to it. Anything you add lives in your session only, in memory, and
+    disappears when you close the tab; the shared knowledge base every other student sees is never
+    touched.</p>
     <div id="docs-list"><div class="spin"></div></div>
-    <h4>Add a document</h4>
+    <h4>Add a document to the knowledge base</h4>
     <div class="row">
       <label class="f">Name <input id="d-name" type="text" placeholder="e.g. destination_kerala" size="28"></label>
     </div>
@@ -718,8 +791,8 @@ async function addDoc() {
   try {
     const j = await api("/api/docs", {version: CUR.id, action: "add",
       name: el("d-name").value, content: el("d-body").value});
-    setOut("docs-out", `<div class="ok">Added <b>${esc(j.name)}</b> to your copy of the knowledge
-      base — it now holds ${j.chunks} chunks. Ask a question that should hit it.</div>`);
+    setOut("docs-out", `<div class="ok">Added <b>${esc(j.name)}</b> and re-indexed your copy of the
+      knowledge base — it now holds ${j.chunks} chunks. Ask a question that should hit it.</div>`);
     loadDocs();
   } catch (e) { setOut("docs-out", errBox(e)); }
   busy("d-add", false);
@@ -1011,6 +1084,27 @@ class Handler(BaseHTTPRequestHandler):
                        "poisoned" if poison else "clean"),
                       {"failed": [r["id"] for r in rows if r["verdict"] == "fail"]})
             return {"summary": summary, "rows": rows}
+
+        if path == "/api/index":
+            rebuild = bool(body.get("rebuild"))
+            t0 = time.time()
+            eng, err = engine_for(sess, vid, poison, defenses, force=rebuild)
+            if err:
+                raise ValueError(err)
+            ms = int((time.time() - t0) * 1000) if rebuild else None
+            overlay = sess["docs"].get(vid) or {}
+            private = bool(overlay) or (not defenses and ENGINES[vid]["caps"].get("defenses")) \
+                or rebuild
+            rep = index_report(eng, sess, vid, poison, defenses,
+                               "session" if private else "shared", ms)
+            if rebuild:
+                log_event(sess, "re-index", vid,
+                          "%d documents → %d chunks, %d terms (%s KB%s) in %d ms" %
+                          (rep["num_docs"], rep["chunks"], rep["vocab"],
+                           "poisoned" if poison else "clean",
+                           "" if defenses else ", defences off", ms),
+                          {"documents": [d["name"] for d in rep["docs"]]})
+            return {"index": rep, "rebuilt": rebuild}
 
         if path == "/api/docs":
             return self.docs_route(body, sess, vid)
