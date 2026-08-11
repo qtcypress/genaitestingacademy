@@ -1,7 +1,7 @@
 """
 TripSage RAG — testing console (QT GenAI Testing Academy)
 
-One process hosts all four versions of the RAG engine. The student picks a
+One process hosts all five versions of the RAG engine. The student picks a
 version, reads what that version changed, and then works it through four to six
 tabs: ask it questions, run the red- and blue-team suites, add documents to its
 knowledge base, inspect the vector store, and read the trace log of everything
@@ -780,12 +780,13 @@ function render() {
   if (!tabs.some(t => t[0] === TAB)) TAB = "ask";
   el("root").innerHTML = `
     <div class="card">
-      <h1>TripSage RAG — a travel assistant, built four times</h1>
+      <h1>TripSage RAG — a travel assistant, built five times</h1>
       <p class="lead">TripSage answers travel questions strictly from a small set of markdown
       documents: it chunks them, retrieves the closest chunks to your question by TF-IDF cosine
-      similarity, and grounds an answer in what it retrieved. It is built in four versions, and
+      similarity, and grounds an answer in what it retrieved. It is built in five versions, and
       each one adds exactly one change, so every difference in behaviour can be traced to a
-      specific decision. Pick a version below and test it — ask it questions, run the red- and
+      specific decision. The first four compose their answers from a template; the fifth
+      keeps the identical retrieval and hands the chunks to a real model. Pick a version below and test it — ask it questions, run the red- and
       blue-team suites against it, and read the trace of what it did.</p>
       <div class="row">
         <label class="f">Project
