@@ -132,8 +132,11 @@ def _summarise(result):
     if result is None:
         return None
     if isinstance(result, list):
-        return [{k: v for k, v in item.items() if k in ("id", "price", "nightly", "name", "dep", "arr")}
-                for item in result[:6] if isinstance(item, dict)]
+        # Four options is enough to choose from and costs a third of what the
+        # full list costs. On a free tier the whole run shares one
+        # tokens-per-minute budget, so an unread search result is not free.
+        return [{k: v for k, v in item.items() if k in ("id", "price", "nightly", "name")}
+                for item in result[:4] if isinstance(item, dict)]
     if isinstance(result, dict):
         return {k: v for k, v in result.items()
                 if k in ("hold_id", "total", "fits", "headroom", "allocation", "city", "ref")}

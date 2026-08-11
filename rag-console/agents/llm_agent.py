@@ -130,18 +130,27 @@ def run_step_with_llm(driver, conc, agent, task, context, allow, history=None):
     tools = conc.mcp.describe(sorted(allow))
     listing = "\n".join("  %s(%s) — %s" % (t["name"], ", ".join(t["schema"]), t["description"])
                         for t in tools) or "  (none)"
+    # Every character here is charged against a tokens-per-minute ceiling that a
+    # dozen-call run can exhaust inside one minute, so the context is trimmed to
+    # what a sub-agent actually needs to choose its next tool. The catalogue of
+    # cities in particular is only useful while the destination is still in
+    # doubt; after that it is several hundred tokens of scenery, sent again on
+    # every call.
+    ctx = dict(context or {})
+    if ctx.get("city"):
+        ctx.pop("catalogue_cities", None)
     msgs = [{"role": "system", "content": STEP_SYSTEM.format(agent=agent, tools=listing)},
             {"role": "user", "content":
                 "Task: %s\nWhat is known so far: %s"
-                % (task, json.dumps(context, default=str)[:1400])}]
-    for h in (history or []):
+                % (task, json.dumps(ctx, default=str)[:900])}]
+    for h in (history or [])[-2:]:
         act = h.get("action") or {}
         msgs.append({"role": "assistant",
                      "content": json.dumps({"tool": act.get("tool"),
                                             "args": act.get("args") or {}}, default=str)})
         msgs.append({"role": "user",
                      "content": "Observation from that call: %s"
-                                % json.dumps(h.get("observation"), default=str)[:800]})
+                                % json.dumps(h.get("observation"), default=str)[:400]})
     if history:
         msgs.append({"role": "user", "content":
                      "You have already made the call(s) above in this step. Do NOT repeat any of "

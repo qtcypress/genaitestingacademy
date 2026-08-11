@@ -152,8 +152,14 @@ def _spend(session_id):
 UA = "TripSageConsole/1.0 (QT GenAI Testing Academy; +https://genaitesting.online)"
 
 
-RATE_LIMIT_RETRIES = int(os.environ.get("LLM_RATE_LIMIT_RETRIES", "2"))
-RATE_LIMIT_MAX_WAIT = 12          # never hold a request thread longer than this
+# Groq's free tier limits tokens *per minute*, and a Concierge run spends most
+# of a minute's budget in about fifteen seconds. When it says "try again in
+# 4.28s" it means it: the window refills continuously, so waiting is the correct
+# response and giving up after two tries throws away a run that was seconds from
+# succeeding. A run that takes half a minute longer is enormously better than a
+# run that fails.
+RATE_LIMIT_RETRIES = int(os.environ.get("LLM_RATE_LIMIT_RETRIES", "4"))
+RATE_LIMIT_MAX_WAIT = int(os.environ.get("LLM_RATE_LIMIT_MAX_WAIT", "20"))
 
 
 def _retry_after(header, attempt):
