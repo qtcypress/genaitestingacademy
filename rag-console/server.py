@@ -1675,6 +1675,34 @@ async function openAgentCase(id) {
 </script></body></html>"""
 
 
+
+# Suite names arrive from the UI, from a student's own fetch(), and from the
+# handout. They used to be resolved with `x if x in (...) else "blue"`, which
+# meant that asking for "red_team" ran the *blue* suite and reported it as green.
+# A silent fallback that answers a question nobody asked is the exact failure
+# this course teaches people to look for, so an unknown name is now an error.
+SUITE_ALIASES = {"blue": "blue", "blue_team": "blue", "blueteam": "blue",
+                 "red": "red", "red_team": "red", "redteam": "red",
+                 "obs": "obs", "observability": "obs", "observability_team": "obs"}
+
+
+def _suite_name(raw):
+    name = SUITE_ALIASES.get(str(raw or "").strip().lower())
+    if name is None:
+        raise ValueError("unknown suite %r — use blue, red or obs" % (raw,))
+    return name
+
+
+def _team_name(raw):
+    """The RAG console's own two suites. Same rule: no silent substitution."""
+    name = str(raw or "").strip().lower()
+    if name in ("blue", "blue_team"):
+        return "blue"
+    if name in ("red", "red_team"):
+        return "red"
+    raise ValueError("unknown suite %r — use blue or red" % (raw,))
+
+
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
@@ -1806,11 +1834,11 @@ class Handler(BaseHTTPRequestHandler):
                     "used": [{"doc": h.get("doc"), "text": h.get("text", "")} for h in used]}
 
         if path == "/api/agents/cases":
-            suite = body.get("suite") if body.get("suite") in ("blue", "red", "obs") else "blue"
+            suite = _suite_name(body.get("suite"))
             return {"suite": suite, "cases": AGENT_RUNNER.load(suite)}
 
         if path == "/api/agents/case":
-            suite = body.get("suite") if body.get("suite") in ("blue", "red", "obs") else "blue"
+            suite = _suite_name(body.get("suite"))
             case = next((c for c in AGENT_RUNNER.load(suite) if c["id"] == body.get("id")), None)
             if case is None:
                 raise ValueError("no such case")
@@ -1820,7 +1848,7 @@ class Handler(BaseHTTPRequestHandler):
             return {"case": case, "run": r}
 
         if path == "/api/agents/suite":
-            suite = body.get("suite") if body.get("suite") in ("blue", "red", "obs") else "blue"
+            suite = _suite_name(body.get("suite"))
             rows = AGENT_RUNNER.run_suite(suite)
             tally = {"pass": 0, "weak": 0, "fail": 0}
             for r in rows:
@@ -1869,7 +1897,7 @@ class Handler(BaseHTTPRequestHandler):
             return {"result": r}
 
         if path == "/api/tests":
-            suite = "red" if body.get("suite") == "red" else "blue"
+            suite = _team_name(body.get("suite"))
             cases = load_suite(vid, suite + "_team")
             if not cases:
                 raise ValueError("this version has no %s suite" % suite)
@@ -1902,7 +1930,7 @@ class Handler(BaseHTTPRequestHandler):
             return {"summary": summary, "rows": rows}
 
         if path == "/api/cases":
-            suite = "red" if body.get("suite") == "red" else "blue"
+            suite = _team_name(body.get("suite"))
             cases = load_suite(vid, suite + "_team")
             if not cases:
                 raise ValueError("this version has no %s suite" % suite)
@@ -1912,7 +1940,7 @@ class Handler(BaseHTTPRequestHandler):
                 for c in cases]}
 
         if path == "/api/case":
-            suite = "red" if body.get("suite") == "red" else "blue"
+            suite = _team_name(body.get("suite"))
             cases = load_suite(vid, suite + "_team")
             case = next((c for c in cases if c.get("id") == body.get("id")), None)
             if case is None:
