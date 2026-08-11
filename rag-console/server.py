@@ -1883,7 +1883,11 @@ class Handler(BaseHTTPRequestHandler):
             drv = None
             if want_llm:
                 sid = sess["sid"]
-                drv = lambda messages: LLM.generate(messages, session_id=sid, max_tokens=400)
+                # The agent loop runs on its own model — smaller, faster, and with
+                # roughly five times the daily token allowance on the free tier.
+                # A dozen calls per run is what makes that difference decisive.
+                drv = lambda messages: LLM.generate(messages, session_id=sid, max_tokens=400,
+                                                    model=LLM.AGENT_MODEL)
             t = run_request(text, mode="llm" if want_llm else "scripted", llm=drv)
             log_event(sess, "agent run", "concierge",
                       "%s → %s" % (text[:60], (t.get("outcome") or {}).get("status")))
