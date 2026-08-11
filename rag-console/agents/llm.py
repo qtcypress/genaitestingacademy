@@ -22,14 +22,66 @@ import time
 import urllib.error
 import urllib.request
 
-GROQ_KEY = os.environ.get("GROQ_API_KEY", "")
 HF_TOKEN = os.environ.get("HF_API_TOKEN", "")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 HF_MODEL = os.environ.get("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 TIMEOUT = int(os.environ.get("LLM_TIMEOUT_SECONDS", "45"))
 
-# The shared key is the academy's quota, not a student's, so it is metered.
-SHARED_LIMIT_PER_SESSION = int(os.environ.get("LLM_SHARED_LIMIT", "20"))
+# Agents get a different model from the RAG tab, and the reason is arithmetic.
+# On Groq's free tier llama-3.3-70b-versatile is capped at 100,000 tokens a day
+# while llama-3.1-8b-instant gets 500,000 — and a single Concierge run costs
+# about 5,000. That is roughly 20 agent runs a day for the whole academy on the
+# 70b model against 100 on the 8b, before anyone is rate-limited. The 8b model
+# is also several times faster, which matters in a loop of a dozen calls.
+#
+# v5's RAG answers stay on the 70b model, because there the quality of the
+# writing is the thing students are being asked to judge.
+AGENT_MODEL = os.environ.get("GROQ_AGENT_MODEL", "llama-3.1-8b-instant")
+
+
+def _groq_keys():
+    """Every Groq key the service has, in preference order.
+
+    More than one is supported because the free tier's ceiling is per
+    *organisation* per day, not per request. A second account's key doubles the
+    class's daily allowance, and rotating to it on exhaustion is the difference
+    between a lesson continuing and a lesson stopping. Set GROQ_API_KEY and
+    GROQ_API_KEY_2 (and _3, _4 …), or GROQ_API_KEYS as a comma-separated list.
+    """
+    keys = []
+    for name in ("GROQ_API_KEY", "GROQ_API_KEY_2", "GROQ_API_KEY_3", "GROQ_API_KEY_4"):
+        v = (os.environ.get(name) or "").strip()
+        if v:
+            keys.append((name, v))
+    for i, v in enumerate((os.environ.get("GROQ_API_KEYS") or "").split(","), 1):
+        v = v.strip()
+        if v:
+            keys.append(("GROQ_API_KEYS[%d]" % i, v))
+    seen, out = set(), []
+    for name, v in keys:
+        if v not in seen:
+            seen.add(v)
+            out.append((name, v))
+    return out
+
+
+def _groq_key():
+    keys = _groq_keys()
+    return keys[0][1] if keys else ""
+
+
+# Kept as a module attribute because the rest of the file and the tests read it
+# as one. It is the *first* key; rotation happens inside generate().
+GROQ_KEY = _groq_key()
+
+# The academy's shared key used to be metered per session. That meter counted
+# model calls, and a single Concierge run makes about thirteen of them, so a
+# limit written for the Ask tab ("20 questions") cut an agent run off halfway
+# and reported it as an exhausted quota. The ceiling that actually protects the
+# academy is the provider's own daily allowance, which reports itself honestly
+# when it is reached — so this is off by default and stays available for anyone
+# who wants it back with LLM_SHARED_LIMIT.
+SHARED_LIMIT_PER_SESSION = int(os.environ.get("LLM_SHARED_LIMIT", "0"))   # 0 = no cap
 _shared_used = {}
 
 
@@ -37,14 +89,26 @@ class LLMError(Exception):
     pass
 
 
+class LLMRateLimited(LLMError):
+    """The provider refused for capacity reasons rather than correctness ones.
+    Separate from LLMError because it is the one failure worth trying another
+    key for — a second key has its own daily allowance."""
+
+
 def describe_providers():
     """What the browser is told. No secret ever appears here."""
     return [
         {"id": "server", "label": "Academy key (no setup)", "where": "server",
-         "available": bool(GROQ_KEY or HF_TOKEN),
-         "model": GROQ_MODEL if GROQ_KEY else (HF_MODEL if HF_TOKEN else None),
-         "note": "Runs on the academy's shared key, limited to %d questions per session."
-                 % SHARED_LIMIT_PER_SESSION},
+         "available": bool(_groq_keys() or HF_TOKEN),
+         "model": GROQ_MODEL if _groq_keys() else (HF_MODEL if HF_TOKEN else None),
+         "agent_model": AGENT_MODEL if _groq_keys() else None,
+         "note": ("Runs on the academy's shared key — no per-session limit. The ceiling is the "
+                  "provider's daily allowance, shared by everyone on the course, so if it is "
+                  "reached you will be told exactly that. Your own key or local Ollama below "
+                  "has no such ceiling."
+                  if not SHARED_LIMIT_PER_SESSION else
+                  "Runs on the academy's shared key, limited to %d model calls per session."
+                  % SHARED_LIMIT_PER_SESSION)},
         {"id": "groq", "label": "My own Groq key", "where": "browser",
          "available": True, "model": GROQ_MODEL,
          "endpoint": "https://api.groq.com/openai/v1/chat/completions",
@@ -62,22 +126,27 @@ def describe_providers():
 
 
 def shared_available():
-    return bool(GROQ_KEY or HF_TOKEN)
+    return bool(_groq_keys() or HF_TOKEN)
 
 
 def shared_quota(session_id):
     used = _shared_used.get(session_id, 0)
-    return {"used": used, "limit": SHARED_LIMIT_PER_SESSION,
+    if not SHARED_LIMIT_PER_SESSION:
+        return {"used": used, "limit": None, "remaining": None, "capped": False}
+    return {"used": used, "limit": SHARED_LIMIT_PER_SESSION, "capped": True,
             "remaining": max(0, SHARED_LIMIT_PER_SESSION - used)}
 
 
 def _spend(session_id):
-    q = shared_quota(session_id)
-    if q["remaining"] <= 0:
-        raise LLMError("The academy's shared key is used up for this session (%d questions). "
-                       "Add your own Groq key or point this at your local Ollama to keep going."
-                       % SHARED_LIMIT_PER_SESSION)
-    _shared_used[session_id] = q["used"] + 1
+    """Usage is still counted — it is useful to see — but by default nothing is
+    refused here. The only ceiling now is the provider's, which announces itself
+    accurately when it arrives."""
+    used = _shared_used.get(session_id, 0)
+    if SHARED_LIMIT_PER_SESSION and used >= SHARED_LIMIT_PER_SESSION:
+        raise LLMError("The academy's shared key is capped at %d model calls per session and "
+                       "this session has used them. Add your own Groq key or point this at your "
+                       "local Ollama to keep going." % SHARED_LIMIT_PER_SESSION)
+    _shared_used[session_id] = used + 1
 
 
 UA = "TripSageConsole/1.0 (QT GenAI Testing Academy; +https://genaitesting.online)"
@@ -114,9 +183,9 @@ def _post(url, payload, headers, timeout=None):
             # short wait turns a dead run into a slightly slower one. The retry
             # is bounded so a genuinely exhausted quota still surfaces as itself.
             if attempt >= RATE_LIMIT_RETRIES:
-                raise LLMError("The provider is rate-limiting us (429) and did not let up after "
-                               "%d retries. Wait a minute, or use your own key or local Ollama. "
-                               "It said: %s" % (RATE_LIMIT_RETRIES, rl.body or "(no body)"))
+                raise LLMRateLimited(
+                    "The provider is rate-limiting us (429) and did not let up after %d retries. "
+                    "It said: %s" % (RATE_LIMIT_RETRIES, rl.body or "(no body)"))
             time.sleep(_retry_after(rl.retry_after, attempt))
 
 
@@ -151,28 +220,49 @@ def _post_once(url, payload, headers, timeout=None):
                        "failure rather than guessing at an answer.")
 
 
-def generate(messages, session_id="anon", max_tokens=600, temperature=0.2):
+def generate(messages, session_id="anon", max_tokens=600, temperature=0.2, model=None):
     """Server-side generation on the shared key. Raises LLMError rather than
-    inventing anything — NFR-5: an honest error beats a fabricated answer."""
+    inventing anything — NFR-5: an honest error beats a fabricated answer.
+
+    `model` lets the caller override the default. The agent loop uses it to run
+    on a smaller, faster model with a far larger daily allowance; see AGENT_MODEL.
+    """
     if not shared_available():
         raise LLMError("No shared provider is configured on the server. Use your own key or "
                        "your local Ollama from the browser.")
     _spend(session_id)
     t0 = time.time()
 
-    if GROQ_KEY:
-        data = _post("https://api.groq.com/openai/v1/chat/completions",
-                     {"model": GROQ_MODEL, "messages": messages,
-                      "max_tokens": max_tokens, "temperature": temperature},
-                     {"Authorization": "Bearer " + GROQ_KEY})
-        try:
-            text = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError):
-            raise LLMError("Groq returned a response with no message content.")
-        usage = data.get("usage") or {}
-        return {"text": text, "model": GROQ_MODEL, "provider": "groq",
-                "tokens": usage.get("total_tokens", 0),
-                "latency_ms": int((time.time() - t0) * 1000)}
+    keys = _groq_keys()
+    if keys:
+        name = model or GROQ_MODEL
+        limited = []
+        for i, (var, key) in enumerate(keys, 1):
+            try:
+                data = _post("https://api.groq.com/openai/v1/chat/completions",
+                             {"model": name, "messages": messages,
+                              "max_tokens": max_tokens, "temperature": temperature},
+                             {"Authorization": "Bearer " + key})
+            except LLMRateLimited as ex:
+                # This key's allowance is spent, not the class's. Try the next
+                # one — that is the entire reason a second key exists. Never name
+                # the key itself in any message, only which variable held it.
+                limited.append("%s (key %d of %d)" % (var, i, len(keys)))
+                if i < len(keys):
+                    continue
+                raise LLMRateLimited(
+                    "Every configured Groq key is rate-limited or out of allowance for now "
+                    "(%s). The free tier resets daily. Use your own key or your local Ollama "
+                    "from the browser to keep going, or add another key on the service. "
+                    "The provider said: %s" % (", ".join(limited), ex))
+            try:
+                text = data["choices"][0]["message"]["content"]
+            except (KeyError, IndexError):
+                raise LLMError("Groq returned a response with no message content.")
+            usage = data.get("usage") or {}
+            return {"text": text, "model": name, "provider": "groq",
+                    "tokens": usage.get("total_tokens", 0), "key_index": i,
+                    "latency_ms": int((time.time() - t0) * 1000)}
 
     prompt = "\n\n".join("%s: %s" % (m["role"], m["content"]) for m in messages)
     data = _post("https://api-inference.huggingface.co/models/" + HF_MODEL,
@@ -215,7 +305,11 @@ def key_shape():
                 "starts": value[:4], "expected_prefix": expect,
                 "prefix_looks_right": value.startswith(expect),
                 "has_whitespace": value != value.strip()}
-    return [shape("GROQ_API_KEY", GROQ_KEY, "gsk_"), shape("HF_API_TOKEN", HF_TOKEN, "hf_")]
+    out = [shape(var, key, "gsk_") for var, key in _groq_keys()]
+    if not out:
+        out.append(shape("GROQ_API_KEY", "", "gsk_"))
+    out.append(shape("HF_API_TOKEN", HF_TOKEN, "hf_"))
+    return out
 
 
 KNOWN_GROQ_MODELS = ("llama-3.3-70b-versatile", "llama-3.1-8b-instant",
@@ -243,8 +337,13 @@ def model_sanity(name):
 def probe():
     """Ask the provider for the smallest possible completion and report exactly
     what came back. This is the difference between '403' and a fix."""
-    out = {"keys": key_shape(), "model": GROQ_MODEL if GROQ_KEY else HF_MODEL,
-           "model_check": model_sanity(GROQ_MODEL) if GROQ_KEY else None}
+    have_groq = bool(_groq_keys())
+    out = {"keys": key_shape(), "model": GROQ_MODEL if have_groq else HF_MODEL,
+           "groq_keys_configured": len(_groq_keys()),
+           "agent_model": AGENT_MODEL if have_groq else None,
+           "agent_model_check": model_sanity(AGENT_MODEL) if have_groq else None,
+           "session_cap": SHARED_LIMIT_PER_SESSION or "none",
+           "model_check": model_sanity(GROQ_MODEL) if have_groq else None}
     if not shared_available():
         out["result"] = "no key configured on the server"
         return out
