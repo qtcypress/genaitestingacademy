@@ -156,8 +156,18 @@ def boot():
             print("  %-3s FAILED TO LOAD:\n%s" % (vid, ENGINES[vid]["err"]), flush=True)
 
 
+# v5 has no `versions/v5` directory because it has no engine of its own — it is
+# v4's retrieval with a real model writing the answer. Its suites are v4's for
+# the same reason, and this is the whole point: the same cases, the same
+# retrieval, the same poisoned documents, and only the writer changed. Without
+# this line the red and blue tabs were simply empty on the one version students
+# most want to attack.
+SUITE_SHARED_WITH = {"v5": "v4"}
+
+
 def load_suite(vid, name):
-    path = os.path.join(HERE, "versions", vid, "tests", name + ".json")
+    path = os.path.join(HERE, "versions", SUITE_SHARED_WITH.get(vid, vid), "tests",
+                        name + ".json")
     if not os.path.isfile(path):
         return []
     with open(path, encoding="utf-8") as f:
@@ -1115,6 +1125,7 @@ function suiteTable(suite, j) {
       <div class="stat"><b>${s.poison ? "poisoned" : "clean"}</b><span>knowledge base</span></div>
       <div class="stat"><b>${s.ms} ms</b><span>suite runtime</span></div>
     </div>
+    ${s.note ? `<p class="muted" style="margin-top:10px"><b>Note.</b> ${esc(s.note)}</p>` : ""}
     <p class="muted" style="margin-top:10px"><b>weak</b> means the version did not misbehave, but
     not for the reason the case tests — it abstained because retrieval came back empty rather than
     because a guardrail fired, for instance. Read the expectation and decide for yourself; that
@@ -1922,6 +1933,14 @@ class Handler(BaseHTTPRequestHandler):
             ms = int((time.time() - t0) * 1000)
             summary = {"total": len(rows), "passed": tally["pass"], "weak": tally["weak"],
                        "failed": tally["fail"], "poison": poison, "ms": ms, "suite": suite}
+            if vid == "v5":
+                # Deliberately not the model. A whole suite is twenty-odd questions,
+                # which would exhaust a session's shared quota in one click and give
+                # a different answer every time it ran. Say so rather than let the
+                # numbers imply the model produced them.
+                summary["note"] = ("These rows are v4's deterministic answerer over v5's "
+                                   "retrieval, so the suite stays free and repeatable. Open a "
+                                   "single case to run that question through the real model.")
             log_event(sess, suite + "-team", vid,
                       "%d passed, %d weak, %d failed against the %s knowledge base" %
                       (tally["pass"], tally["weak"], tally["fail"],
@@ -1951,7 +1970,15 @@ class Handler(BaseHTTPRequestHandler):
             has_poison = bool(ENGINES[vid]["caps"].get("poison"))
 
             def run(p):
-                r = run_ask(sess, vid, case.get("query", ""), top_k, threshold, p, True)
+                # On v5 a single case goes through the real model. This is where a
+                # poisoning case earns its keep: the clean and poisoned answers
+                # below were *written by the model*, so the divergence is evidence
+                # about the model rather than about our extraction code.
+                if vid == "v5":
+                    r = run_ask_llm(sess, vid, case.get("query", ""), top_k, threshold,
+                                    p, sess["sid"])
+                else:
+                    r = run_ask(sess, vid, case.get("query", ""), top_k, threshold, p, True)
                 if r.get("error"):
                     return {"error": r["error"]}
                 v, why = verdict_for(case, suite, r)
