@@ -166,16 +166,25 @@ class MCPServer:
         """
         schema = self.tools[name]["schema"]
         for key, kind in schema.items():
-            if kind != "int" or key not in args:
+            if key not in args:
                 continue
             value = args[key]
-            if value is None:
-                return ("%s: '%s' must be a whole number, but was null. Supply a number, or "
-                        "omit it to accept the default." % (name, key))
-            try:
-                int(value)
-            except (TypeError, ValueError):
-                return ("%s: '%s' must be a whole number, but was %r." % (name, key, value))
+            if kind == "int":
+                if value is None:
+                    return ("%s: '%s' must be a whole number, but was null. Supply a number, or "
+                            "omit it to accept the default." % (name, key))
+                try:
+                    int(value)
+                except (TypeError, ValueError):
+                    return ("%s: '%s' must be a whole number, but was %r." % (name, key, value))
+            elif kind == "dict" and not isinstance(value, dict):
+                # A model that sends a list where an object belongs used to reach
+                # the handler and come back as "'list' object has no attribute
+                # 'values'" — the interpreter talking to a developer, in a field a
+                # student reads. Say which parameter, and what it wanted.
+                return ("%s: '%s' must be an object of name/number pairs, like "
+                        '{"hotel": 2, "flight": 3}, but was %s.'
+                        % (name, key, type(value).__name__))
         return None
 
     # ------------------------------------------------------------ audit helpers
