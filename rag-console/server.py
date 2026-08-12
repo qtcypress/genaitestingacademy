@@ -1345,10 +1345,39 @@ async function loadLogs() {
 const KEY_STORE = "tripsage_llm";
 let PROVIDERS = [];
 
+/* One key and one model *per provider*.
+
+   The first version kept a single `key` and a single `model` shared by all of
+   them, and it produced a bug that looked exactly like a rejected credential:
+   pick Ollama, type `mistral:latest`, switch to "My own Groq key" — the model
+   box is hidden for Groq, so nothing on screen changes, but `mistral:latest` is
+   still what gets sent. Groq answers 404 for a model it has never heard of, the
+   student reads "my Groq key is not working", and the key was never the problem.
+   The same slot-sharing sent a Groq key to OpenAI.
+
+   Keys and models are per-provider now, and the model box is always visible, so
+   what will be sent is always on screen. */
 function savedProv() {
-  try { return JSON.parse(sessionStorage.getItem(KEY_STORE) || "{}"); } catch (e) { return {}; }
+  let o;
+  try { o = JSON.parse(sessionStorage.getItem(KEY_STORE) || "{}"); } catch (e) { o = {}; }
+  if (!o.keys) o.keys = {};
+  if (!o.models) o.models = {};
+  // Carry over anything written by the older shared-slot shape.
+  if (o.key && o.id && !o.keys[o.id]) o.keys[o.id] = o.key;
+  if (o.model && o.id && !o.models[o.id]) o.models[o.id] = o.model;
+  delete o.key; delete o.model;
+  return o;
 }
 function storeProv(o) { sessionStorage.setItem(KEY_STORE, JSON.stringify(o)); }
+function savedKey(id) { return savedProv().keys[id] || ""; }
+function savedModel(id, fallback) { return savedProv().models[id] || fallback || ""; }
+function rememberProv(id, key, model) {
+  const o = savedProv();
+  o.id = id;
+  if (key !== null && key !== undefined) o.keys[id] = key;
+  if (model !== null && model !== undefined) o.models[id] = model;
+  storeProv(o);
+}
 
 /* The same picker serves the Ask tab and the Concierge, so `pre` prefixes the
    ids. Both read and write one saved choice, which is what a student expects:
@@ -1377,8 +1406,13 @@ async function loadProviders(pre) {
       `<option value="${p.id}" ${p.id === pick ? "selected" : ""} ${p.available ? "" : "disabled"}>
         ${esc(p.label)}${p.available ? "" : " — not configured"}</option>`).join("");
     el(pre + "prov").onchange = () => paintProv(pre);
-    if (el(pre + "pkey")) el(pre + "pkey").value = saved.key || "";
-    if (el(pre + "pmodel")) el(pre + "pmodel").value = saved.model || "";
+    const k = el(pre + "pkey"), md = el(pre + "pmodel");
+    if (k) { k.value = savedKey(pick); k.dataset.forId = pick; }
+    if (md) {
+      const chosen = PROVIDERS.find(x => x.id === pick) || {};
+      md.value = savedModel(pick, chosen.model || "");
+      md.dataset.forId = pick;
+    }
     [pre + "pkey", pre + "pmodel"].forEach(id => {
       const e = el(id); if (e) e.oninput = () => paintProv(pre); });
     paintProv(pre);
@@ -1398,8 +1432,23 @@ function paintProv(pre) {
   if (!p) return;
   const browser = p.where === "browser";
   const key = el(pre + "pkey"), model = el(pre + "pmodel");
-  if (key) key.style.display = (browser && p.id !== "ollama") ? "" : "none";
-  if (model) model.style.display = (p.id === "ollama") ? "" : "none";
+  if (key) {
+    key.style.display = (browser && p.id !== "ollama") ? "" : "none";
+    key.placeholder = p.id === "openai" ? "paste your OpenAI key (sk-…)"
+                    : p.id === "groq" ? "paste your Groq key (gsk_…)"
+                    : p.id === "huggingface" ? "paste your Hugging Face token (hf_…)"
+                    : "paste your key (stays in this tab)";
+    if (key.dataset.forId !== p.id) { key.value = savedKey(p.id); key.dataset.forId = p.id; }
+  }
+  if (model) {
+    // Visible for every provider. Hiding it is what let a stale name be sent.
+    model.style.display = browser ? "" : "none";
+    if (model.dataset.forId !== p.id) {
+      model.value = savedModel(p.id, p.model || "");
+      model.dataset.forId = p.id;
+    }
+    model.placeholder = p.id === "ollama" ? "model, e.g. mistral:latest" : (p.model || "model");
+  }
   const note = el(pre + "prov-note");
   if (note) note.innerHTML = esc(p.note) +
     (browser ? " Your key is held in this tab only and is cleared when you close it." : "");
@@ -1410,8 +1459,7 @@ function paintProv(pre) {
   if (btn) btn.textContent = browser
     ? (p.id === "ollama" ? "Test my local Ollama" : "Test my key")
     : "Test the academy's provider";
-  storeProv({id: p.id, key: key ? key.value : savedProv().key,
-             model: model ? model.value : savedProv().model});
+  rememberProv(p.id, key ? key.value : null, model ? model.value : null);
   const found = OLLAMA_FOUND[pre];
   if (p.id === "ollama" && note && found && found.names.length) {
     note.innerHTML += ` <b>Found ${found.names.length} model${
@@ -1438,7 +1486,7 @@ async function fillOllamaModels(pre, base) {
     list.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
     if (box && !box.value && names.length) {
       box.value = names[0];
-      storeProv(Object.assign(savedProv(), {model: names[0]}));
+      rememberProv("ollama", null, names[0]);
     }
     paintProv(pre);                                    // now the count can be shown
   } catch (e) {
@@ -1548,36 +1596,30 @@ async function localFault(e, base, model) {
    by every step of a browser-driven agent run. */
 async function completeWith(messages, maxTokens, pre) {
   const p = currentProv(pre);
-  const cfg = savedProv();
+  const key = savedKey(p.id);
+  const model = savedModel(p.id, p.model);
   const t0 = Date.now();
-  let text, model = cfg.model || p.model;
+  let text;
   if (p.id === "ollama") {
-    const m = (cfg.model || "").trim();
-    if (!m) throw new Error("Name a model from `ollama list` — e.g. llama3.2 or mistral");
+    if (!model) throw new Error("Name a model from `ollama list` — e.g. mistral:latest");
     const res = await fetchLocal(p.endpoint + "/api/chat", {
       method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({model: m, messages, stream: false,
+      body: JSON.stringify({model: model, messages, stream: false,
                             options: {temperature: 0.2, num_predict: maxTokens || 600}})});
-    if (!res.ok) throw new Error("Ollama answered " + res.status + " for model `" + m +
-      "`. If that is a 404 the model is not pulled — run `ollama pull " + m + "`.");
-    const d = await res.json();
-    text = (d.message || {}).content || "";
-    model = m;
-  } else if (p.id === "groq") {
-    if (!cfg.key) throw new Error("Paste your Groq key above.");
-    const res = await fetch(p.endpoint, {method: "POST",
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
-      body: JSON.stringify({model: cfg.model || p.model, messages,
-                            max_tokens: maxTokens || 600, temperature: 0.2})});
-    if (!res.ok) throw new Error("Groq returned " + res.status +
-      (res.status === 401 ? " — the key was rejected." : res.status === 429 ?
-       " — your key is rate-limited; wait a moment." : "."));
-    text = (await res.json()).choices[0].message.content;
+    if (!res.ok) throw new Error("Ollama answered " + res.status + " for model `" + model +
+      "`. If that is a 404 the model is not pulled — run `ollama pull " + model + "`.");
+    text = ((await res.json()).message || {}).content || "";
+  } else if (p.id === "groq" || p.id === "openai") {
+    // Both speak the OpenAI chat-completions shape, so one branch serves them.
+    if (!key) throw new Error("Paste your " + (p.id === "openai" ? "OpenAI" : "Groq") +
+                              " key above.");
+    if (!model) throw new Error("Name a model above.");
+    text = await openAIStyle(p, key, model, messages, maxTokens);
   } else if (p.id === "huggingface") {
-    if (!cfg.key) throw new Error("Paste your Hugging Face token above.");
+    if (!key) throw new Error("Paste your Hugging Face token above.");
     const prompt = messages.map(m => m.role + ": " + m.content).join("\n\n");
-    const res = await fetch(p.endpoint + (cfg.model || p.model), {method: "POST",
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
+    const res = await fetch(p.endpoint + model, {method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + key},
       body: JSON.stringify({inputs: prompt,
                             parameters: {max_new_tokens: maxTokens || 600, return_full_text: false}})});
     if (!res.ok) throw new Error("Hugging Face returned " + res.status + ".");
@@ -1589,26 +1631,55 @@ async function completeWith(messages, maxTokens, pre) {
   return {text: text, model: model, provider: p.id, ms: Date.now() - t0};
 }
 
-/* Generation from the browser, so a student's key and their local Ollama never
-   have to reach our server. Retrieval still happens server-side. */
-async function askViaBrowser(question) {
-  const p = currentProv();
-  const r = await api("/api/retrieve", Object.assign(askOpts(), {
-    question, top_k: +el("topk").value, threshold: +el("thr").value}));
-  if (!r.used.length) {
-    return {answer: "I don't have that in my knowledge base.", abstained: true, flags: ["abstained"],
-            chunks: r.chunks, used_docs: [], latency_ms: 0, provider: "none",
-            note: "Retrieval returned nothing above the threshold, so no model was called."};
+/* Groq and OpenAI share a request shape but not their fussiness about it.
+   OpenAI's newer models renamed `max_tokens` to `max_completion_tokens` and some
+   reject any temperature but the default, and which applies depends on the model.
+   Rather than keep a table of that, send the modern spelling and let the API say
+   what it dislikes — then drop exactly that and ask again. The error body is the
+   only source of truth that stays current on its own. */
+async function openAIStyle(p, key, model, messages, maxTokens) {
+  const body = {model: model, messages: messages,
+                max_completion_tokens: maxTokens || 600, temperature: 0.2};
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(p.endpoint, {method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + key},
+      body: JSON.stringify(body)});
+    if (res.ok) return (await res.json()).choices[0].message.content;
+    const raw = await res.text();
+    let detail = raw.slice(0, 300);
+    try { detail = (JSON.parse(raw).error || {}).message || detail; } catch (e) {}
+    const who = p.id === "openai" ? "OpenAI" : "Groq";
+
+    if (res.status === 400 && attempt < 2) {
+      const low = detail.toLowerCase();
+      if (low.indexOf("max_completion_tokens") >= 0 && "max_completion_tokens" in body) {
+        delete body.max_completion_tokens; body.max_tokens = maxTokens || 600; continue;
+      }
+      if (low.indexOf("max_tokens") >= 0 && "max_tokens" in body) {
+        delete body.max_tokens; continue;
+      }
+      if (low.indexOf("temperature") >= 0 && "temperature" in body) {
+        delete body.temperature; continue;
+      }
+    }
+    if (res.status === 401) {
+      throw new Error(who + " rejected the key (401). " + (p.id === "openai"
+        ? "An OpenAI key starts `sk-`. Check it was copied whole, and that it is a key rather "
+        : "A Groq key starts `gsk_`. Check it was copied whole, and that it is a key rather ")
+        + "than an organisation id. " + detail);
+    }
+    if (res.status === 404 || /model/i.test(detail)) {
+      throw new Error(who + " has no model called `" + model + "` for this key (" + res.status +
+        "). " + detail + " — change the model box above; the default for " + who + " is `" +
+        (p.model || "?") + "`.");
+    }
+    if (res.status === 429) {
+      throw new Error(who + " is rate-limiting your key (429), or the account is out of credit. " +
+                      detail);
+    }
+    throw new Error(who + " returned " + res.status + ". " + detail);
   }
-  const context = r.used.map(u => "[" + u.doc + "]\n" + u.text).join("\n\n");
-  const out = await completeWith([{role: "system", content: r.system},
-                                  {role: "user", content: "Context:\n" + context +
-                                                          "\n\nQuestion: " + question}], 600);
-  const poisoned = r.used.filter(u => String(u.doc).startsWith("POISON_"));
-  return {answer: out.text, refused: false, abstained: false, chunks: r.chunks,
-          used_docs: r.used.map(u => u.doc), latency_ms: out.ms,
-          provider: out.provider, model: out.model,
-          flags: poisoned.map(u => "poisoned_source_used:" + u.doc)};
+  throw new Error("The provider kept rejecting the request parameters.");
 }
 
 async function probeProvider(pre) {
@@ -1628,7 +1699,7 @@ async function probeProvider(pre) {
         OLLAMA_FOUND[pre] = {base: sel.endpoint, names: names};
         const list = el(pre + "pmodels");
         if (list) list.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
-        const want = (savedProv().model || "").trim();
+        const want = savedModel("ollama", "").trim();
         if (want && names.length && names.indexOf(want) < 0) {
           setOut(pre + "prov-probe", `<h4>Provider check</h4>
             <p class="ok">Connected to Ollama at <code>${esc(sel.endpoint)}</code>.</p>
@@ -1647,7 +1718,7 @@ async function probeProvider(pre) {
         This ran in your browser; the academy's key was not used.</p>`);
     } catch (e) {
       setOut(pre + "prov-probe", `<h4>Provider check</h4>` + (sel.id === "ollama"
-        ? await localFault(e, sel.endpoint, savedProv().model)
+        ? await localFault(e, sel.endpoint, savedModel("ollama", ""))
         : `<p class="err">${esc(e.message || e)}</p>`));
     }
     busy(pre + "prov-test", false);
