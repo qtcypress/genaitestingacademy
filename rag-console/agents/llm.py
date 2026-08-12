@@ -1,9 +1,9 @@
-"""LLM provider layer — Groq, Hugging Face, and local Ollama.
+"""LLM provider layer — Groq, OpenAI, Hugging Face, and local Ollama.
 
 Two paths, deliberately:
 
-  * **Server-side.** A shared key in the environment (`GROQ_API_KEY` or
-    `HF_API_TOKEN`) so the tab works with zero setup for a student who has no
+  * **Server-side.** A shared key in the environment (`GROQ_API_KEY`,
+    `OPENAI_API_KEY` or `HF_API_TOKEN`) so the tab works with zero setup for a student who has no
     key of their own. That key is the academy's quota, so it is rate-limited per
     session here.
 
@@ -23,6 +23,9 @@ import urllib.error
 import urllib.request
 
 HF_TOKEN = os.environ.get("HF_API_TOKEN", "")
+OPENAI_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.6-luna")
+OPENAI_URL = "https://api.openai.com/v1/chat/completions"
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
 HF_MODEL = os.environ.get("HF_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 TIMEOUT = int(os.environ.get("LLM_TIMEOUT_SECONDS", "45"))
@@ -37,6 +40,17 @@ TIMEOUT = int(os.environ.get("LLM_TIMEOUT_SECONDS", "45"))
 # v5's RAG answers stay on the 70b model, because there the quality of the
 # writing is the thing students are being asked to judge.
 AGENT_MODEL = os.environ.get("GROQ_AGENT_MODEL", "llama-3.1-8b-instant")
+
+
+def agent_model():
+    """The model the agent loop should use, for whichever provider is actually
+    configured. Handing a Groq model name to OpenAI is a 404, so the override is
+    only meaningful for the provider it names."""
+    if _groq_keys():
+        return AGENT_MODEL
+    if OPENAI_KEY:
+        return os.environ.get("OPENAI_AGENT_MODEL", OPENAI_MODEL)
+    return None
 
 
 def _groq_keys():
@@ -99,9 +113,10 @@ def describe_providers():
     """What the browser is told. No secret ever appears here."""
     return [
         {"id": "server", "label": "Academy key (no setup)", "where": "server",
-         "available": bool(_groq_keys() or HF_TOKEN),
-         "model": GROQ_MODEL if _groq_keys() else (HF_MODEL if HF_TOKEN else None),
-         "agent_model": AGENT_MODEL if _groq_keys() else None,
+         "available": shared_available(),
+         "model": (GROQ_MODEL if _groq_keys() else
+                   OPENAI_MODEL if OPENAI_KEY else HF_MODEL if HF_TOKEN else None),
+         "agent_model": agent_model(),
          "note": ("Runs on the academy's shared key — no per-session limit. The ceiling is the "
                   "provider's daily allowance, shared by everyone on the course, so if it is "
                   "reached you will be told exactly that. Your own key or local Ollama below "
@@ -109,6 +124,11 @@ def describe_providers():
                   if not SHARED_LIMIT_PER_SESSION else
                   "Runs on the academy's shared key, limited to %d model calls per session."
                   % SHARED_LIMIT_PER_SESSION)},
+        {"id": "openai", "label": "My own OpenAI key", "where": "browser",
+         "available": True, "model": OPENAI_MODEL,
+         "endpoint": OPENAI_URL,
+         "note": "Your key stays in this browser tab and is never sent to our server. "
+                 "OpenAI is paid from the first call, so a cheap model is the default."},
         {"id": "groq", "label": "My own Groq key", "where": "browser",
          "available": True, "model": GROQ_MODEL,
          "endpoint": "https://api.groq.com/openai/v1/chat/completions",
@@ -126,7 +146,7 @@ def describe_providers():
 
 
 def shared_available():
-    return bool(_groq_keys() or HF_TOKEN)
+    return bool(_groq_keys() or OPENAI_KEY or HF_TOKEN)
 
 
 def shared_quota(session_id):
@@ -226,6 +246,40 @@ def _post_once(url, payload, headers, timeout=None):
                        "failure rather than guessing at an answer.")
 
 
+# OpenAI's newer models renamed the output cap from `max_tokens` to
+# `max_completion_tokens`, and some of them reject any temperature but the
+# default. Which applies depends on the model, and hard-coding either guess
+# breaks the other. So send the modern spelling, read the complaint if there is
+# one, drop exactly the parameter it names, and try again — the API tells us
+# what it wants, and that is more reliable than a table we would have to
+# maintain.
+def _openai_call(key, model, messages, max_tokens, temperature):
+    payload = {"model": model, "messages": messages,
+               "max_completion_tokens": max_tokens, "temperature": temperature}
+    headers = {"Authorization": "Bearer " + key}
+    for _ in range(3):
+        try:
+            return _post(OPENAI_URL, payload, headers)
+        except LLMError as ex:
+            note = str(ex)
+            dropped = None
+            for param in ("max_completion_tokens", "temperature", "max_tokens"):
+                if param in note and param in payload and (
+                        "unsupported" in note.lower() or "not supported" in note.lower()
+                        or "unrecognized" in note.lower() or "use " in note.lower()):
+                    dropped = param
+                    break
+            if dropped == "max_completion_tokens" and "max_tokens" not in payload:
+                payload.pop("max_completion_tokens")
+                payload["max_tokens"] = max_tokens          # an older model
+                continue
+            if dropped:
+                payload.pop(dropped, None)
+                continue
+            raise
+    raise LLMError("OpenAI kept rejecting the request parameters.")
+
+
 def generate(messages, session_id="anon", max_tokens=600, temperature=0.2, model=None):
     """Server-side generation on the shared key. Raises LLMError rather than
     inventing anything — NFR-5: an honest error beats a fabricated answer.
@@ -269,6 +323,18 @@ def generate(messages, session_id="anon", max_tokens=600, temperature=0.2, model
             return {"text": text, "model": name, "provider": "groq",
                     "tokens": usage.get("total_tokens", 0), "key_index": i,
                     "latency_ms": int((time.time() - t0) * 1000)}
+
+    if OPENAI_KEY:
+        name = model or OPENAI_MODEL
+        data = _openai_call(OPENAI_KEY, name, messages, max_tokens, temperature)
+        try:
+            text = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError):
+            raise LLMError("OpenAI returned a response with no message content.")
+        usage = data.get("usage") or {}
+        return {"text": text, "model": name, "provider": "openai",
+                "tokens": usage.get("total_tokens", 0),
+                "latency_ms": int((time.time() - t0) * 1000)}
 
     prompt = "\n\n".join("%s: %s" % (m["role"], m["content"]) for m in messages)
     data = _post("https://api-inference.huggingface.co/models/" + HF_MODEL,
@@ -314,6 +380,7 @@ def key_shape():
     out = [shape(var, key, "gsk_") for var, key in _groq_keys()]
     if not out:
         out.append(shape("GROQ_API_KEY", "", "gsk_"))
+    out.append(shape("OPENAI_API_KEY", OPENAI_KEY, "sk-"))
     out.append(shape("HF_API_TOKEN", HF_TOKEN, "hf_"))
     return out
 
@@ -344,9 +411,10 @@ def probe():
     """Ask the provider for the smallest possible completion and report exactly
     what came back. This is the difference between '403' and a fix."""
     have_groq = bool(_groq_keys())
-    out = {"keys": key_shape(), "model": GROQ_MODEL if have_groq else HF_MODEL,
+    out = {"keys": key_shape(),
+           "model": GROQ_MODEL if have_groq else (OPENAI_MODEL if OPENAI_KEY else HF_MODEL),
            "groq_keys_configured": len(_groq_keys()),
-           "agent_model": AGENT_MODEL if have_groq else None,
+           "agent_model": agent_model(),
            "agent_model_check": model_sanity(AGENT_MODEL) if have_groq else None,
            "session_cap": SHARED_LIMIT_PER_SESSION or "none",
            "model_check": model_sanity(GROQ_MODEL) if have_groq else None}
