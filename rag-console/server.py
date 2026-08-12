@@ -1484,34 +1484,64 @@ async function ollamaModels(base) {
   return ((await r.json()).models || []).map(m => m.name).filter(Boolean);
 }
 
-function localFault(e, base, model) {
+/* Which of the three it is, established rather than guessed.
+
+   A `no-cors` request tells us something a normal one cannot. It is opaque — we
+   can read nothing from it — but it either resolves or it does not, and that
+   single bit separates "Ollama is not there" from "Ollama is there and is
+   refusing this page". The second is always OLLAMA_ORIGINS, and saying so
+   directly beats handing a student a checklist of three things to try. */
+async function localReachable(base) {
+  try { await fetch(base + "/", {mode: "no-cors"}); return true; } catch (e) { return false; }
+}
+
+async function localFault(e, base, model) {
   const msg = (e && e.message) || String(e);
-  const win = navigator.platform.indexOf("Win") === 0 ||
-              /Windows/.test(navigator.userAgent);
+  const win = /Win/.test(navigator.platform) || /Windows/.test(navigator.userAgent);
+  const reachable = await localReachable(base);
+
+  if (reachable) {
+    // Proven: the browser reached it. Nothing else can be wrong but the origin.
+    return `<p class="err">Ollama <b>is running</b> at <code>${esc(base)}</code> and your browser
+      can reach it — but it refused this page.</p>
+    <p class="muted">That is CORS, and it has exactly one cause: Ollama only accepts calls from a
+      web page when it was started with <code>OLLAMA_ORIGINS</code> set. The copy you have running
+      was not.</p>
+    ${win ? `<p class="muted"><b>On Windows this is the usual trap.</b> Typing
+      <code>set OLLAMA_ORIGINS=*</code> into a command prompt changes nothing for the Ollama
+      already running — that one was started at login by the system-tray app and cannot see your
+      new variable. Do this instead:</p>
+      <ol class="muted">
+        <li>Right-click the Ollama icon in the system tray (bottom-right, possibly under the
+          <b>^</b> arrow) and choose <b>Quit Ollama</b>.</li>
+        <li>Open a command prompt and run these two lines, leaving the window open:
+          <br><code>set OLLAMA_ORIGINS=*</code><br><code>ollama serve</code></li>
+        <li>Come back here and press the test button again.</li>
+      </ol>
+      <p class="muted">To make it stick, so you need not repeat it: <b>Settings → System → About →
+        Advanced system settings → Environment Variables → New</b> under <i>User variables</i>,
+        name <code>OLLAMA_ORIGINS</code>, value <code>*</code>. Then quit Ollama from the tray and
+        start it again.</p>`
+    : `<p class="muted">Quit Ollama and start it again as
+      <code>OLLAMA_ORIGINS=* ollama serve</code>.</p>`}
+    <p class="muted">Setting <code>*</code> lets any page in your browser call your Ollama. It is
+      fine for a workshop on your own machine; on a shared one, set it to
+      <code>${esc(location.origin)}</code> instead.</p>`;
+  }
+
   return `<p class="err">Could not reach Ollama at <code>${esc(base)}</code> — ${esc(msg)}</p>
-    <p class="muted">“Failed to fetch” here means the request never left your browser, so it is
-    one of three things, in the order worth checking:</p>
+    <p class="muted">The request never left your browser, and Ollama did not answer at all, so it
+      is one of these two:</p>
     <ol class="muted">
-      <li><b>Local network permission.</b> This page is served over HTTPS, and Chrome 142 and
-        later ask before letting a website reach your own machine. Look for a prompt or a blocked
-        icon at the left of the address bar and allow
-        <i>“Look for and connect to any device on your local network”</i>, then press the test
-        button again.</li>
-      <li><b>Ollama is not accepting calls from a web page.</b> It refuses browser origins unless
-        it is started with <code>OLLAMA_ORIGINS=*</code>.${win ? ` On Windows a
-        <code>set OLLAMA_ORIGINS=*</code> typed into a command prompt does <b>not</b> reach the
-        Ollama that is already running in your system tray — that copy was started at login
-        without it. Quit Ollama from the tray, then in a command prompt run
-        <code>set OLLAMA_ORIGINS=*</code> followed by <code>ollama serve</code>, and leave that
-        window open. To make it permanent instead: Settings → System → About → Advanced system
-        settings → Environment Variables → New user variable
-        <code>OLLAMA_ORIGINS</code> = <code>*</code>, then sign out and back in.` :
-        ` Quit it and start it again with <code>OLLAMA_ORIGINS=* ollama serve</code>.`}</li>
-      <li><b>Ollama is not running at all,</b> or is on a different port. Check
-        <code>${esc(base)}</code> opens in a new tab and says “Ollama is running”.</li>
+      <li><b>Ollama is not running</b>, or is on another port. Open <code>${esc(base)}</code> in a
+        new tab — it should say “Ollama is running”.${win ? ` Start it from the Start menu, or run
+        <code>ollama serve</code> in a command prompt.` : ""}</li>
+      <li><b>Chrome is blocking access to your local network.</b> This page is served over HTTPS,
+        and Chrome 142 and later ask permission before a website may reach your own machine. Look
+        for a blocked icon at the left of the address bar and allow <i>“Look for and connect to
+        any device on your local network”</i>.</li>
     </ol>
-    ${model ? `<p class="muted">The model asked for was <code>${esc(model)}</code>. Once the
-      connection works, the box above fills with the models actually on your machine.</p>` : ""}`;
+    ${model ? `<p class="muted">The model asked for was <code>${esc(model)}</code>.</p>` : ""}`;
 }
 
 /* One completion from whichever provider is selected. Shared by the Ask tab and
@@ -1617,7 +1647,7 @@ async function probeProvider(pre) {
         This ran in your browser; the academy's key was not used.</p>`);
     } catch (e) {
       setOut(pre + "prov-probe", `<h4>Provider check</h4>` + (sel.id === "ollama"
-        ? localFault(e, sel.endpoint, savedProv().model)
+        ? await localFault(e, sel.endpoint, savedProv().model)
         : `<p class="err">${esc(e.message || e)}</p>`));
     }
     busy(pre + "prov-test", false);
