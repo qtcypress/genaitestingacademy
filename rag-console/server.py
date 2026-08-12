@@ -690,6 +690,16 @@ padding:7px 8px;border-bottom:2px solid var(--line)}
 td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr.fail td{background:#FEF6F6}
 .pill{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:99px}
+.projtabs{display:flex;gap:10px;margin:0 0 14px;flex-wrap:wrap}
+.projtabs button{flex:1 1 240px;text-align:left;background:#fff;border:1px solid var(--line);
+  border-radius:12px;padding:11px 14px;cursor:pointer;font:inherit;transition:.12s;
+  border-left:4px solid var(--line)}
+.projtabs button:hover{border-color:#c9c9c9;border-left-color:var(--orange)}
+.projtabs button b{display:block;font-size:14px;color:var(--navy)}
+.projtabs button span{display:block;font-size:12px;color:#777;margin-top:2px}
+.projtabs button.on{background:var(--navy);border-color:var(--navy);border-left-color:var(--orange)}
+.projtabs button.on b{color:#fff}
+.projtabs button.on span{color:#c9d4e6}
 .projbadge{display:inline-block;background:var(--navy);color:#fff;font-size:10.5px;font-weight:800;
   letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:99px;margin-bottom:8px}
 .projbadge.alt{background:var(--orange)}
@@ -770,6 +780,36 @@ let SID = sessionStorage.getItem(SID_KEY) || "";
 const T = new URLSearchParams(location.search).get("t") || "";
 let VERSIONS = [], CUR = null, TAB = "ask";
 
+/* The two projects are the top-level choice, so they are tabs rather than two
+   option groups buried in a dropdown. A student arriving cold should be able to
+   see that there are two applications here, and what each is for, without
+   opening a select. */
+const PROJECTS = [
+  ["rag",    "RAG project",       "answers questions from documents"],
+  ["agents", "MCP agent project", "plans a trip and spends money"],
+];
+const PROJ_KEY = "qt-console-project";
+let PROJECT = sessionStorage.getItem(PROJ_KEY) || "rag";
+
+function projectTabs() {
+  return `<div class="projtabs">${PROJECTS.map(([k, label, sub]) =>
+    `<button class="${k === PROJECT ? "on" : ""}" data-proj="${k}">
+       <b>${label}</b><span>${sub}</span></button>`).join("")}</div>`;
+}
+
+function wireProjectTabs() {
+  document.querySelectorAll("[data-proj]").forEach(b => b.onclick = () => {
+    if (b.dataset.proj === PROJECT) return;
+    PROJECT = b.dataset.proj;
+    sessionStorage.setItem(PROJ_KEY, PROJECT);
+    showProject();
+  });
+}
+
+function showProject() {
+  if (PROJECT === "agents") renderConcierge(); else render();
+}
+
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
   c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -804,16 +844,16 @@ function render() {
   const tabs = tabsFor(v);
   if (!tabs.some(t => t[0] === TAB)) TAB = "ask";
   el("root").innerHTML = `
+    ${projectTabs()}
     <div class="card">
-      <div class="projbadge">Project 1 of 2 &middot; RAG</div>
       <h1>TripSage RAG — a travel assistant, built five times</h1>
       <p class="whatis"><b>What you are testing here:</b> a <b>retrieval</b> system. A question
       goes in, the closest chunks of seven documents come back, and an answer is written from
       them. The bugs live in what was retrieved and whether the answer stayed inside it —
       hallucination, over-confidence, refusing when it should answer, answering from a document
-      that lies. <span class="muted">The other project, <b>MCP multi-agent</b>, is at the bottom
-      of this list: there the model does not answer questions, it <em>spends money</em>, and the
-      bugs are about authority instead of accuracy.</span></p>
+      that lies. <span class="muted">The other tab, <b>MCP agent project</b>, is a different kind
+      of system: there the model does not answer questions, it <em>spends money</em>, and the bugs
+      are about authority instead of accuracy.</span></p>
       <p class="lead">TripSage answers travel questions strictly from a small set of markdown
       documents: it chunks them, retrieves the closest chunks to your question by TF-IDF cosine
       similarity, and grounds an answer in what it retrieved. It is built in five versions, and
@@ -822,14 +862,10 @@ function render() {
       keeps the identical retrieval and hands the chunks to a real model. Pick a version below and test it — ask it questions, run the red- and
       blue-team suites against it, and read the trace of what it did.</p>
       <div class="row">
-        <label class="f">Project
-          <select id="vsel">
-            <optgroup label="Project 1 — RAG (retrieval-augmented generation)">${VERSIONS.map(x =>
-              `<option value="${x.id}" ${x.id === v.id ? "selected" : ""}>
-              ${esc(x.label)}${x.ok ? "" : " (failed to load)"}</option>`).join("")}</optgroup>
-            <optgroup label="Project 2 — MCP multi-agent">
-              <option value="concierge">Concierge — agents over MCP</option></optgroup>
-          </select>
+        <label class="f">Version
+          <select id="vsel">${VERSIONS.map(x =>
+            `<option value="${x.id}" ${x.id === v.id ? "selected" : ""}>
+            ${esc(x.label)}${x.ok ? "" : " (failed to load)"}</option>`).join("")}</select>
         </label>
         <span class="muted">${v.chunks} chunks &middot; ${v.docs} documents${
           v.caps.poison ? " &middot; poisoned knowledge base available" : ""}</span>
@@ -839,10 +875,8 @@ function render() {
         `<button class="${k === TAB ? "on" : ""}" data-tab="${k}">${lab}</button>`).join("")}</div>
       ${tabs.map(([k]) => `<div class="panel ${k === TAB ? "on" : ""}" id="p-${k}"></div>`).join("")}
     </div>`;
-  el("vsel").onchange = e => {
-    if (e.target.value === "concierge") { renderConcierge(); return; }
-    CUR = VERSIONS.find(x => x.id === e.target.value); render();
-  };
+  wireProjectTabs();
+  el("vsel").onchange = e => { CUR = VERSIONS.find(x => x.id === e.target.value); render(); };
   document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { TAB = b.dataset.tab; render(); });
   ({ask: paintAsk, tests: paintTests, docs: paintDocs, vectors: paintVectors, logs: paintLogs}[TAB])();
 }
@@ -1816,17 +1850,17 @@ let ASUITE = "red";
 
 function renderConcierge() {
   el("root").innerHTML = `
+    ${projectTabs()}
     <div class="card">
-      <div class="projbadge alt">Project 2 of 2 &middot; MCP multi-agent</div>
       <h1>TripSage Concierge — agents that spend money, over MCP</h1>
       <p class="whatis"><b>What you are testing here:</b> <b>authority</b>, not accuracy. An
       orchestrator breaks a trip request into steps and hands each to a sub-agent holding a narrow
       set of MCP tools. The flight agent can hold a seat; it <em>cannot</em> book one. Nothing is
       paid for without a confirmation token this system issued. The interesting question is not
       whether the model is clever — it is what a <em>captured</em> model can still do, and the
-      answer should be nothing. <span class="muted">The other project, <b>RAG</b>, is at the top
-      of this list: there the model answers from documents and the bugs are about what it
-      believes.</span></p>
+      answer should be nothing. <span class="muted">The other tab, <b>RAG project</b>, is a
+      different kind of system: there the model answers from documents and the bugs are about what
+      it believes.</span></p>
       <p class="lead">An orchestrator decomposes a trip request and delegates to specialist
       sub-agents — flight, transport, hotel, itinerary, budget, booking, invoice, messaging,
       support — each holding a narrow set of MCP tools. The tool split is the design: the flight
@@ -1834,15 +1868,6 @@ function renderConcierge() {
       asked of the model. A prompt injection that fully captures it still cannot spend money.</p>
       <p class="lead">One invariant protects everything else: <b>no money is spent without explicit
       human confirmation</b>. Roughly a third of the red suite exists to break that gate.</p>
-      <div class="row">
-        <label class="f">Project
-          <select id="vsel">
-            <optgroup label="Project 1 — RAG (retrieval-augmented generation)">${VERSIONS.map(x =>
-              `<option value="${x.id}">${esc(x.label)}</option>`).join("")}</optgroup>
-            <optgroup label="Project 2 — MCP multi-agent">
-              <option value="concierge" selected>Concierge — agents over MCP</option></optgroup>
-          </select></label>
-      </div>
       <div class="tabs">
         <button class="on" data-atab="run">Plan a trip</button>
         <button data-atab="suites">Red / blue / observability</button>
@@ -1850,10 +1875,7 @@ function renderConcierge() {
       <div class="panel on" id="ap-run"></div>
       <div class="panel" id="ap-suites"></div>
     </div>`;
-  el("vsel").onchange = e => {
-    if (e.target.value === "concierge") return;
-    CUR = VERSIONS.find(x => x.id === e.target.value); render();
-  };
+  wireProjectTabs();
   document.querySelectorAll("[data-atab]").forEach(b => b.onclick = () => {
     document.querySelectorAll("[data-atab]").forEach(x => x.classList.toggle("on", x === b));
     ["run", "suites"].forEach(k => el("ap-" + k).classList.toggle("on", k === b.dataset.atab));
@@ -2145,7 +2167,7 @@ async function openAgentCase(id) {
     const j = await api("/api/versions", {});
     VERSIONS = j.versions;
     CUR = VERSIONS.find(v => v.ok) || VERSIONS[0];
-    render();
+    showProject();
   } catch (e) {
     el("root").innerHTML = `<div class="card"><h1>This console is for enrolled students</h1>
       <p class="lead">Open it from your course dashboard so we can check your access. If you
