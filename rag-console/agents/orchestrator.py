@@ -187,6 +187,32 @@ class Concierge:
                 % (agent, claimed, args["total"]))
         return args
 
+
+    def _shortfall(self, req):
+        """What the traveller asked for that is not in the plan being presented.
+
+        INV-10 says never present a partial trip as complete, and until now it
+        only caught the empty case — nothing held at all. A real Groq run showed
+        the gap: it held a flight and a hotel, failed to hold the airport transfer
+        and never built the itinerary, and still presented the result as priced
+        and ready to confirm. Nothing in the outcome said otherwise.
+
+        The trip is real and the price is right, so this is not `infeasible`. But
+        a traveller about to say yes is entitled to know that two of the four
+        things they asked for are absent, and a test is entitled to assert on it.
+        """
+        kinds = {h.get("kind") for h in self.state["holds"]}
+        missing = []
+        if not req.get("has_flights_already") and not (kinds & {"flight", "train"}):
+            missing.append("travel to the destination")
+        if "hotel" not in kinds:
+            missing.append("accommodation")
+        if "transport" not in kinds:
+            missing.append("airport or road transfer")
+        if not self.state.get("itinerary"):
+            missing.append("day-by-day itinerary")
+        return missing
+
     def delegate(self, agent, tool, args, thought, context=None, guard=True):
         """Every tool call goes through here so the allow-list, the loop guard
         and the trace can never be bypassed by a clever prompt.
@@ -370,10 +396,14 @@ class Concierge:
             return
 
         self.state["plan_presented"] = True
-        self.trace.step("The plan is priced and inside budget.", {"tool": None},
-                        "presented the priced plan and stopped for confirmation", "orchestrator")
+        short = self._shortfall(req)
+        self.trace.step(
+            "The plan is priced and inside budget." if not short else
+            "The plan is priced and inside budget, but it is missing " + ", ".join(short) + ".",
+            {"tool": None},
+            "presented the priced plan and stopped for confirmation", "orchestrator")
         self.trace.outcome = dict(self.trace.outcome or {},
-                                  status="awaiting_confirmation",
+                                  status="awaiting_confirmation", missing=short,
                                   total=self.state["total"], budget=budget)
 
     def _execute_llm(self, req):
@@ -481,9 +511,14 @@ class Concierge:
                                       else "nothing could be held within the budget")
             return
         self.state["plan_presented"] = True
-        self.trace.step("The plan is priced and inside budget.", {"tool": None},
-                        "presented the priced plan and stopped for confirmation", "orchestrator")
+        short = self._shortfall(req)
+        self.trace.step(
+            "The plan is priced and inside budget." if not short else
+            "The plan is priced and inside budget, but it is missing " + ", ".join(short) + ".",
+            {"tool": None},
+            "presented the priced plan and stopped for confirmation", "orchestrator")
         self.trace.outcome = dict(self.trace.outcome or {}, status="awaiting_confirmation",
+                                  missing=short,
                                   total=self.state["total"], budget=budget)
 
     def _hold_best_affordable(self, agent, tool, options, pax, budget, nights=1):
