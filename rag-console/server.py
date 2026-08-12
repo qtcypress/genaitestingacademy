@@ -690,6 +690,30 @@ padding:7px 8px;border-bottom:2px solid var(--line)}
 td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
 tr.fail td{background:#FEF6F6}
 .pill{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:99px}
+.projbadge{display:inline-block;background:var(--navy);color:#fff;font-size:10.5px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;padding:3px 10px;border-radius:99px;margin-bottom:8px}
+.projbadge.alt{background:var(--orange)}
+.whatis{font-size:13px;line-height:1.55;background:var(--cream);border:1px solid var(--line);
+  border-radius:10px;padding:11px 13px;margin:10px 0 4px}
+.okbox{background:#f0f8f2;border:1px solid #bfe0c8;border-radius:9px;padding:9px 12px;font-size:12.5px}
+.flow{display:flex;align-items:stretch;gap:6px;overflow-x:auto;padding:4px 2px 10px}
+.flowstep{flex:0 0 auto;min-width:168px;max-width:230px;border:1px solid var(--line);
+  border-radius:10px;padding:9px 11px;background:#fff}
+.flowhead{display:flex;align-items:center;gap:7px;font-size:12px}
+.flowhead b{background:var(--navy);color:#fff;border-radius:99px;width:19px;height:19px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.flowhead .agent{font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:11px;
+  color:var(--navy)}
+.flowtask{font-size:12px;color:#555;margin:5px 0 7px;line-height:1.35}
+.flowarrow{align-self:center;color:#bbb;font-size:16px;flex:0 0 auto}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px;
+  border:1px solid transparent;white-space:nowrap}
+.c-ok{background:#eaf6ee;color:#1d6b34;border-color:#bfe0c8}
+.c-ctrl{background:#fff4e2;color:#8a5200;border-color:#f0d5a8}
+.c-bad{background:#fdecec;color:#9b1c1c;border-color:#f2c2c2}
+.c-none{background:#f3f3f3;color:#888;border-color:#e2e2e2}
+tr.ctrl td{background:#fffaf1}
 .p-pass{background:#EAFBF5;color:#08603C}.p-fail{background:#FDEBEB;color:#8E1219}
 .p-weak{background:#FFE9CF;color:#8A4A05}
 tr.weak td{background:#FFFBF4}
@@ -781,7 +805,15 @@ function render() {
   if (!tabs.some(t => t[0] === TAB)) TAB = "ask";
   el("root").innerHTML = `
     <div class="card">
+      <div class="projbadge">Project 1 of 2 &middot; RAG</div>
       <h1>TripSage RAG — a travel assistant, built five times</h1>
+      <p class="whatis"><b>What you are testing here:</b> a <b>retrieval</b> system. A question
+      goes in, the closest chunks of seven documents come back, and an answer is written from
+      them. The bugs live in what was retrieved and whether the answer stayed inside it —
+      hallucination, over-confidence, refusing when it should answer, answering from a document
+      that lies. <span class="muted">The other project, <b>MCP multi-agent</b>, is at the bottom
+      of this list: there the model does not answer questions, it <em>spends money</em>, and the
+      bugs are about authority instead of accuracy.</span></p>
       <p class="lead">TripSage answers travel questions strictly from a small set of markdown
       documents: it chunks them, retrieves the closest chunks to your question by TF-IDF cosine
       similarity, and grounds an answer in what it retrieved. It is built in five versions, and
@@ -792,9 +824,11 @@ function render() {
       <div class="row">
         <label class="f">Project
           <select id="vsel">
-            <optgroup label="TripSage RAG">${VERSIONS.map(x => `<option value="${x.id}" ${x.id === v.id ? "selected" : ""}>
+            <optgroup label="Project 1 — RAG (retrieval-augmented generation)">${VERSIONS.map(x =>
+              `<option value="${x.id}" ${x.id === v.id ? "selected" : ""}>
               ${esc(x.label)}${x.ok ? "" : " (failed to load)"}</option>`).join("")}</optgroup>
-            <optgroup label="TripSage Concierge"><option value="concierge">Multi-agent, MCP</option></optgroup>
+            <optgroup label="Project 2 — MCP multi-agent">
+              <option value="concierge">Concierge — agents over MCP</option></optgroup>
           </select>
         </label>
         <span class="muted">${v.chunks} chunks &middot; ${v.docs} documents${
@@ -829,8 +863,8 @@ function paintAsk() {
       <label class="f">threshold <input id="thr" type="number" value="0.06" min="0" max="1" step="0.01"></label>
       ${v.caps.poison ? `<label class="f"><input id="poison" type="checkbox"> poisoned knowledge base</label>` : ""}
       ${v.caps.defenses && v.caps.poison ? `<label class="f"><input id="def" type="checkbox" checked> defences on</label>` : ""}
-      <button class="btn" id="go">Ask ${esc(v.label.split("  ")[0])}</button>
-      <button class="btn ghost" id="reindex">Re-index with these settings</button>
+      <button class="btn" id="go">Ask</button>
+      <button class="btn ghost" id="reindex">Re-index</button>
     </div>
     <p class="muted" style="margin:10px 0 0"><b>top_k</b> and <b>threshold</b> are applied to each
     query as it runs, so they take effect on the next question without a re-index. Switching the
@@ -842,7 +876,7 @@ function paintAsk() {
       <h4 style="margin-top:0">Which model writes the answer</h4>
       ${provRow("")}
       <div class="row" style="margin-top:6px">
-        <button class="btn ghost sm" id="prov-test">Test the provider</button>
+        <button class="btn ghost sm" id="prov-test">Test</button>
       </div>
       <p class="muted" id="prov-note" style="margin:8px 0 0"></p>
       <div id="prov-probe"></div></div>` : ""}
@@ -967,7 +1001,7 @@ function paintTests() {
       <label class="f">threshold <input id="t-thr" type="number" value="0.06" min="0" max="1" step="0.01"></label>
       ${v.caps.poison ? `<label class="f"><input id="t-poison" type="checkbox">
         poisoned knowledge base</label>` : ""}
-      <button class="btn" id="run-all">Run the whole suite</button>
+      <button class="btn" id="run-all">Run all</button>
     </div>
     ${v.caps.poison ? `<p class="muted" style="margin-top:8px">Run each suite twice. Clean first,
       for the baseline. Then tick the poisoned knowledge base and run again: the blue suite will
@@ -1456,9 +1490,13 @@ function paintProv(pre) {
   // The label used to say "Test the server's provider" whatever was selected,
   // which read as though the selection were being ignored — and the result,
   // always Groq, confirmed the suspicion. It now tests what is actually chosen.
-  if (btn) btn.textContent = browser
-    ? (p.id === "ollama" ? "Test my local Ollama" : "Test my key")
-    : "Test the academy's provider";
+  // Short verbs. The old labels were sentences, and a button that reads like a
+  // sentence is a button people stop reading.
+  if (btn) btn.textContent = "Test";
+  if (btn) btn.title = browser
+    ? (p.id === "ollama" ? "Ask your local Ollama for one word"
+                         : "Ask your provider for one word, using your key")
+    : "Ask the academy's provider for one word";
   rememberProv(p.id, key ? key.value : null, model ? model.value : null);
   const found = OLLAMA_FOUND[pre];
   if (p.id === "ollama" && note && found && found.names.length) {
@@ -1779,7 +1817,16 @@ let ASUITE = "red";
 function renderConcierge() {
   el("root").innerHTML = `
     <div class="card">
-      <h1>TripSage Concierge — multi-agent, over MCP</h1>
+      <div class="projbadge alt">Project 2 of 2 &middot; MCP multi-agent</div>
+      <h1>TripSage Concierge — agents that spend money, over MCP</h1>
+      <p class="whatis"><b>What you are testing here:</b> <b>authority</b>, not accuracy. An
+      orchestrator breaks a trip request into steps and hands each to a sub-agent holding a narrow
+      set of MCP tools. The flight agent can hold a seat; it <em>cannot</em> book one. Nothing is
+      paid for without a confirmation token this system issued. The interesting question is not
+      whether the model is clever — it is what a <em>captured</em> model can still do, and the
+      answer should be nothing. <span class="muted">The other project, <b>RAG</b>, is at the top
+      of this list: there the model answers from documents and the bugs are about what it
+      believes.</span></p>
       <p class="lead">An orchestrator decomposes a trip request and delegates to specialist
       sub-agents — flight, transport, hotel, itinerary, budget, booking, invoice, messaging,
       support — each holding a narrow set of MCP tools. The tool split is the design: the flight
@@ -1790,9 +1837,10 @@ function renderConcierge() {
       <div class="row">
         <label class="f">Project
           <select id="vsel">
-            <optgroup label="TripSage RAG">${VERSIONS.map(x =>
+            <optgroup label="Project 1 — RAG (retrieval-augmented generation)">${VERSIONS.map(x =>
               `<option value="${x.id}">${esc(x.label)}</option>`).join("")}</optgroup>
-            <optgroup label="TripSage Concierge"><option value="concierge" selected>Multi-agent, MCP</option></optgroup>
+            <optgroup label="Project 2 — MCP multi-agent">
+              <option value="concierge" selected>Concierge — agents over MCP</option></optgroup>
           </select></label>
       </div>
       <div class="tabs">
@@ -1839,12 +1887,12 @@ function paintAgentRun() {
           <option value="llm">The academy's model</option>
           <option value="browser">My own model — key or local Ollama</option>
         </select></label>
-      <button class="btn" id="ago">Run the Concierge</button>
+      <button class="btn" id="ago">Run</button>
     </div>
     <div id="aprov-box" style="display:none;margin-top:10px">
       ${provRow("a")}
       <div class="row" style="margin-top:6px">
-        <button class="btn ghost sm" id="aprov-test">Test the provider</button>
+        <button class="btn ghost sm" id="aprov-test">Test</button>
       </div>
       <p class="muted" id="aprov-note" style="margin:8px 0 0"></p>
       <div id="aprov-probe"></div>
@@ -1931,33 +1979,82 @@ async function runViaBrowser(text) {
 
 function runHtml(t) {
   const o = t.outcome || {};
-  const calls = (t.tool_calls || []).map(c => `
-    <tr class="${c.ok ? "" : "fail"}"><td>${c.seq}</td><td><b>${esc(c.tool)}</b></td>
-      <td>${esc(c.caller)}</td>
-      <td>${c.ok ? "ok" : esc(String(c.error || "")).slice(0, 80)}</td></tr>`).join("");
+  const calls = t.tool_calls || [];
+
+  /* Three outcomes, not two. A call that was refused by a control is the system
+     working — the allow-list holding, the confirmation gate holding — and filing
+     it under "errors" beside a genuine fault made a perfectly healthy run look
+     broken. They are now counted, coloured and explained separately. */
+  const control = calls.filter(c => c.control);
+  const faults  = calls.filter(c => !c.ok && !c.control);
+  const ok      = calls.filter(c => c.ok);
+
+  // one card per plan step, showing which agent ran and what it touched
+  const byAgent = {};
+  calls.forEach(c => { (byAgent[c.caller] = byAgent[c.caller] || []).push(c); });
+  const flow = (t.plan || []).map(p => {
+    const mine = byAgent[p.agent] || [];
+    const chips = mine.map(c => `<span class="chip ${c.control ? "c-ctrl" : c.ok ? "c-ok" : "c-bad"}"
+        title="${esc(c.ok ? "ok" : String(c.error || ""))}">${esc(c.tool)}</span>`).join("");
+    return `<div class="flowstep">
+      <div class="flowhead"><b>${p.n}</b> <span class="agent">${esc(p.agent)}</span></div>
+      <div class="flowtask">${esc(p.task)}</div>
+      <div class="chips">${chips || '<span class="chip c-none">no tools called</span>'}</div>
+    </div>`;
+  }).join('<div class="flowarrow">→</div>');
+
+  const row = c => `<tr class="${c.control ? "ctrl" : c.ok ? "" : "fail"}">
+      <td>${c.seq}</td><td><b>${esc(c.tool)}</b></td><td>${esc(c.caller)}</td>
+      <td>${c.ok ? "ok" : `<b>${c.control === "allow-list" ? "blocked by allow-list"
+        : c.control ? "blocked by policy" : "failed"}</b> — ` + esc(String(c.error || ""))}</td>
+    </tr>`;
+
   const steps = (t.steps || []).map(s => `
     <div class="chunk ${s.error ? "" : "used"}">
       <div class="top"><b>${s.n}. ${esc(s.agent || "")}</b><span>${s.ms} ms${
         s.error ? " · " + esc(s.error) : ""}</span></div>
       <div class="txt"><em>${esc(s.thought)}</em><br>
-        ${(s.action || {}).tool ? "action: <code>" + esc(s.action.tool) + "</code><br>" : ""}
-        observation: ${esc(JSON.stringify(s.observation).slice(0, 220))}</div></div>`).join("");
-  const plan = (t.plan || []).map(p =>
-    `<div class="doc"><span>${p.n}. ${esc(p.task)}</span><span class="muted">${esc(p.agent)}</span></div>`).join("");
+        ${(s.action || {}).tool ? "calls <code>" + esc(s.action.tool) + "</code>" +
+          ((s.action.args && Object.keys(s.action.args).length)
+            ? " with <code>" + esc(JSON.stringify(s.action.args).slice(0, 120)) + "</code>" : "") +
+          "<br>" : ""}
+        gets back: ${esc(JSON.stringify(s.observation).slice(0, 220))}</div></div>`).join("");
+
+  const missing = (o.missing || []);
   return `<div class="stats">
       <div class="stat"><b>${esc(o.status || "?")}</b><span>outcome</span></div>
-      <div class="stat"><b>${t.total || 0}</b><span>total held / booked (INR)</span></div>
-      <div class="stat"><b>${t.step_count}</b><span>steps (budget 40)</span></div>
-      <div class="stat"><b>${(t.tool_calls || []).length}</b><span>tool calls</span></div>
-      <div class="stat"><b>${(t.errors || []).length}</b><span>errors surfaced</span></div>
+      <div class="stat"><b>₹${(t.total || 0).toLocaleString("en-IN")}</b><span>held, not yet paid</span></div>
+      <div class="stat"><b>${ok.length}</b><span>tools ran</span></div>
+      <div class="stat"><b>${control.length}</b><span>blocked by a control</span></div>
+      <div class="stat"><b>${faults.length}</b><span>failed</span></div>
+      <div class="stat"><b>${t.step_count}</b><span>steps</span></div>
     </div>
-    ${plan ? `<h4>The plan, before anything ran</h4><div class="doclist">${plan}</div>` : ""}
-    <h4>ReAct steps</h4>${steps || '<p class="muted">No steps.</p>'}
-    <h4>Tool calls — the audit log tests assert against</h4>
-    <table><thead><tr><th>#</th><th>Tool</th><th>Caller</th><th>Result</th></tr></thead>
-      <tbody>${calls}</tbody></table>
-    ${(t.errors || []).length ? `<h4>Errors</h4><div class="err">${
-      t.errors.map(esc).join("<br>")}</div>` : ""}`;
+    ${missing.length ? `<p class="err" style="margin-top:10px"><b>Incomplete.</b> The plan is
+      priced and inside budget, but it has no ${missing.map(esc).join(", no ")}.</p>` : ""}
+    ${control.length ? `<p class="okbox" style="margin-top:10px"><b>${control.length} control${
+      control.length === 1 ? "" : "s"} fired.</b> These are refusals, not failures — the system was
+      asked to do something it does not permit and said no. Every one is listed in the audit log
+      below, which is what the red-team cases assert on.</p>` : ""}
+
+    <h4>How the run flowed</h4>
+    <div class="flow">${flow || '<p class="muted">No plan was produced.</p>'}</div>
+    <p class="muted">Each box is one planned step: the agent that ran it and every tool it
+      touched. <span class="chip c-ok">green</span> ran, <span class="chip c-ctrl">amber</span>
+      was blocked by a control, <span class="chip c-bad">red</span> failed. Hover a chip for the
+      reason.</p>
+
+    <h4>Think, act, observe — one row per model turn</h4>${steps || '<p class="muted">No steps.</p>'}
+
+    <h4>Audit log — what the tests assert against</h4>
+    <table><thead><tr><th style="width:6%">#</th><th style="width:22%">Tool</th>
+      <th style="width:16%">Called by</th><th>Result</th></tr></thead>
+      <tbody>${calls.map(row).join("")}</tbody></table>
+    ${faults.length ? `<h4>Failures</h4><div class="err">${
+      faults.map(c => esc(c.tool + " — " + String(c.error || ""))).join("<br>")}</div>` : ""}
+    ${(t.errors || []).filter(e => !/^denied:|^refused:|requires a confirmation token/.test(e)).length
+      ? `<h4>Notes from the run</h4><div class="muted">${
+        t.errors.filter(e => !/^denied:|^refused:|requires a confirmation token/.test(e))
+          .map(esc).join("<br>")}</div>` : ""}`;
 }
 
 function paintAgentSuites() {
@@ -1968,7 +2065,7 @@ function paintAgentSuites() {
     <div class="row">
       <label class="f">Suite <select id="asuite">${AGENT_SUITES.map(([k, l]) =>
         `<option value="${k}" ${k === ASUITE ? "selected" : ""}>${esc(l)}</option>`).join("")}</select></label>
-      <button class="btn" id="asuite-run">Run the whole suite</button>
+      <button class="btn" id="asuite-run">Run all</button>
     </div>
     <div id="acases"><div class="spin"></div></div>
     <div id="asuite-out"></div>`;
