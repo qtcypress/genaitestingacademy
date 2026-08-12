@@ -1496,6 +1496,27 @@ async function fillOllamaModels(pre, base) {
   } finally { list.dataset.loading = "0"; }
 }
 
+/* Generation from the browser, so a student's key and their local Ollama never
+   have to reach our server. Retrieval still happens server-side. */
+async function askViaBrowser(question) {
+  const r = await api("/api/retrieve", Object.assign(askOpts(), {
+    question, top_k: +el("topk").value, threshold: +el("thr").value}));
+  if (!r.used.length) {
+    return {answer: "I don't have that in my knowledge base.", abstained: true, flags: ["abstained"],
+            chunks: r.chunks, used_docs: [], latency_ms: 0, provider: "none",
+            note: "Retrieval returned nothing above the threshold, so no model was called."};
+  }
+  const context = r.used.map(u => "[" + u.doc + "]\n" + u.text).join("\n\n");
+  const out = await completeWith([{role: "system", content: r.system},
+                                  {role: "user", content: "Context:\n" + context +
+                                                          "\n\nQuestion: " + question}], 600);
+  const poisoned = r.used.filter(u => String(u.doc).startsWith("POISON_"));
+  return {answer: out.text, refused: false, abstained: false, chunks: r.chunks,
+          used_docs: r.used.map(u => u.doc), latency_ms: out.ms,
+          provider: out.provider, model: out.model,
+          flags: poisoned.map(u => "poisoned_source_used:" + u.doc)};
+}
+
 /* Reaching a student's own machine from a page we serve over HTTPS.
 
    Chrome 142 gates this behind Local Network Access: a public site asking for
