@@ -1358,8 +1358,9 @@ function provRow(pre) {
       <select id="${pre}prov"></select>
       <input id="${pre}pkey" type="password" placeholder="paste your key (stays in this tab)"
              size="34" style="display:none">
-      <input id="${pre}pmodel" type="text" placeholder="model, e.g. llama3.2 or mistral"
-             size="22" style="display:none"></div>`;
+      <input id="${pre}pmodel" type="text" placeholder="model, e.g. mistral:latest"
+             size="22" list="${pre}pmodels" style="display:none">
+      <datalist id="${pre}pmodels"></datalist></div>`;
 }
 
 async function loadProviders(pre) {
@@ -1411,6 +1412,106 @@ function paintProv(pre) {
     : "Test the academy's provider";
   storeProv({id: p.id, key: key ? key.value : savedProv().key,
              model: model ? model.value : savedProv().model});
+  const found = OLLAMA_FOUND[pre];
+  if (p.id === "ollama" && note && found && found.names.length) {
+    note.innerHTML += ` <b>Found ${found.names.length} model${
+      found.names.length === 1 ? "" : "s"} on your machine</b> — click the box to pick one.`;
+  }
+  if (p.id === "ollama" && model) fillOllamaModels(pre, p.endpoint);
+}
+
+const OLLAMA_FOUND = {};
+
+/* Ask the student's Ollama what it has. This doubles as the connection test:
+   if the list arrives, the browser can reach it and CORS is right, and the
+   "type the name exactly as `ollama list` prints it" instruction disappears
+   because the names are simply offered. */
+async function fillOllamaModels(pre, base) {
+  const cached = OLLAMA_FOUND[pre];
+  if (cached && cached.base === base) return;          // asked already; no loop
+  const list = el(pre + "pmodels"), box = el(pre + "pmodel");
+  if (!list || list.dataset.loading === "1") return;
+  list.dataset.loading = "1";
+  try {
+    const names = await ollamaModels(base);
+    OLLAMA_FOUND[pre] = {base: base, names: names};
+    list.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
+    if (box && !box.value && names.length) {
+      box.value = names[0];
+      storeProv(Object.assign(savedProv(), {model: names[0]}));
+    }
+    paintProv(pre);                                    // now the count can be shown
+  } catch (e) {
+    // Silent on purpose: this runs whenever the dropdown changes, and a student
+    // who has not started Ollama yet should not be shouted at until they ask for
+    // a test or a run.
+  } finally { list.dataset.loading = "0"; }
+}
+
+/* Reaching a student's own machine from a page we serve over HTTPS.
+
+   Chrome 142 gates this behind Local Network Access: a public site asking for
+   http://localhost must say so up front with `targetAddressSpace: "local"`, and
+   the user must allow the prompt ("Look for and connect to any device on your
+   local network"). Without the flag the request is refused before it leaves the
+   browser and `fetch` rejects with a bare "Failed to fetch" — which is what a
+   student sees, and it says nothing about the cause. Browsers that do not
+   implement the option ignore it, so it is always safe to send.
+
+   There are three different faults behind that one message, and they need
+   different fixes, so `localFault` names them rather than guessing. */
+async function fetchLocal(url, init) {
+  // Plain first. On a page served over http — a local dev copy, or an older
+  // browser — this simply works, and declaring `targetAddressSpace` there is not
+  // free: Chrome enforces the option, so sending it unconditionally turns a
+  // working request into a blocked one when no permission has been granted.
+  // Only when the plain attempt is refused is it worth asking Chrome for local
+  // network access, which is what an HTTPS page needs and what raises the prompt.
+  try {
+    return await fetch(url, init || {});
+  } catch (plain) {
+    try {
+      return await fetch(url, Object.assign({targetAddressSpace: "local"}, init || {}));
+    } catch (flagged) {
+      throw plain;      // the first error is the honest one to report
+    }
+  }
+}
+
+async function ollamaModels(base) {
+  const r = await fetchLocal(base + "/api/tags", {method: "GET"});
+  if (!r.ok) throw new Error("Ollama answered " + r.status + " for /api/tags");
+  return ((await r.json()).models || []).map(m => m.name).filter(Boolean);
+}
+
+function localFault(e, base, model) {
+  const msg = (e && e.message) || String(e);
+  const win = navigator.platform.indexOf("Win") === 0 ||
+              /Windows/.test(navigator.userAgent);
+  return `<p class="err">Could not reach Ollama at <code>${esc(base)}</code> — ${esc(msg)}</p>
+    <p class="muted">“Failed to fetch” here means the request never left your browser, so it is
+    one of three things, in the order worth checking:</p>
+    <ol class="muted">
+      <li><b>Local network permission.</b> This page is served over HTTPS, and Chrome 142 and
+        later ask before letting a website reach your own machine. Look for a prompt or a blocked
+        icon at the left of the address bar and allow
+        <i>“Look for and connect to any device on your local network”</i>, then press the test
+        button again.</li>
+      <li><b>Ollama is not accepting calls from a web page.</b> It refuses browser origins unless
+        it is started with <code>OLLAMA_ORIGINS=*</code>.${win ? ` On Windows a
+        <code>set OLLAMA_ORIGINS=*</code> typed into a command prompt does <b>not</b> reach the
+        Ollama that is already running in your system tray — that copy was started at login
+        without it. Quit Ollama from the tray, then in a command prompt run
+        <code>set OLLAMA_ORIGINS=*</code> followed by <code>ollama serve</code>, and leave that
+        window open. To make it permanent instead: Settings → System → About → Advanced system
+        settings → Environment Variables → New user variable
+        <code>OLLAMA_ORIGINS</code> = <code>*</code>, then sign out and back in.` :
+        ` Quit it and start it again with <code>OLLAMA_ORIGINS=* ollama serve</code>.`}</li>
+      <li><b>Ollama is not running at all,</b> or is on a different port. Check
+        <code>${esc(base)}</code> opens in a new tab and says “Ollama is running”.</li>
+    </ol>
+    ${model ? `<p class="muted">The model asked for was <code>${esc(model)}</code>. Once the
+      connection works, the box above fills with the models actually on your machine.</p>` : ""}`;
 }
 
 /* One completion from whichever provider is selected. Shared by the Ask tab and
@@ -1423,13 +1524,12 @@ async function completeWith(messages, maxTokens, pre) {
   if (p.id === "ollama") {
     const m = (cfg.model || "").trim();
     if (!m) throw new Error("Name a model from `ollama list` — e.g. llama3.2 or mistral");
-    const res = await fetch(p.endpoint + "/api/chat", {
+    const res = await fetchLocal(p.endpoint + "/api/chat", {
       method: "POST", headers: {"Content-Type": "application/json"},
       body: JSON.stringify({model: m, messages, stream: false,
                             options: {temperature: 0.2, num_predict: maxTokens || 600}})});
-    if (!res.ok) throw new Error("Ollama returned " + res.status + " for model `" + m +
-      "`. Is it running, started with OLLAMA_ORIGINS=* so this page may call it, and is that " +
-      "model pulled? Check `ollama list`.");
+    if (!res.ok) throw new Error("Ollama answered " + res.status + " for model `" + m +
+      "`. If that is a 404 the model is not pulled — run `ollama pull " + m + "`.");
     const d = await res.json();
     text = (d.message || {}).content || "";
     model = m;
@@ -1490,6 +1590,25 @@ async function probeProvider(pre) {
     // the server's Groq here — as this used to — is worse than useless: it tells
     // them something is working when the thing they chose has never been called.
     try {
+      if (sel.id === "ollama") {
+        // Prove reachability before spending a generation on it: /api/tags is
+        // instant, while a cold model can take half a minute to load and would
+        // look like a hang.
+        const names = await ollamaModels(sel.endpoint);
+        OLLAMA_FOUND[pre] = {base: sel.endpoint, names: names};
+        const list = el(pre + "pmodels");
+        if (list) list.innerHTML = names.map(n => `<option value="${esc(n)}">`).join("");
+        const want = (savedProv().model || "").trim();
+        if (want && names.length && names.indexOf(want) < 0) {
+          setOut(pre + "prov-probe", `<h4>Provider check</h4>
+            <p class="ok">Connected to Ollama at <code>${esc(sel.endpoint)}</code>.</p>
+            <p class="err">But <code>${esc(want)}</code> is not one of its models.</p>
+            <p class="muted">It has: ${names.map(n => `<code>${esc(n)}</code>`).join(", ")}.
+            Pick one from the box above — the names now autocomplete.</p>`);
+          busy(pre + "prov-test", false);
+          return;
+        }
+      }
       const out = await completeWith([{role: "user", content: "Reply with the single word: ok"}],
                                      8, pre);
       setOut(pre + "prov-probe", `<h4>Provider check</h4>
@@ -1497,12 +1616,9 @@ async function probeProvider(pre) {
         replied “${esc((out.text || "").trim().slice(0, 60))}” in ${out.ms} ms.
         This ran in your browser; the academy's key was not used.</p>`);
     } catch (e) {
-      setOut(pre + "prov-probe", `<h4>Provider check</h4>
-        <p class="err">${esc(e.message || e)}</p>
-        ${sel.id === "ollama" ? `<p class="muted">Start Ollama so this page may call it:
-          <code>OLLAMA_ORIGINS=* ollama serve</code>, then <code>ollama pull ${
-          esc((savedProv().model || "mistral"))}</code>. The model name must match
-          <code>ollama list</code> exactly, tag and all.</p>` : ""}`);
+      setOut(pre + "prov-probe", `<h4>Provider check</h4>` + (sel.id === "ollama"
+        ? localFault(e, sel.endpoint, savedProv().model)
+        : `<p class="err">${esc(e.message || e)}</p>`));
     }
     busy(pre + "prov-test", false);
     return;
