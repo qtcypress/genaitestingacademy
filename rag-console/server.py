@@ -29,6 +29,7 @@ import hmac
 import importlib.util
 import json
 import os
+import queue
 import secrets
 import sys
 import threading
@@ -839,14 +840,9 @@ function paintAsk() {
     run and see exactly what the store ends up holding.</p>
     ${v.caps.llm ? `<div id="prov-box" class="card" style="box-shadow:none;margin:14px 0 0">
       <h4 style="margin-top:0">Which model writes the answer</h4>
-      <div class="row" style="margin-top:2px">
-        <select id="prov"></select>
-        <input id="pkey" type="password" placeholder="paste your key (stays in this tab)"
-               size="34" style="display:none">
-        <input id="pmodel" type="text" placeholder="model, e.g. llama3.2" size="18" style="display:none">
-      </div>
+      ${provRow("")}
       <div class="row" style="margin-top:6px">
-        <button class="btn ghost sm" id="prov-test">Test the server's provider</button>
+        <button class="btn ghost sm" id="prov-test">Test the provider</button>
       </div>
       <p class="muted" id="prov-note" style="margin:8px 0 0"></p>
       <div id="prov-probe"></div></div>` : ""}
@@ -859,8 +855,8 @@ function paintAsk() {
   el("q").onkeydown = e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) ask(); };
   ["poison", "def"].forEach(id => { const c = el(id); if (c) c.onchange = () => loadIndex(false); });
   if (v.caps.llm) {
-    loadProviders();
-    el("prov-test").onclick = probeProvider;
+    loadProviders("");
+    el("prov-test").onclick = () => probeProvider("");
   }
   loadIndex(false);
 }
@@ -1354,7 +1350,20 @@ function savedProv() {
 }
 function storeProv(o) { sessionStorage.setItem(KEY_STORE, JSON.stringify(o)); }
 
-async function loadProviders() {
+/* The same picker serves the Ask tab and the Concierge, so `pre` prefixes the
+   ids. Both read and write one saved choice, which is what a student expects:
+   pick Ollama once and it is Ollama everywhere. */
+function provRow(pre) {
+  return `<div class="row" style="margin-top:2px">
+      <select id="${pre}prov"></select>
+      <input id="${pre}pkey" type="password" placeholder="paste your key (stays in this tab)"
+             size="34" style="display:none">
+      <input id="${pre}pmodel" type="text" placeholder="model, e.g. llama3.2 or mistral"
+             size="22" style="display:none"></div>`;
+}
+
+async function loadProviders(pre) {
+  pre = pre || "";
   try {
     const j = await api("/api/providers", {});
     PROVIDERS = j.providers;
@@ -1363,38 +1372,97 @@ async function loadProviders() {
     // default is the first provider the student could actually use.
     const first = (PROVIDERS.find(p => p.available) || PROVIDERS[0]).id;
     const pick = PROVIDERS.some(p => p.id === saved.id && p.available) ? saved.id : first;
-    el("prov").innerHTML = PROVIDERS.map(p =>
+    el(pre + "prov").innerHTML = PROVIDERS.map(p =>
       `<option value="${p.id}" ${p.id === pick ? "selected" : ""} ${p.available ? "" : "disabled"}>
         ${esc(p.label)}${p.available ? "" : " — not configured"}</option>`).join("");
-    el("prov").onchange = paintProv;
-    if (el("pkey")) el("pkey").value = saved.key || "";
-    if (el("pmodel")) el("pmodel").value = saved.model || "";
-    ["pkey", "pmodel"].forEach(id => { const e = el(id); if (e) e.oninput = paintProv; });
-    paintProv();
-  } catch (e) { setOut("prov-note", esc(e.message || e)); }
+    el(pre + "prov").onchange = () => paintProv(pre);
+    if (el(pre + "pkey")) el(pre + "pkey").value = saved.key || "";
+    if (el(pre + "pmodel")) el(pre + "pmodel").value = saved.model || "";
+    [pre + "pkey", pre + "pmodel"].forEach(id => {
+      const e = el(id); if (e) e.oninput = () => paintProv(pre); });
+    paintProv(pre);
+  } catch (e) { setOut(pre + "prov-note", esc(e.message || e)); }
 }
 
-function currentProv() {
-  const id = el("prov") ? el("prov").value : "server";
+function currentProv(pre) {
+  pre = pre || "";
+  const sel = el(pre + "prov");
+  const id = sel ? sel.value : (savedProv().id || "server");
   return PROVIDERS.find(p => p.id === id) || PROVIDERS[0];
 }
 
-function paintProv() {
-  const p = currentProv();
+function paintProv(pre) {
+  pre = pre || "";
+  const p = currentProv(pre);
   if (!p) return;
   const browser = p.where === "browser";
-  el("pkey").style.display = (browser && p.id !== "ollama") ? "" : "none";
-  el("pmodel").style.display = (p.id === "ollama") ? "" : "none";
-  el("prov-note").innerHTML = esc(p.note) +
+  const key = el(pre + "pkey"), model = el(pre + "pmodel");
+  if (key) key.style.display = (browser && p.id !== "ollama") ? "" : "none";
+  if (model) model.style.display = (p.id === "ollama") ? "" : "none";
+  const note = el(pre + "prov-note");
+  if (note) note.innerHTML = esc(p.note) +
     (browser ? " Your key is held in this tab only and is cleared when you close it." : "");
-  storeProv({id: p.id, key: el("pkey").value, model: el("pmodel").value});
+  const btn = el(pre + "prov-test");
+  // The label used to say "Test the server's provider" whatever was selected,
+  // which read as though the selection were being ignored — and the result,
+  // always Groq, confirmed the suspicion. It now tests what is actually chosen.
+  if (btn) btn.textContent = browser
+    ? (p.id === "ollama" ? "Test my local Ollama" : "Test my key")
+    : "Test the academy's provider";
+  storeProv({id: p.id, key: key ? key.value : savedProv().key,
+             model: model ? model.value : savedProv().model});
+}
+
+/* One completion from whichever provider is selected. Shared by the Ask tab and
+   by every step of a browser-driven agent run. */
+async function completeWith(messages, maxTokens, pre) {
+  const p = currentProv(pre);
+  const cfg = savedProv();
+  const t0 = Date.now();
+  let text, model = cfg.model || p.model;
+  if (p.id === "ollama") {
+    const m = (cfg.model || "").trim();
+    if (!m) throw new Error("Name a model from `ollama list` — e.g. llama3.2 or mistral");
+    const res = await fetch(p.endpoint + "/api/chat", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({model: m, messages, stream: false,
+                            options: {temperature: 0.2, num_predict: maxTokens || 600}})});
+    if (!res.ok) throw new Error("Ollama returned " + res.status + " for model `" + m +
+      "`. Is it running, started with OLLAMA_ORIGINS=* so this page may call it, and is that " +
+      "model pulled? Check `ollama list`.");
+    const d = await res.json();
+    text = (d.message || {}).content || "";
+    model = m;
+  } else if (p.id === "groq") {
+    if (!cfg.key) throw new Error("Paste your Groq key above.");
+    const res = await fetch(p.endpoint, {method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
+      body: JSON.stringify({model: cfg.model || p.model, messages,
+                            max_tokens: maxTokens || 600, temperature: 0.2})});
+    if (!res.ok) throw new Error("Groq returned " + res.status +
+      (res.status === 401 ? " — the key was rejected." : res.status === 429 ?
+       " — your key is rate-limited; wait a moment." : "."));
+    text = (await res.json()).choices[0].message.content;
+  } else if (p.id === "huggingface") {
+    if (!cfg.key) throw new Error("Paste your Hugging Face token above.");
+    const prompt = messages.map(m => m.role + ": " + m.content).join("\n\n");
+    const res = await fetch(p.endpoint + (cfg.model || p.model), {method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
+      body: JSON.stringify({inputs: prompt,
+                            parameters: {max_new_tokens: maxTokens || 600, return_full_text: false}})});
+    if (!res.ok) throw new Error("Hugging Face returned " + res.status + ".");
+    const d = await res.json();
+    text = Array.isArray(d) ? d[0].generated_text : (d.generated_text || JSON.stringify(d).slice(0, 300));
+  } else {
+    throw new Error("That provider runs on the server, not in this tab.");
+  }
+  return {text: text, model: model, provider: p.id, ms: Date.now() - t0};
 }
 
 /* Generation from the browser, so a student's key and their local Ollama never
    have to reach our server. Retrieval still happens server-side. */
 async function askViaBrowser(question) {
   const p = currentProv();
-  const cfg = savedProv();
   const r = await api("/api/retrieve", Object.assign(askOpts(), {
     question, top_k: +el("topk").value, threshold: +el("thr").value}));
   if (!r.used.length) {
@@ -1403,46 +1471,42 @@ async function askViaBrowser(question) {
             note: "Retrieval returned nothing above the threshold, so no model was called."};
   }
   const context = r.used.map(u => "[" + u.doc + "]\n" + u.text).join("\n\n");
-  const messages = [{role: "system", content: r.system},
-                    {role: "user", content: "Context:\n" + context + "\n\nQuestion: " + question}];
-  const t0 = Date.now();
-  let text;
-  if (p.id === "ollama") {
-    const model = (cfg.model || "").trim();
-    if (!model) throw new Error("Name a model from `ollama list` — e.g. llama3.2");
-    const res = await fetch(p.endpoint + "/api/chat", {
-      method: "POST", headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({model, messages, stream: false})});
-    if (!res.ok) throw new Error("Ollama returned " + res.status +
-      ". Is it running, and started with OLLAMA_ORIGINS=* so this page may call it?");
-    text = (await res.json()).message.content;
-  } else if (p.id === "groq") {
-    if (!cfg.key) throw new Error("Paste your Groq key above.");
-    const res = await fetch(p.endpoint, {method: "POST",
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
-      body: JSON.stringify({model: p.model, messages, max_tokens: 600, temperature: 0.2})});
-    if (!res.ok) throw new Error("Groq returned " + res.status +
-      (res.status === 401 ? " — the key was rejected." : "."));
-    text = (await res.json()).choices[0].message.content;
-  } else {
-    if (!cfg.key) throw new Error("Paste your Hugging Face token above.");
-    const prompt = messages.map(m => m.role + ": " + m.content).join("\n\n");
-    const res = await fetch(p.endpoint + p.model, {method: "POST",
-      headers: {"Content-Type": "application/json", "Authorization": "Bearer " + cfg.key},
-      body: JSON.stringify({inputs: prompt, parameters: {max_new_tokens: 600, return_full_text: false}})});
-    if (!res.ok) throw new Error("Hugging Face returned " + res.status + ".");
-    const d = await res.json();
-    text = Array.isArray(d) ? d[0].generated_text : (d.generated_text || JSON.stringify(d).slice(0, 300));
-  }
+  const out = await completeWith([{role: "system", content: r.system},
+                                  {role: "user", content: "Context:\n" + context +
+                                                          "\n\nQuestion: " + question}], 600);
   const poisoned = r.used.filter(u => String(u.doc).startsWith("POISON_"));
-  return {answer: text, refused: false, abstained: false, chunks: r.chunks,
-          used_docs: r.used.map(u => u.doc), latency_ms: Date.now() - t0,
-          provider: p.id, model: cfg.model || p.model,
+  return {answer: out.text, refused: false, abstained: false, chunks: r.chunks,
+          used_docs: r.used.map(u => u.doc), latency_ms: out.ms,
+          provider: out.provider, model: out.model,
           flags: poisoned.map(u => "poisoned_source_used:" + u.doc)};
 }
 
-async function probeProvider() {
-  busy("prov-test", true); spin("prov-probe");
+async function probeProvider(pre) {
+  pre = pre || "";
+  busy(pre + "prov-test", true); spin(pre + "prov-probe");
+  const sel = currentProv(pre);
+  if (sel && sel.where === "browser") {
+    // Ask the student's own provider, from the student's own browser. Reporting
+    // the server's Groq here — as this used to — is worse than useless: it tells
+    // them something is working when the thing they chose has never been called.
+    try {
+      const out = await completeWith([{role: "user", content: "Reply with the single word: ok"}],
+                                     8, pre);
+      setOut(pre + "prov-probe", `<h4>Provider check</h4>
+        <p class="ok">Working. <b>${esc(out.provider)}</b> / <code>${esc(out.model || "?")}</code>
+        replied “${esc((out.text || "").trim().slice(0, 60))}” in ${out.ms} ms.
+        This ran in your browser; the academy's key was not used.</p>`);
+    } catch (e) {
+      setOut(pre + "prov-probe", `<h4>Provider check</h4>
+        <p class="err">${esc(e.message || e)}</p>
+        ${sel.id === "ollama" ? `<p class="muted">Start Ollama so this page may call it:
+          <code>OLLAMA_ORIGINS=* ollama serve</code>, then <code>ollama pull ${
+          esc((savedProv().model || "mistral"))}</code>. The model name must match
+          <code>ollama list</code> exactly, tag and all.</p>` : ""}`);
+    }
+    busy(pre + "prov-test", false);
+    return;
+  }
   try {
     const j = await api("/api/provider-probe", {});
     const p = j.probe;
@@ -1452,7 +1516,7 @@ async function probeProvider() {
             k.prefix_looks_right ? "" : " ← <b>wrong prefix</b>"}${
             k.has_whitespace ? " ← <b>has stray whitespace</b>" : ""}`
         : "not set"}</span></div>`).join("");
-    setOut("prov-probe", `
+    setOut(pre + "prov-probe", `
       <h4>Provider check</h4>
       <div class="doclist">${keys}</div>
       ${p.model_check ? `<p class="${p.model_check.looks_ok === false ? "err" : "muted"}"
@@ -1464,8 +1528,8 @@ async function probeProvider() {
           ? `Working. <b>${esc(p.provider)}</b> / <code>${esc(p.model)}</code> replied “${esc(p.reply)}”.`
           : esc(p.error || p.result)}</p>
       ${p.likely_cause ? `<p class="muted"><b>Most likely:</b> ${esc(p.likely_cause)}</p>` : ""}`);
-  } catch (e) { setOut("prov-probe", errBox(e)); }
-  busy("prov-test", false);
+  } catch (e) { setOut(pre + "prov-probe", errBox(e)); }
+  busy(pre + "prov-test", false);
 }
 
 /* --------------------------------------------------- Concierge (multi-agent) */
@@ -1534,28 +1598,97 @@ function paintAgentRun() {
       <label class="f">Agents run on
         <select id="amode">
           <option value="scripted">Deterministic executor</option>
-          <option value="llm">A real LLM</option>
+          <option value="llm">The academy's model</option>
+          <option value="browser">My own model — key or local Ollama</option>
         </select></label>
       <button class="btn" id="ago">Run the Concierge</button>
     </div>
-    <p class="muted" style="margin:8px 0 0">Both modes use the same tools, the same allow-lists,
-      the same confirmation gate and the same trace — only the decision-making differs. That is
-      what makes the 64 cases run unchanged against either. The deterministic mode is free and
-      repeatable, which is why the suites default to it; LLM mode needs a provider configured on
-      the server.</p>
+    <div id="aprov-box" style="display:none;margin-top:10px">
+      ${provRow("a")}
+      <div class="row" style="margin-top:6px">
+        <button class="btn ghost sm" id="aprov-test">Test the provider</button>
+      </div>
+      <p class="muted" id="aprov-note" style="margin:8px 0 0"></p>
+      <div id="aprov-probe"></div>
+    </div>
+    <p class="muted" style="margin:8px 0 0">All three modes use the same tools, the same
+      allow-lists, the same confirmation gate and the same trace — only the decision-making
+      differs. That is what makes the 64 cases run unchanged against any of them. The
+      deterministic mode is free and repeatable, which is why the suites default to it.
+      <b>My own model</b> runs the loop from this tab: the orchestrator here asks your model what
+      to do next, your browser asks Ollama or your key, and the answer comes back. Your key never
+      reaches our server, and the tools and the confirmation gate stay on ours — which is the
+      point. A local model will take a minute or two.</p>
     <div id="arun-out"></div>`;
   document.querySelectorAll("[data-as]").forEach(b =>
     b.onclick = () => { el("areq").value = AGENT_SAMPLES[+b.dataset.as]; });
+  const syncMode = () => {
+    const own = el("amode").value === "browser";
+    el("aprov-box").style.display = own ? "" : "none";
+    if (own && !el("aprov").options.length) loadProviders("a");
+  };
+  el("amode").onchange = syncMode;
+  el("aprov-test").onclick = () => probeProvider("a");
+  syncMode();
   el("ago").onclick = async () => {
     const text = el("areq").value.trim();
     if (!text) return;
     busy("ago", true); spin("arun-out");
     try {
-      const j = await api("/api/agents/run", {request: text, mode: el("amode").value});
-      setOut("arun-out", runHtml(j.run));
+      if (el("amode").value === "browser") {
+        setOut("arun-out", runHtml(await runViaBrowser(text)));
+      } else {
+        const j = await api("/api/agents/run", {request: text, mode: el("amode").value});
+        setOut("arun-out", runHtml(j.run));
+      }
     } catch (e) { setOut("arun-out", errBox(e)); }
     busy("ago", false);
   };
+}
+
+/* The agent loop, driven from this tab.
+
+   The orchestrator, the MCP tools, the allow-lists and the confirmation gate all
+   stay on the server. What travels back and forth is only a question — "given
+   these messages, what would your model say?" — and its answer. A local Ollama is
+   reachable from nowhere but here, so this is the only shape that can work, and
+   it happens to be the shape that keeps a student's key out of our hands. */
+const BROWSER_RUN_MAX_TURNS = 40;
+
+async function runViaBrowser(text) {
+  const p = currentProv("a");
+  if (!p || p.where !== "browser") {
+    throw new Error("Choose your own key or your local Ollama above — " +
+                    "“the academy's model” is the other mode.");
+  }
+  let j = await api("/api/agents/run", {request: text, mode: "browser"});
+  let turns = 0;
+  try {
+    while (j.pending) {
+      if (++turns > BROWSER_RUN_MAX_TURNS) {
+        await api("/api/agents/step", {run_id: j.run_id, cancel: true});
+        throw new Error("The run passed " + BROWSER_RUN_MAX_TURNS + " model calls and was stopped.");
+      }
+      setOut("arun-out", `<div class="stats"><div class="stat"><b>${turns}</b>
+        <span>calls to your model so far</span></div></div>
+        <p class="muted">Your model is deciding the next step. A local model is slower than a
+        hosted one — this is normal, and every call is a real ReAct turn.</p>`);
+      let out = null, failure = null;
+      try {
+        out = await completeWith(j.pending.messages, 400, "a");
+      } catch (e) {
+        failure = e.message || String(e);
+      }
+      j = await api("/api/agents/step", failure
+        ? {run_id: j.run_id, error: failure}
+        : {run_id: j.run_id, text: out.text, tokens: 0});
+    }
+  } catch (e) {
+    if (j && j.run_id) { try { await api("/api/agents/step", {run_id: j.run_id, cancel: true}); }
+                         catch (ignored) {} }
+    throw e;
+  }
+  return j.run;
 }
 
 function runHtml(t) {
@@ -1713,6 +1846,153 @@ def _team_name(raw):
     if name in ("red", "red_team"):
         return "red"
     raise ValueError("unknown suite %r — use blue or red" % (raw,))
+
+
+
+# ---------------------------------------------------- browser-driven agent runs
+#
+# The Concierge's tools, allow-lists and confirmation gate live on the server and
+# must stay there — they are the controls the whole course is about, and a
+# control the client can skip is not a control. But the *model* need not be ours.
+# A student's own key, or an Ollama running on their laptop, can only be reached
+# by their browser.
+#
+# So the run is inverted. The orchestrator runs here, on its own thread, and
+# every time it wants a completion it hands the messages out to the browser and
+# waits. The browser calls whatever provider the student picked and posts the
+# text back. Nothing about the agent logic changes: the seam is the `llm(messages)`
+# callable the orchestrator already took as a parameter.
+#
+# The alternative — accepting the student's key and calling the provider from
+# here — was rejected. It would mean holding a secret we promised never to hold.
+BROWSER_RUNS = OrderedDict()
+BROWSER_RUNS_LOCK = threading.Lock()
+BROWSER_RUN_LIMIT = 12            # concurrent suspended runs, server-wide
+BROWSER_RUN_IDLE = 300            # seconds before an abandoned run is collected
+BROWSER_STEP_WAIT = 90            # how long a step may wait for the orchestrator
+
+
+class _BrowserAbort(Exception):
+    """Raised inside the worker thread when a run is collected or abandoned."""
+
+
+class BrowserRun:
+    """One suspended agent run. `ask` is what the orchestrator calls; `pump` is
+    what the HTTP handler calls. They meet at two queues."""
+
+    def __init__(self, sid, text):
+        self.id = secrets.token_hex(8)
+        self.sid = sid
+        self.text = text
+        self.to_browser = queue.Queue(maxsize=1)
+        self.from_browser = queue.Queue(maxsize=1)
+        self.result = None
+        self.error = None
+        self.done = threading.Event()
+        self.dead = False
+        self.touched = time.time()
+        self.calls = 0
+        self.thread = None
+
+    # ---- called on the worker thread (inside the orchestrator) --------------
+    def ask(self, messages):
+        if self.dead:
+            raise _BrowserAbort("run abandoned")
+        self.calls += 1
+        self.to_browser.put({"messages": messages})
+        reply = self.from_browser.get()
+        if reply.get("abort"):
+            raise _BrowserAbort("run abandoned")
+        if reply.get("error"):
+            # Surfaced to the orchestrator exactly like a provider failure on the
+            # server would be, so the trace reads the same either way.
+            raise LLM.LLMError(str(reply["error"])[:300])
+        return {"text": reply.get("text") or "", "tokens": int(reply.get("tokens") or 0)}
+
+    def _work(self):
+        from agents.orchestrator import run_request
+        try:
+            self.result = run_request(self.text, mode="llm", llm=self.ask)
+        except _BrowserAbort:
+            self.error = "run abandoned"
+        except Exception as ex:                                  # noqa: BLE001
+            self.error = "%s: %s" % (type(ex).__name__, ex)
+        finally:
+            self.done.set()
+            try:
+                self.to_browser.put_nowait({"finished": True})
+            except queue.Full:
+                pass
+
+    def start(self):
+        self.thread = threading.Thread(target=self._work, daemon=True)
+        self.thread.start()
+        return self.pump(None)
+
+    # ---- called on an HTTP thread ------------------------------------------
+    def pump(self, reply):
+        """Deliver the browser's completion (if any) and wait for whatever the
+        orchestrator wants next: either more messages, or the finished run."""
+        self.touched = time.time()
+        if reply is not None:
+            try:
+                self.from_browser.put(reply, timeout=5)
+            except queue.Full:
+                raise ValueError("this run is not waiting for a completion")
+        try:
+            item = self.to_browser.get(timeout=BROWSER_STEP_WAIT)
+        except queue.Empty:
+            raise ValueError("the run stopped responding; start it again")
+        if item.get("finished"):
+            _drop_browser_run(self.id)
+            if self.error:
+                raise ValueError(self.error)
+            return {"run": self.result, "calls": self.calls}
+        return {"run_id": self.id, "pending": item, "calls": self.calls}
+
+    def abandon(self):
+        self.dead = True
+        try:
+            self.from_browser.put_nowait({"abort": True})
+        except queue.Full:
+            pass
+
+
+def _reap_browser_runs():
+    now = time.time()
+    for rid, run in list(BROWSER_RUNS.items()):
+        if now - run.touched > BROWSER_RUN_IDLE:
+            run.abandon()
+            BROWSER_RUNS.pop(rid, None)
+
+
+def _drop_browser_run(rid):
+    with BROWSER_RUNS_LOCK:
+        BROWSER_RUNS.pop(rid, None)
+
+
+def new_browser_run(sid, text):
+    with BROWSER_RUNS_LOCK:
+        _reap_browser_runs()
+        while len(BROWSER_RUNS) >= BROWSER_RUN_LIMIT:
+            _, oldest = BROWSER_RUNS.popitem(last=False)
+            oldest.abandon()
+        run = BrowserRun(sid, text)
+        BROWSER_RUNS[run.id] = run
+    return run
+
+
+def get_browser_run(rid, sid):
+    with BROWSER_RUNS_LOCK:
+        run = BROWSER_RUNS.get(rid)
+    if run is None:
+        raise ValueError("no such run — it may have timed out; start it again")
+    if run.sid != sid:
+        # A run belongs to the session that started it. Without this a run id is
+        # a capability anyone holding it could drive.
+        raise ValueError("no such run")
+    return run
+
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -1875,6 +2155,16 @@ class Handler(BaseHTTPRequestHandler):
             if not text:
                 raise ValueError("no request")
             from agents.orchestrator import run_request
+
+            # "browser" means the student's own model drives the agents. The
+            # server still owns every tool, every allow-list and the confirmation
+            # gate; only the thinking is theirs.
+            if body.get("mode") == "browser":
+                run = new_browser_run(sess["sid"], text)
+                log_event(sess, "agent run", "concierge",
+                          "%s → started on the student's own provider" % text[:60])
+                return run.start()
+
             want_llm = body.get("mode") == "llm"
             if want_llm and not LLM.shared_available():
                 raise ValueError("LLM mode needs a provider on the server. Set GROQ_API_KEY on "
@@ -1892,6 +2182,24 @@ class Handler(BaseHTTPRequestHandler):
             log_event(sess, "agent run", "concierge",
                       "%s → %s" % (text[:60], (t.get("outcome") or {}).get("status")))
             return {"run": t}
+
+        if path == "/api/agents/step":
+            # One turn of a browser-driven run: here is what the student's model
+            # said, give me whatever the orchestrator wants next.
+            run = get_browser_run(body.get("run_id"), sess["sid"])
+            if body.get("cancel"):
+                run.abandon()
+                _drop_browser_run(run.id)
+                return {"cancelled": True}
+            reply = {"error": body["error"]} if body.get("error") else \
+                    {"text": (body.get("text") or "")[:20000], "tokens": body.get("tokens") or 0}
+            out = run.pump(reply)
+            if "run" in out:
+                log_event(sess, "agent run", "concierge",
+                          "%s → %s (%d calls on the student's provider)"
+                          % (run.text[:50], (out["run"].get("outcome") or {}).get("status"),
+                             out.get("calls", 0)))
+            return out
 
         if path == "/api/ask":
             question = (body.get("question") or "").strip()[:600]
