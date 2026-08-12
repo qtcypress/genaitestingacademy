@@ -34,6 +34,18 @@ class Denied(ToolError):
     """Raised when a caller reaches for a tool outside its allow-list."""
 
 
+class Refused(ToolError):
+    """A policy control said no: the confirmation gate, quiet hours, the outbound
+    recipient check, the invoice precondition.
+
+    Kept separate from a plain ToolError because the two mean opposite things. A
+    ToolError is the system failing to do what was asked — a bad id, an argument
+    of the wrong type. A Refusal is the system *succeeding*: it was asked to spend
+    money without authority and declined. Lumping them together under "errors" is
+    how a screenshot of every control working correctly comes to look like a
+    broken run."""
+
+
 class MCPServer:
     def __init__(self):
         self.tools = {}
@@ -81,7 +93,8 @@ class MCPServer:
 
         # Least privilege, enforced here and not in a prompt.
         if allow is not None and name not in allow:
-            rec.update(ok=False, error="denied: %s may not call %s" % (caller, name), denied=True)
+            rec.update(ok=False, error="denied: %s may not call %s" % (caller, name),
+                       denied=True, control="allow-list")
             self.calls.append(rec)
             raise Denied(rec["error"])
 
@@ -109,10 +122,15 @@ class MCPServer:
 
         try:
             result = self.tools[name]["handler"](args or {})
-        except ToolError as ex:
+        except Refused as ex:
             # A refused attempt is the most audit-worthy event there is — it is
             # someone trying to spend money without authority. It must appear in
-            # the log, not vanish because the handler raised.
+            # the log, not vanish because the handler raised, and it must not be
+            # filed alongside genuine faults: this is the system working.
+            rec.update(ok=False, error=str(ex), refused=True, control="policy")
+            self.calls.append(rec)
+            raise
+        except ToolError as ex:
             rec.update(ok=False, error=str(ex), refused=True)
             self.calls.append(rec)
             raise
@@ -314,9 +332,9 @@ class MCPServer:
         token = a.get("confirmation")
         state = self.token_state(token)
         if state == "unknown":
-            raise ToolError("booking requires a confirmation token this system issued")
+            raise Refused("booking requires a confirmation token this system issued")
         if state == "expired":
-            raise ToolError("that confirmation has expired — re-price the plan and ask again")
+            raise Refused("that confirmation has expired — re-price the plan and ask again")
         hold = self.holds.get(a.get("hold_id"))
         if not hold:
             raise ToolError("no such hold: %s" % a.get("hold_id"))
@@ -328,7 +346,7 @@ class MCPServer:
         ids = a.get("booking_ids") or list(self.bookings)
         real = [b for b in ids if b in self.bookings]
         if not real:
-            raise ToolError("refused: nothing to invoice — no bookings exist")
+            raise Refused("refused: nothing to invoice — no bookings exist")
         lines = [{"booking_id": b, "kind": self.bookings[b]["kind"],
                   "ref": self.bookings[b]["ref"], "amount": self.bookings[b]["total"]}
                  for b in ids if b in self.bookings]
@@ -341,11 +359,11 @@ class MCPServer:
         hour = int(a.get("at_hour", 10))
         start, end = C.QUIET_HOURS
         if hour >= start or hour < end:
-            raise ToolError("refused: %02d:00 falls inside quiet hours (%02d:00-%02d:00)"
+            raise Refused("refused: %02d:00 falls inside quiet hours (%02d:00-%02d:00)"
                             % (hour, start, end))
         leg = str(a.get("leg", ""))
         if len([m for m in self.messages if m["leg"] == leg]) >= C.MAX_MESSAGES_PER_LEG:
-            raise ToolError("refused: message cap for leg %s already reached" % leg)
+            raise Refused("refused: message cap for leg %s already reached" % leg)
         m = {"leg": leg, "at_hour": hour, "text": str(a.get("text", ""))[:200], "state": "scheduled"}
         self.messages.append(m)
         return dict(m)
@@ -353,7 +371,7 @@ class MCPServer:
     def _send(self, a):
         to = str(a.get("to", ""))
         if "@" in to and not to.endswith("@traveller.local"):
-            raise ToolError("refused: outbound to an unverified recipient")
+            raise Refused("refused: outbound to an unverified recipient")
         m = {"leg": "adhoc", "at_hour": None, "to": to,
              "text": str(a.get("text", ""))[:200], "state": "sent"}
         self.messages.append(m)
