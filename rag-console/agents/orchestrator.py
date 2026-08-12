@@ -118,12 +118,15 @@ def build_plan(req):
     steps.append({"n": n, "agent": "hotel", "task": "find and hold accommodation"}); n += 1
     steps.append({"n": n, "agent": "transport", "task": "quote and hold airport or road transfers"}); n += 1
     steps.append({"n": n, "agent": "itinerary", "task": "build the day-by-day plan"}); n += 1
-    steps.append({"n": n, "agent": "budget", "task": "verify the total fits the budget"}); n += 1
+    steps.append({"n": n, "agent": "budget",
+                  "task": "verify the assembled total fits the budget — call budget.check with no "
+                          "figures, the system supplies them"}); n += 1
     steps.append({"n": n, "agent": "orchestrator", "task": "present the priced plan and await confirmation"})
     return steps
 
 
 MAX_CALLS_PER_STEP = 3
+MAX_RECOVERIES_PER_STEP = 2
 
 
 def _summarise(result):
@@ -156,12 +159,49 @@ class Concierge:
         self._call_sig = {}
 
     # ------------------------------------------------------------- delegation
-    def delegate(self, agent, tool, args, thought, context=None):
+    def _authoritative_budget(self, tool, args, agent):
+        """The budget check uses the system's own figures, never the model's.
+
+        This began as a robustness fix — a small model asked to "verify the total
+        fits the budget" would pass `total: null`, the tool rightly refused, and
+        the step was wasted. But asking the model for that number at all was the
+        real mistake, and not only because it gets it wrong.
+
+        The running total is a fact this system holds. A model that supplies it is
+        a model that can *understate* it, and understating the total is precisely
+        how a captured agent would walk an over-budget trip through the budget
+        gate. So the figures are taken from run state and the model's version is
+        recorded in the trace when it differs — which turns a fragile prompt into
+        an enforced property, and leaves the attempt visible in the audit log.
+        """
+        if tool != "budget.check":
+            return args
+        args = dict(args or {})
+        claimed, budget_claimed = args.get("total"), args.get("budget")
+        args["total"] = self.state["total"]
+        args["budget"] = (self.trace.outcome or {}).get("request", {}).get("budget") \
+            or budget_claimed or 0
+        if claimed is not None and claimed != args["total"]:
+            self.trace.errors.append(
+                "%s claimed the total was %r; the system's own figure of %d was used instead"
+                % (agent, claimed, args["total"]))
+        return args
+
+    def delegate(self, agent, tool, args, thought, context=None, guard=True):
         """Every tool call goes through here so the allow-list, the loop guard
-        and the trace can never be bypassed by a clever prompt."""
+        and the trace can never be bypassed by a clever prompt.
+
+        `guard=False` is for the orchestrator's own final verification, and only
+        for that. The loop guard exists to stop a model going round in circles; it
+        must not be able to stop the system checking its own work. Left guarded, a
+        model that had already asked the same budget question twice would cause
+        the authoritative check to be refused — and an unrun check reads exactly
+        like a passed one, which is the worst failure available here.
+        """
+        args = self._authoritative_budget(tool, args, agent)
         sig = tool + "|" + json.dumps(args, sort_keys=True, default=str)
         self._call_sig[sig] = self._call_sig.get(sig, 0) + 1
-        if self._call_sig[sig] > 2:
+        if guard and self._call_sig[sig] > 2:
             self.trace.step(thought, {"tool": tool, "args": args},
                             "refused: identical call repeated more than twice", agent,
                             error="loop_guard")
@@ -310,7 +350,7 @@ class Concierge:
 
         check = self.delegate("budget", "budget.check",
                               {"total": self.state["total"], "budget": budget},
-                              "Confirm the whole trip fits the stated budget.")
+                              "Confirm the whole trip fits the stated budget.", guard=False)
         if check and not check.get("fits"):
             self.state["infeasible"] = True
             self.trace.outcome = dict(self.trace.outcome or {},
@@ -365,8 +405,19 @@ class Concierge:
             # flights three times and never held one, because from its point of
             # view nothing had happened yet. A ReAct loop has to *look* like a
             # dialogue or the model will not treat it as one.
+            #
+            # Two budgets, not one. `productive` counts calls that actually did
+            # something; `recovered` counts turns spent fixing a mistake the model
+            # made. Counting them together punished exactly the models that need
+            # the help most: a small local model that opened with prose instead of
+            # JSON, then searched, then fumbled an argument name, had spent all
+            # three of its calls and lost its flight — with the correction one turn
+            # out of reach. Recovery is not progress and should not be charged as
+            # though it were.
             history = []
-            for _ in range(MAX_CALLS_PER_STEP):
+            productive = 0
+            recovered = 0
+            while productive < MAX_CALLS_PER_STEP and recovered <= MAX_RECOVERIES_PER_STEP:
                 if len(self.trace.steps) >= self.step_budget:
                     break
                 ctx = llm_agent.build_context(self, req)
@@ -386,8 +437,20 @@ class Concierge:
                     if failed and failed.get("error") == "tool_error":
                         history.append({"action": failed.get("action"),
                                         "observation": {"error": str(failed.get("observation"))[:200]}})
+                        recovered += 1
+                        continue
+                    if failed and failed.get("error") == "unparseable_step" and not history:
+                        # Small local models wander out of JSON, especially on the
+                        # first turn of a step. One retry telling them so is far
+                        # cheaper than losing the step — and if they wander twice,
+                        # that is a finding about the model worth reporting.
+                        history.append({"action": {"tool": None, "args": {}},
+                                        "observation": {"error": "That was not JSON. Reply with "
+                                                                 "only a JSON object."}})
+                        recovered += 1
                         continue
                     break                       # the agent said it was done, or gave up
+                productive += 1
                 history.append({"action": self.trace.steps[-1].get("action"),
                                 "observation": _summarise(result)})
                 # A hold only counts once the budget agrees with it.
@@ -409,7 +472,7 @@ class Concierge:
 
         check = self.delegate("budget", "budget.check",
                               {"total": self.state["total"], "budget": budget},
-                              "Verify the assembled trip fits the stated budget.")
+                              "Verify the assembled trip fits the stated budget.", guard=False)
         if (check and not check.get("fits")) or not self.state["holds"]:
             self.state["infeasible"] = True
             self.trace.outcome = dict(self.trace.outcome or {}, status="infeasible",
