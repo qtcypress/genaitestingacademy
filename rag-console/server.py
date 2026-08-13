@@ -196,28 +196,62 @@ GATE_SECRET = os.environ.get("RAG_GATE_SECRET", "")
 GATE_WINDOW = int(os.environ.get("RAG_GATE_WINDOW_SECONDS", "43200"))  # 12h
 
 
-def token_ok(token):
+ALL_PROJECTS = ("rag", "agents")
+
+
+def token_scope(token):
+    """Verify a gate token and return the projects it opens.
+
+    `None` means the token is not valid. A valid token returns a tuple of
+    project ids, so the caller can refuse a project this student was never
+    granted rather than merely hiding its tab. Hiding is decoration; the check
+    has to be here, because the console is a separate origin and the browser is
+    not a place to keep a decision.
+
+    Two shapes are accepted. `expiry.scope.signature` is the current one, where
+    scope is a comma-separated project list. `expiry.signature` is what the gate
+    minted before per-project access existed; those tokens are honoured as
+    full access until they expire, so nobody is thrown out mid-session by a
+    deploy. They stop being issued the moment the Edge Function is updated.
+    """
     if not GATE_SECRET:
-        return True                      # open mode — no gate configured
+        return ALL_PROJECTS              # open mode — no gate configured
+    parts = (token or "").split(".")
+    if len(parts) == 2:
+        expiry_s, sig, scope_s, signed = parts[0], parts[1], "", parts[0]
+    elif len(parts) == 3:
+        expiry_s, scope_s, sig = parts
+        signed = expiry_s + "." + scope_s
+    else:
+        return None
     try:
-        expiry_s, sig = token.split(".", 1)
         expiry = int(expiry_s)
-    except Exception:
-        return False
-    if expiry < int(time.time()):
-        return False
-    if expiry > int(time.time()) + GATE_WINDOW + 60:
-        return False                     # refuse absurdly long-lived tokens
-    expected = hmac.new(GATE_SECRET.encode(), expiry_s.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, sig)
+    except ValueError:
+        return None
+    now = int(time.time())
+    if expiry < now or expiry > now + GATE_WINDOW + 60:
+        return None                      # expired, or absurdly long-lived
+    expected = hmac.new(GATE_SECRET.encode(), signed.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, sig):
+        return None
+    if not scope_s:
+        return ALL_PROJECTS
+    allowed = tuple(p for p in scope_s.split(",") if p in ALL_PROJECTS)
+    return allowed or ()
 
 
-def mint_token(ttl=GATE_WINDOW):
+def token_ok(token):
+    return token_scope(token) is not None
+
+
+def mint_token(ttl=GATE_WINDOW, scope=ALL_PROJECTS):
     """Generate a token locally for testing:
-         python -c "import server; print(server.mint_token())" """
+         python -c "import server; print(server.mint_token())"
+         python -c "import server; print(server.mint_token(scope=('rag',)))" """
     expiry = str(int(time.time()) + ttl)
-    sig = hmac.new(GATE_SECRET.encode(), expiry.encode(), hashlib.sha256).hexdigest()
-    return expiry + "." + sig
+    signed = expiry + "." + ",".join(scope)
+    sig = hmac.new(GATE_SECRET.encode(), signed.encode(), hashlib.sha256).hexdigest()
+    return signed + "." + sig
 
 
 # ------------------------------------------------------------------- sessions
@@ -791,8 +825,18 @@ const PROJECTS = [
 const PROJ_KEY = "qt-console-project";
 let PROJECT = sessionStorage.getItem(PROJ_KEY) || "rag";
 
+let ALLOWED = null;                    // set from /api/versions; null = everything
+
+function visibleProjects() {
+  return PROJECTS.filter(([k]) => !ALLOWED || ALLOWED.indexOf(k) >= 0);
+}
+
 function projectTabs() {
-  return `<div class="projtabs">${PROJECTS.map(([k, label, sub]) =>
+  const mine = visibleProjects();
+  // With one project there is nothing to switch between, so the strip would be
+  // a control that does nothing. Say what they have instead.
+  if (mine.length < 2) return "";
+  return `<div class="projtabs">${mine.map(([k, label, sub]) =>
     `<button class="${k === PROJECT ? "on" : ""}" data-proj="${k}">
        <b>${label}</b><span>${sub}</span></button>`).join("")}</div>`;
 }
@@ -2166,7 +2210,16 @@ async function openAgentCase(id) {
   try {
     const j = await api("/api/versions", {});
     VERSIONS = j.versions;
+    ALLOWED = j.projects || null;
+    if (ALLOWED && ALLOWED.indexOf(PROJECT) < 0) PROJECT = (visibleProjects()[0] || ["rag"])[0];
     CUR = VERSIONS.find(v => v.ok) || VERSIONS[0];
+    if (ALLOWED && !ALLOWED.length) {
+      el("root").innerHTML = `<div class="card"><h1>No projects on your account yet</h1>
+        <p class="lead">Your sign-in worked, but no project has been assigned to you. Ask your
+        administrator to add the RAG project, the MCP agent project, or both — or redeem a code
+        on the projects page.</p></div>`;
+      return;
+    }
     showProject();
   } catch (e) {
     el("root").innerHTML = `<div class="card"><h1>This console is for enrolled students</h1>
@@ -2394,6 +2447,24 @@ class Handler(BaseHTTPRequestHandler):
     def _gated(self, query):
         return token_ok((query.get("t") or [""])[0])
 
+    def _scope(self, query):
+        return token_scope((query.get("t") or [""])[0]) or ()
+
+    @staticmethod
+    def _project_for(path):
+        """Which project an endpoint belongs to, or None for the shared ones.
+
+        The tab a student cannot see is not the protection — this is. A student
+        granted only the RAG project can still type the agents URL, and the
+        answer has to come from the token they were issued, not from what the
+        page chose to render.
+        """
+        if path.startswith("/api/agents"):
+            return "agents"
+        if path in ("/api/versions", "/api/logs", "/api/providers", "/api/provider-probe"):
+            return None
+        return "rag"
+
     # ------------------------------------------------------------------ GET
     def do_GET(self):
         u = urlparse(self.path)
@@ -2420,6 +2491,11 @@ class Handler(BaseHTTPRequestHandler):
 
         if not self._gated(q):
             return self._send(401, json.dumps({"error": "access token missing or expired"}))
+        need = self._project_for(urlparse(self.path).path)
+        if need and need not in self._scope(q):
+            return self._send(403, json.dumps({"error":
+                "your account does not include the %s. Ask your administrator to add it."
+                % ("MCP agent project" if need == "agents" else "RAG project")}))
         try:
             body = json.loads(raw or b"{}")
         except Exception:
@@ -2453,7 +2529,8 @@ class Handler(BaseHTTPRequestHandler):
         defenses = bool(body.get("defenses", True))
 
         if path == "/api/versions":
-            return {"versions": [self.version_info(v, l, s, p, sess) for v, l, s, p in VERSIONS]}
+            return {"versions": [self.version_info(v, l, s, p, sess) for v, l, s, p in VERSIONS],
+                    "projects": list(self._scope(parse_qs(urlparse(self.path).query)))}
 
         if path == "/api/providers":
             return {"providers": LLM.describe_providers(),
