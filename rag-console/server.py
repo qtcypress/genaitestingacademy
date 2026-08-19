@@ -1,5 +1,5 @@
 """
-TripSage RAG — testing console (QT GenAI Testing Academy)
+TripSage RAG — testing console (GenAITesting)
 
 One process hosts all five versions of the RAG engine. The student picks a
 version, reads what that version changed, and then works it through four to six
@@ -659,8 +659,8 @@ def note_for(category):
 # -------------------------------------------------------------------------- UI
 PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TripSage RAG — testing console · QT GenAI Testing Academy</title>
-<link rel="icon" href="data:,">
+<title>TripSage RAG — testing console · GenAITesting</title>
+<link rel="icon" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231F3864'/><path d='M 30 12 Q 30 27 45 27 Q 30 27 30 42 Q 30 27 15 27 Q 30 27 30 12 Z' fill='%23F7F5F0'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%231F3864' stroke-width='16' stroke-linecap='round' stroke-linejoin='round'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23F79420' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>">
 <style>
 :root{--navy:#1F3864;--navy2:#16294A;--orange:#EE4C12;--amber:#F79420;--cream:#F7F5F0;
 --ink:#111827;--slate:#4B5563;--muted:#6B7280;--line:#E5E7EB;--mint:#0EAD69;--rose:#C81D25}
@@ -668,8 +668,13 @@ PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 body{margin:0;background:var(--cream);color:var(--ink);
 font-family:Inter,"Segoe UI",system-ui,sans-serif;font-size:15px;line-height:1.55}
 header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-header .mark{width:26px;height:26px;border-radius:7px;background:var(--navy2);display:inline-flex;
-align-items:center;justify-content:center;font-size:15px}
+/* The mark is logo.svg from the LMS, byte-for-byte the same artwork, inlined as a
+   data URI so the console's identity does not depend on a second network request
+   that can fail while the page renders. The logo already carries its own rounded
+   navy plate, so it fills the 26px box rather than floating inside another square
+   — same treatment and same size as the .logo-mark in the LMS topbar. */
+header .mark{width:26px;height:26px;flex-shrink:0;display:block;
+background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231F3864'/><path d='M 30 12 Q 30 27 45 27 Q 30 27 30 42 Q 30 27 15 27 Q 30 27 30 12 Z' fill='%23F7F5F0'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%231F3864' stroke-width='16' stroke-linecap='round' stroke-linejoin='round'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23EE4C12' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/26px 26px no-repeat}
 header b{font-size:15px}
 header .tag{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber);font-weight:700}
 .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 70px}
@@ -765,9 +770,25 @@ tr.weak td{background:#FFFBF4}
 .stat{background:var(--cream);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .stat b{display:block;color:var(--navy);font-size:20px;line-height:1.2}
 .stat span{font-size:11.5px;color:var(--muted)}
-.spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--orange);
-border-radius:50%;animation:sp .9s linear infinite;margin:24px auto}
+/* ---- loading ----
+   Every waiting state in the console is a <div class="spin">, and there are ten
+   of them, so the branding lives here once. Same treatment as the LMS: the mark
+   holds still and an orange arc orbits it, because a rotating logo stops being
+   readable exactly when the student is looking at it. Inlined as a data URI so a
+   spinner never waits on a network request to look like itself. */
+.spin{width:38px;height:38px;margin:24px auto;position:relative;flex-shrink:0;
+background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M 30 12 Q 30 27 45 27 Q 30 27 30 42 Q 30 27 15 27 Q 30 27 30 12 Z' fill='%231F3864'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23F7F5F0' stroke-width='16' stroke-linecap='round' stroke-linejoin='round'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23EE4C12' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/20px 20px no-repeat}
+.spin::after{content:"";position:absolute;inset:0;border-radius:50%;
+border:2.5px solid rgba(31,56,100,.14);border-top-color:var(--orange);
+animation:sp .9s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* Someone who has asked their system not to animate still needs to know the page
+   is working, so the arc holds still and the mark breathes instead. */
+@media (prefers-reduced-motion:reduce){
+.spin::after{animation:none}
+.spin{animation:breathe 1.6s ease-in-out infinite}
+}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
 .doclist{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin-top:8px}
 .caseitem{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:#fff;
 text-align:left;cursor:pointer;font:inherit;font-size:12.5px;display:block;width:100%}
@@ -803,8 +824,8 @@ pre{background:var(--cream);border:1px solid var(--line);border-radius:8px;paddi
 font-size:11.5px;overflow:auto;margin:6px 0 0}
 </style></head><body>
 <header>
-  <span class="mark">&#10022;</span>
-  <div><div class="tag">Quality Thought &middot; GenAI Testing</div><b>TripSage RAG — testing console</b></div>
+  <span class="mark" role="img" aria-label="GenAITesting"></span>
+  <div><div class="tag">GenAITesting</div><b>TripSage RAG — testing console</b></div>
 </header>
 <div class="wrap"><div id="root"><div class="spin"></div></div></div>
 
