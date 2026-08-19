@@ -50,7 +50,7 @@ h3{color:var(--navy);margin:18px 0 8px}h4{color:var(--navy2);margin:14px 0 6px;f
 pre.log{background:#0E1230;color:#d6d9f0;padding:12px;border-radius:8px;font-size:12px;overflow:auto;max-height:440px;white-space:pre-wrap}
 .muted{color:var(--muted);font-size:12px}
 </style></head><body>
-<header><span class="tag">QUALITY THOUGHT · GEN AI TESTING</span><b>TripSage RAG — Test Console</b>
+<header><span class="tag">GENAITESTING</span><b>TripSage RAG — Test Console</b>
 <span id="status" class="pill">loading…</span></header>
 <div class="wrap">
   <div class="controls">
