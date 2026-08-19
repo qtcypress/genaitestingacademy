@@ -1,4 +1,4 @@
-/* ============ QT GenAI Testing Academy — global styles ============ */
+/* ============ GenAITesting — global styles ============ */
 :root{
   --navy:#1F3864; --navy-2:#16294A; --navy-soft:#2E4A7C;
   --orange:#EE4C12; --amber:#F79420; --amber-tint:#FFE9CF;
@@ -21,6 +21,7 @@ img{max-width:100%}
 .topbar-inner{display:flex;align-items:center;gap:12px;padding:10px 16px;max-width:1080px;margin:0 auto}
 .topbar .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#fff;text-decoration:none;letter-spacing:.02em}
 .logo-dot{width:10px;height:10px;background:var(--orange);border-radius:2px;flex-shrink:0}
+.logo-mark{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:block}
 .topbar .spacer{flex:1}
 .topbar .user{display:flex;align-items:center;gap:8px;font-size:13px}
 .topbar .user img{width:28px;height:28px;border-radius:50%;border:2px solid var(--amber)}
@@ -81,15 +82,67 @@ label.f{display:block;font-size:13px;font-weight:600;color:var(--navy);margin:12
 input.f,select.f,textarea.f{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;font-family:var(--f-body);font-size:14px;background:#fff}
 input.f:focus,select.f:focus,textarea.f:focus{outline:none;border-color:var(--amber)}
 
+/* ---- auth card (login / signup / reset) ---- */
+.auth-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+  padding:24px;box-shadow:0 12px 34px rgba(17,24,39,.14);width:100%;max-width:400px}
+.auth-tabs{display:flex;gap:4px;background:var(--cream);border-radius:10px;padding:4px;margin-bottom:18px}
+.auth-tabs button{flex:1;border:none;background:transparent;font-family:var(--f-body);font-weight:600;
+  font-size:14px;color:var(--slate);padding:9px 10px;border-radius:8px;cursor:pointer;min-height:38px}
+.auth-tabs button[aria-selected="true"]{background:var(--paper);color:var(--navy);box-shadow:var(--shadow)}
+.btn-oauth{width:100%;background:var(--paper);color:var(--ink);border:1.5px solid var(--line);margin-bottom:10px}
+.btn-oauth:hover{border-color:var(--amber);box-shadow:var(--shadow)}
+.btn-oauth.gh{background:#1B1F24;color:#fff;border-color:#1B1F24}
+.btn-oauth.gh:hover{border-color:#1B1F24;box-shadow:0 6px 16px rgba(27,31,36,.3)}
+.auth-or{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--slate-soft);
+  font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.auth-or::before,.auth-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.auth-card label.f:first-of-type{margin-top:0}
+.auth-foot{margin-top:14px;font-size:13px;color:var(--slate);text-align:center}
+.auth-foot a,.linkish{color:var(--navy);font-weight:600;cursor:pointer;text-decoration:underline;
+  background:none;border:none;font-family:var(--f-body);font-size:inherit;padding:0}
+.auth-msg{display:none;margin-top:12px;padding:11px 13px;border-radius:10px;font-size:13.5px;line-height:1.45}
+.auth-msg.show{display:block}
+.auth-msg.err{background:#FDEBEB;color:#8E1219;border:1px solid #F5C6C7}
+.auth-msg.ok{background:#EAFBF5;color:#08603C;border:1px solid #BFEBDA}
+.auth-msg.info{background:var(--amber-tint);color:#8A4A05;border:1px solid #F5D3A8}
+.pw-wrap{position:relative}
+.pw-wrap input.f{padding-right:64px}
+.pw-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;
+  color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;padding:6px 8px;font-family:var(--f-body)}
+.hint{font-size:12.5px;color:var(--slate);margin:5px 0 0}
+.avatar-initials{width:28px;height:28px;border-radius:50%;border:2px solid var(--amber);background:var(--navy-soft);
+  color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.auth-legal{font-size:12px;color:var(--slate);text-align:center;margin-top:14px;line-height:1.5}
+
 /* ---- toast ---- */
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99;background:var(--navy);color:#fff;
   padding:12px 20px;border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:opacity .25s ease;max-width:92vw;text-align:center}
 #toast.show{opacity:1}
 #toast.err{background:var(--rose)}
 
-/* ---- loading ---- */
-.spin{width:26px;height:26px;border:3px solid var(--line);border-top-color:var(--orange);border-radius:50%;animation:sp 1s linear infinite;margin:40px auto}
+/* ---- loading ----
+   Every waiting state on the site is a <div class="spin">, so branding happens
+   here once rather than in twenty-one places. The mark holds still and an orange
+   arc orbits it: the logo stays readable while something is clearly moving,
+   which a rotating logo does not manage. The mark is inlined as a data URI so a
+   spinner never waits on a network request to look like itself. */
+.spin{width:46px;height:46px;margin:40px auto;position:relative;flex-shrink:0;
+  background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><path d='M 30 12 Q 30 27 45 27 Q 30 27 30 42 Q 30 27 15 27 Q 30 27 30 12 Z' fill='%231F3864'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23F7F5F0' stroke-width='16' stroke-linecap='round' stroke-linejoin='round'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23EE4C12' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>") center/24px 24px no-repeat}
+.spin::after{content:"";position:absolute;inset:0;border-radius:50%;
+  border:2.5px solid rgba(31,56,100,.14);border-top-color:var(--orange);
+  animation:sp .9s linear infinite}
+/* On the navy hero and inside the dark viewer the navy mark disappears, so the
+   knockout variant swaps the two fills rather than hiding the logo. */
+.spin-light{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><mask id='g'><rect width='64' height='64' fill='white'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='black' stroke-width='16' stroke-linecap='round' stroke-linejoin='round'/></mask><path d='M 30 12 Q 30 27 45 27 Q 30 27 30 42 Q 30 27 15 27 Q 30 27 30 12 Z' fill='%23F7F5F0' mask='url(%23g)'/><path d='M 34 42 L 41 49 L 55 33' fill='none' stroke='%23F79420' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/></svg>")}
+.spin-light::after{border-color:rgba(255,255,255,.18);border-top-color:var(--amber)}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* Someone who has asked their system not to animate still needs to know the page
+   is working, so the arc holds still and the mark breathes instead. */
+@media (prefers-reduced-motion:reduce){
+  .spin::after{animation:none}
+  .spin{animation:breathe 1.6s ease-in-out infinite}
+}
+@keyframes breathe{0%,100%{opacity:1}50%{opacity:.45}}
 
 /* ---- hero (landing) ---- */
 .hero{background:linear-gradient(180deg,var(--navy-2),var(--navy));color:#fff;padding:56px 0;border-bottom:5px solid var(--orange)}
@@ -107,6 +160,7 @@ input.f:focus,select.f:focus,textarea.f:focus{outline:none;border-color:var(--am
 /* ---- certificate ---- */
 .cert{background:#fff;border:10px solid var(--navy);border-radius:6px;max-width:860px;margin:24px auto;padding:48px 40px;position:relative;text-align:center}
 .cert::before{content:"";position:absolute;inset:8px;border:2px solid var(--amber);border-radius:2px;pointer-events:none}
+.cert .cert-logo{width:58px;height:58px;border-radius:14px;display:block;margin:0 auto 14px}
 .cert .cert-org{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--orange);font-weight:700}
 .cert h1{font-size:clamp(26px,5vw,40px);margin:14px 0 4px}
 .cert .cert-name{font-size:clamp(24px,4.5vw,34px);color:var(--ink);font-weight:800;margin:18px 0 6px;border-bottom:2px solid var(--amber);display:inline-block;padding:0 24px 6px}
@@ -115,6 +169,8 @@ input.f:focus,select.f:focus,textarea.f:focus{outline:none;border-color:var(--am
 .cert .cert-no{font-family:ui-monospace,Consolas,monospace;font-weight:700;color:var(--navy)}
 @media print{
   body{background:#fff}.topbar,.no-print{display:none!important}
+  /* browsers drop backgrounds when printing; the logo must not vanish */
+  .cert .cert-logo{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .cert{border-width:8px;margin:0;box-shadow:none}
 }
 
@@ -124,3 +180,27 @@ input.f:focus,select.f:focus,textarea.f:focus{outline:none;border-color:var(--am
   .hero{padding:36px 0}
   .cert{padding:32px 16px}
 }
+
+/* ---- public marketing pages (course pages, FAQ) ----
+   These pages are read by people deciding whether to pay, and by crawlers. Both
+   want the same thing: a clear heading hierarchy and prose that is comfortable at
+   a longer line length than the app's dense card layouts. */
+.hero-eyebrow{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;
+  font-weight:700;color:var(--amber);margin:0 0 10px}
+.lead{max-width:none;font-size:16px;line-height:1.72;color:var(--slate)}
+main .section > h2{font-size:24px;line-height:1.3;color:var(--navy);margin:0 0 12px}
+main .card h3{font-size:16px;margin:0 0 8px;color:var(--navy);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* An FAQ is a list of questions, so each one gets a visible boundary — a reader
+   scanning for their question should be able to find its edges. */
+.faq-item{border-top:1px solid var(--line);padding:24px 0 4px}
+.faq-item:first-of-type{border-top:none;padding-top:8px}
+.faq-item h2{font-size:19px;line-height:1.35;color:var(--navy);margin:0 0 10px}
+.faq-a{font-size:15.5px;line-height:1.72;color:var(--slate);max-width:74ch}
+.faq-a strong{color:var(--ink)}
+.faq-a code{background:var(--cream);border:1px solid var(--line);border-radius:5px;
+  padding:1px 5px;font-size:13.5px}
+.site-foot{border-top:1px solid var(--line);background:var(--paper);
+  padding:26px 0 34px;margin-top:44px}
+.site-foot a{color:var(--navy)}
+@media print{.site-foot{display:none}}

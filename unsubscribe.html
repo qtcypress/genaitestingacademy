@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email preferences — GenAITesting</title>
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap section" style="display:flex;justify-content:center;padding-top:44px">
+  <div class="auth-card" style="text-align:center">
+    <img src="logo.svg" alt="" width="52" height="52" style="border-radius:13px;margin:0 auto 16px;display:block">
+
+    <div id="working">
+      <div class="spin"></div>
+      <p class="muted">Updating your preferences…</p>
+    </div>
+
+    <div id="done" style="display:none">
+      <h2 style="margin-top:0">You're unsubscribed</h2>
+      <p style="margin:0 0 4px">We won't email you about courses or plans again.</p>
+      <p class="muted" style="margin:0">
+        You'll still get the essentials tied to your account — password resets and email
+        confirmations — because without those you couldn't sign in.
+      </p>
+      <a class="btn btn-primary" style="width:100%;margin-top:20px" href="app.html">Back to my course</a>
+    </div>
+
+    <div id="bad" style="display:none">
+      <h2 style="margin-top:0">That link didn't work</h2>
+      <p style="margin:0 0 4px">It may have been copied incompletely, or it's already been used.</p>
+      <p class="muted" style="margin:0">Reply to any email from us and we'll take you off the list by hand.</p>
+      <a class="btn btn-ghost" style="width:100%;margin-top:20px" href="index.html">Go to the site</a>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+  renderTopbar("");
+
+  function show(which) {
+    for (const id of ["working", "done", "bad"])
+      document.getElementById(id).style.display = (id === which) ? "" : "none";
+  }
+
+  (async function () {
+    const token = new URLSearchParams(location.search).get("t");
+    // A UUID or nothing — don't even call the server with anything else.
+    if (!token || !/^[0-9a-f-]{36}$/i.test(token)) { show("bad"); return; }
+    try {
+      const { data, error } = await sb.rpc("unsubscribe_by_token", { p_token: token });
+      show(!error && data === true ? "done" : "bad");
+    } catch (e) {
+      show("bad");
+    }
+  })();
+</script>
+</body>
+</html>

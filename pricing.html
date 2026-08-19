@@ -3,11 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pricing — QT GenAI Testing Academy</title>
-<meta name="description" content="Full access to the 16-module GenAI Application Testing course and all three certification levels. Monthly, quarterly and yearly plans.">
+<title>Pricing — Both Courses from ₹499/month | GenAITesting</title>
+<meta name="description" content="One subscription unlocks both courses — GenAI Testing (16 modules) and Python &amp; DSA (24 modules) — and every certification exam. From ₹499.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://genaitesting.online/pricing.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="Pricing — both courses from ₹499/month">
+<meta property="og:description" content="One subscription covers the GenAI Testing course and the Python &amp; DSA course, and every exam. Free parts in both. Nothing auto-renews.">
+<meta property="og:url" content="https://genaitesting.online/pricing.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI Application Testing training and certification">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pricing — both courses from ₹499/month">
+<meta name="twitter:description" content="One subscription covers the GenAI Testing course and the Python &amp; DSA course, and every exam. Free parts in both. Nothing auto-renews.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
 <link rel="stylesheet" href="app.css">
 <style>
   .plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:8px}
@@ -36,9 +52,14 @@
 
 <header class="hero" style="padding:40px 0">
   <div class="wrap">
-    <h1>Full access to <span class="accent">GenAI Testing</span></h1>
-    <p>16 modules · ~93 hours · three certification levels. Module 1 is free to preview —
-       one payment unlocks everything else for the period you choose. No auto-renewal.</p>
+    <h1>One subscription, <span class="accent">both tracks</span></h1>
+    <p><strong style="color:#fff">GenAI Application Testing</strong> — 16 modules, ~93 hours,
+       three certification levels.<br>
+       <strong style="color:#fff">Python &amp; DSA</strong> — 24 modules across six phases, from
+       variables to dynamic programming.</p>
+    <p style="margin-top:10px">Free to try before you pay: module 1 of GenAI Testing, and the
+       whole of <strong style="color:#fff">Phase 1</strong> of Python — four modules. One payment
+       unlocks everything else for the period you choose. No auto-renewal.</p>
   </div>
 </header>
 
@@ -49,7 +70,8 @@
   <div class="card" style="margin-top:26px">
     <h3 style="margin-top:0">Every plan includes</h3>
     <ul class="incl" style="margin-top:6px">
-      <li><span class="tick">✓</span> All 16 modules with lesson plans, handouts, slides, labs and templates</li>
+      <li><span class="tick">✓</span> All 16 GenAI Testing modules with lesson plans, handouts, slides, labs and templates</li>
+      <li><span class="tick">✓</span> All 24 Python &amp; DSA modules — phases 2 to 6, plus the capstone</li>
       <li><span class="tick">✓</span> All three certification exams — Basic, Advanced and Expert</li>
       <li><span class="tick">✓</span> A separate verifiable certificate for each level you pass</li>
       <li><span class="tick">✓</span> Both capstone projects (RAG, and MCP with multi-agents)</li>
@@ -62,6 +84,23 @@
 </main>
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="muted" style="margin:0 0 10px">
+      <a href="genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="faq.html">FAQ</a> ·
+      <a href="projects.html">Hands-on projects</a> ·
+      <a href="pricing.html">Pricing</a> ·
+      <a href="verify.html">Verify a certificate</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:12.5px">
+      GenAITesting — online training in GenAI, LLM and AI agent application testing,
+      run from Hyderabad, India, open to learners anywhere.
+    </p>
+  </div>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -86,7 +125,7 @@
         (until ${fmtDate(access.expires_at)}). Buying again extends it.</div>`;
     }
   } else {
-    statusBox.innerHTML = `<div class="status">You'll need to sign in with GitHub before paying,
+    statusBox.innerHTML = `<div class="status">You'll need to sign in before paying,
       so we can attach the access to your account. <a href="index.html">Sign in →</a></div>`;
   }
 
@@ -125,7 +164,7 @@
 
   /* ---------- checkout ---------- */
   plansBox.querySelectorAll("button[data-plan]").forEach(btn => btn.onclick = async () => {
-    if (!session) { loginWithGitHub("pricing.html"); return; }
+    if (!session) { location.href = "index.html?next=pricing.html"; return; }
     const planId = btn.dataset.plan;
     const original = btn.textContent;
     btn.disabled = true; btn.textContent = "Preparing…";

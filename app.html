@@ -3,10 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>My Course — QT GenAI Testing Academy</title>
+<title>My Course — GenAITesting</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Student-only: everything of substance here loads after sign-in, so an
+     indexed copy would be an empty shell. noindex, and no canonical, because
+     a canonical asks to be indexed under that URL. -->
+<meta name="robots" content="noindex, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="My course — GenAITesting">
+<meta property="og:description" content="Your modules, materials and progress on the GenAI Application Testing programme.">
+<meta property="og:url" content="https://genaitesting.online/app.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI Application Testing training and certification">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="My course — GenAITesting">
+<meta name="twitter:description" content="Your modules, materials and progress on the GenAI Application Testing programme.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
 <link rel="stylesheet" href="app.css">
 <style>
   .mod{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
@@ -41,12 +60,26 @@
   .lvl-card.expert{border-top:4px solid var(--orange)}
   .lvl-card h3{margin:0 0 4px;font-size:16px}
   .lvl-card .foot{margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  /* course switcher — hidden entirely when there is only one course, because a
+     switch with nothing to switch to is a control that does nothing */
+  .ctabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .ctabs button{border:1.5px solid var(--line);background:var(--paper);border-radius:999px;
+    padding:8px 16px;font-family:var(--f-body);font-size:13.5px;font-weight:600;color:var(--slate);
+    cursor:pointer;min-height:38px}
+  .ctabs button.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .ctabs button:not(.on):hover{border-color:var(--amber)}
+  /* phase bands — only rendered for a course that declares phases */
+  .phase{margin:26px 0 10px;padding-top:4px;border-top:2px solid var(--line)}
+  .phase:first-of-type{margin-top:14px;border-top:none}
+  .phase h3{margin:10px 0 2px;font-size:15px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .phase p{margin:0 0 10px;font-size:13.5px;color:var(--slate-soft)}
 </style>
 </head>
 <body>
 <nav class="topbar" id="topbar"></nav>
 
 <main class="wrap section">
+  <div id="courseTabs" class="ctabs"></div>
   <div class="card" style="margin-bottom:20px">
     <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
       <div>
@@ -75,10 +108,26 @@
   if (profile) document.getElementById("hello").textContent =
     `Welcome, ${profile.full_name || profile.email} 👋`;
 
-  /* ---------- load course, modules, materials, progress, exams ---------- */
+  /* ---------- load course, modules, materials, progress, exams ----------
+     This used to take .limit(1) and render whichever course sorted first, which
+     was correct while there was only one. With two tracks that silently hid
+     everything a student had paid for, so all published courses are fetched and
+     the choice is theirs — remembered for the tab session, and applied by a
+     reload rather than a re-render, because the whole page below depends on it. */
   const { data: courses } = await sb.from("courses").select("*")
-    .eq("published", true).order("sort_order").limit(1);
-  const course = (courses || [])[0];
+    .eq("published", true).order("sort_order");
+  const picked = sessionStorage.getItem("qt-course");
+  const course = (courses || []).find(c => c.id === picked) || (courses || [])[0];
+
+  if ((courses || []).length > 1) {
+    document.getElementById("courseTabs").innerHTML = courses.map(c =>
+      `<button class="${c.id === course.id ? "on" : ""}" data-course="${c.id}">${
+        escapeHtml(c.title)}</button>`).join("");
+    document.querySelectorAll("#courseTabs button").forEach(b => b.onclick = () => {
+      sessionStorage.setItem("qt-course", b.dataset.course);
+      location.reload();
+    });
+  }
 
   if (!course) {
     document.getElementById("syllabus").innerHTML =
@@ -92,14 +141,33 @@
   const access = (accessRows || [])[0] || { has_access: false, is_admin: false };
   const unlocked = !!(access.has_access || access.is_admin);
 
-  const [{ data: modules }, { data: materials }, { data: prog }, { data: quizzes }, { data: certs }] =
+  const [{ data: modules }, { data: allMaterials }, { data: prog }, { data: quizzes }, { data: certs },
+         { data: phases }] =
     await Promise.all([
       sb.from("modules").select("*").eq("course_id", course.id).eq("published", true).order("number"),
       sb.from("materials").select("*").eq("published", true).order("sort_order"),
       sb.from("progress").select("material_id,status"),
       sb.from("quizzes").select("*").eq("published", true).eq("course_id", course.id).order("pass_percent"),
-      sb.from("certificates").select("cert_number,level,percent")
+      sb.from("certificates").select("cert_number,level,percent"),
+      // A course with no phase rows renders exactly as it always did.
+      sb.from("course_phases").select("*").eq("course_id", course.id).order("sort_order")
+        .then(r => r.error ? { data: [] } : r)
     ]);
+
+  /* Materials are fetched for every course at once — there is no course_id on the
+     table, only module_id — so anything belonging to the other track is dropped
+     here. Leaving it in made the progress bar count the whole site. */
+  const mine = new Set((modules || []).map(m => m.id));
+  const materials = (allMaterials || []).filter(x => mine.has(x.module_id));
+
+  /* Which phase a module number belongs to — used by the unlock banner so it can
+     say "the whole of Phase 1" instead of naming a range the reader has to decode. */
+  const phaseName = (moduleNumber) => {
+    const m = (modules || []).find(x => x.number === moduleNumber);
+    const ph = (phases || []).find(x => x.number === (m || {}).phase);
+    return ph ? ph.title : "";
+  };
+
 
   const progMap = {};
   (prog || []).forEach(p => (progMap[p.material_id] = p.status));
@@ -110,16 +178,27 @@
   const all = (materials || []).filter(m => m.module_id);
   const done = all.filter(m => progMap[m.id] === "completed").length;
   const pct = all.length ? Math.round(100 * done / all.length) : 0;
-  document.getElementById("progressText").textContent =
-    `${done} of ${all.length} materials completed · ${pct}%`;
+  document.getElementById("progressText").textContent = all.length
+    ? `${done} of ${all.length} materials completed · ${pct}%`
+    : "No materials uploaded for this course yet";
   document.getElementById("progressFill").style.width = pct + "%";
 
   if (!unlocked) {
+    /* The banner used to hard-code "Module 1" and "modules 2-16". Both are facts
+       about one course, and both are already in the rows we just loaded — so read
+       them rather than restate them, and the Python track correctly advertises its
+       four free modules instead of inheriting somebody else's one. */
+    const freeOnes = (modules || []).filter(m => m.is_free).map(m => m.number);
+    const paid = (modules || []).length - freeOnes.length;
+    const freeText = !freeOnes.length ? "This course needs an active subscription."
+      : freeOnes.length === 1 ? `<strong>Module ${freeOnes[0]} is free to preview.</strong>`
+      : `<strong>Modules ${freeOnes[0]}\u2013${freeOnes[freeOnes.length - 1]} are free</strong> \u2014
+         the whole of ${phaseName(freeOnes[0]) || "the first phase"}.`;
     document.getElementById("lockBanner").innerHTML =
       `<div style="margin-top:14px;background:var(--amber-tint);border:1.5px solid var(--amber);
          border-radius:var(--radius);padding:14px 18px;font-size:14.5px">
-         <strong>Module 1 is free to preview.</strong> Unlock modules 2\u201316 and all three
-         certification exams from \u20b9499.
+         ${freeText} Unlock the remaining ${paid} module${paid === 1 ? "" : "s"}
+         and all three certification exams from \u20b9499. One subscription opens every course.
          <a class="btn btn-primary btn-sm" style="margin-left:10px" href="pricing.html">See plans</a>
        </div>`;
   }
@@ -137,12 +216,7 @@
                        template:"Template", recording:"Recording", material:"Material" };
   const totalHours = (modules || []).reduce((s, m) => s + (Number(m.duration_hours) || 0), 0);
 
-  document.getElementById("syllabus").innerHTML =
-    `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-       <h2 style="margin:0">Syllabus</h2>
-       <span class="muted">${modules.length} modules${totalHours ? " · ~" + totalHours + " hours" : ""}</span>
-     </div>` +
-    modules.map(m => {
+  const modCard = (m) => {
       const mats = byModule[m.id] || [];
       const mdone = mats.filter(x => progMap[x.id] === "completed").length;
       const mpct = mats.length ? Math.round(100 * mdone / mats.length) : 0;
@@ -157,7 +231,7 @@
             locked ? "🔒" : complete ? "✓" : m.number}</div>
           <div class="mod-t">
             <h3>${escapeHtml(m.title)}${m.is_free && !unlocked ? ' <span class="pill pill-done">Free</span>' : ""}</h3>
-            <div class="mod-meta">${locked ? "Locked · " : mats.length + " item" + (mats.length === 1 ? "" : "s")}${
+            <div class="mod-meta">${locked ? "Locked" : mats.length + " item" + (mats.length === 1 ? "" : "s")}${
               m.duration_hours ? " · ~" + m.duration_hours + "h" : ""}${
               mats.length ? " · " + mdone + "/" + mats.length + " done" : ""}</div>
           </div>
@@ -191,7 +265,43 @@
           : `<div class="empty">No materials uploaded for this module yet.</div>`}
         </div>
       </div>`;
-    }).join("");
+  };
+
+  /* Phase bands. A course with no phase rows (GenAI Testing) renders as one flat
+     list exactly as before; a course that declares them gets a band per phase with
+     its own progress, so twenty-four modules read as six chunks rather than a wall.
+     The grouping is driven by the data, not by a course id. */
+  const PHASES = phases || [];
+  const byPhase = {};
+  (modules || []).forEach(m => { (byPhase[m.phase] = byPhase[m.phase] || []).push(m); });
+
+  const phaseBlock = (ph) => {
+    const mods = byPhase[ph.number] || [];
+    if (!mods.length) return "";
+    const mats = mods.flatMap(m => byModule[m.id] || []);
+    const pdone = mats.filter(x => progMap[x.id] === "completed").length;
+    const anyFree = mods.some(m => m.is_free);
+    const allLocked = !unlocked && !anyFree;
+    return `<div class="phase">
+        <h3>${escapeHtml(ph.title)}
+          ${anyFree && !unlocked ? '<span class="pill pill-done">Free</span>' : ""}
+          ${allLocked ? '<span class="pill pill-new">Subscription</span>' : ""}
+          <span class="muted" style="font-weight:600">${mods.length} modules${
+            mats.length ? ` \u00b7 ${pdone}/${mats.length} done` : ""}</span></h3>
+        ${ph.blurb ? `<p>${escapeHtml(ph.blurb)}</p>` : ""}
+      </div>` + mods.map(modCard).join("");
+  };
+
+  document.getElementById("syllabus").innerHTML =
+    `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+       <h2 style="margin:0">Syllabus</h2>
+       <span class="muted">${modules.length} modules${
+         PHASES.length ? " \u00b7 " + PHASES.length + " phases" : ""}${
+         totalHours ? " \u00b7 ~" + totalHours + " hours" : ""}</span>
+     </div>` +
+    (PHASES.length ? PHASES.map(phaseBlock).join("")
+                   : (modules || []).map(modCard).join(""));
+
 
   document.querySelectorAll(".mod-head").forEach(h =>
     h.onclick = () => h.parentElement.classList.toggle("open"));

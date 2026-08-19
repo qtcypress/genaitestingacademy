@@ -3,10 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin — QT GenAI Testing Academy</title>
+<title>Admin — GenAITesting</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
-<link rel="icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="robots" content="noindex">
 <link rel="stylesheet" href="app.css">
 <style>
   .tabs{display:flex;gap:8px;margin:18px 0;flex-wrap:wrap}
@@ -36,6 +39,7 @@
     <button class="btn btn-ghost btn-sm" data-tab="materials">📂 Materials</button>
     <button class="btn btn-ghost btn-sm" data-tab="exams">📝 Exams</button>
     <button class="btn btn-ghost btn-sm" data-tab="students">👥 Students</button>
+    <button class="btn btn-ghost btn-sm" data-tab="projects">🧪 Projects &amp; Access</button>
     <button class="btn btn-ghost btn-sm" data-tab="billing">💳 Pricing &amp; Payments</button>
   </div>
 
@@ -165,6 +169,100 @@
     </div>
     <div id="stuList"><div class="spin"></div></div>
   </section>
+
+  <!-- ============ PROJECTS & ACCESS ============ -->
+  <section id="tab-projects" style="display:none">
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Give someone a project</h3>
+      <p class="muted" style="margin:0 0 10px">Access to the course and access to a project are
+        separate. A paid subscription opens the lessons; a project has to be granted here. If the
+        address has not registered yet the grant waits for them, like a GitHub invite — they get it
+        the moment they sign up.</p>
+      <div class="grid2">
+        <div><label class="f">Email</label>
+          <input class="f" id="pg_email" placeholder="student@example.com"></div>
+        <div><label class="f">Project</label>
+          <select class="f" id="pg_project"></select></div>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="f">Expires (optional)</label>
+          <input class="f" id="pg_expires" type="date"></div>
+        <div><label class="f">Note (optional)</label>
+          <input class="f" id="pg_note" placeholder="e.g. Aug cohort"></div>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-navy btn-sm" id="pg_grant">Grant</button>
+        <button class="btn btn-ghost btn-sm" id="pg_revoke">Revoke</button>
+      </div>
+      <div id="pg_msg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Many at once</h3>
+      <p class="muted" style="margin:0 0 10px">One email per line, or paste a column straight out of
+        Excel. Nothing is written until you have seen the dry run.</p>
+      <textarea class="f" id="pg_bulk" rows="6"
+        placeholder="one@example.com&#10;two@example.com&#10;three@example.com"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select class="f" id="pg_bulk_project" style="max-width:260px"></select>
+        <button class="btn btn-ghost btn-sm" id="pg_dry">Check</button>
+        <button class="btn btn-navy btn-sm" id="pg_apply" disabled>Apply</button>
+      </div>
+      <div id="pg_bulk_msg" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Coupon codes</h3>
+      <p class="muted" style="margin:0 0 10px">A code a student types on the projects page. Choose
+        whether it opens access on the spot or raises a request for you to approve — a code that
+        opens on the spot is the authorisation, so give it a redemption limit.</p>
+      <div class="grid2">
+        <div><label class="f">Code</label>
+          <div style="display:flex;gap:6px">
+            <input class="f" id="cp_code" placeholder="AUG-COHORT" style="text-transform:uppercase">
+            <button class="btn btn-ghost btn-sm" id="cp_gen" title="Make one up">🎲</button>
+          </div></div>
+        <div><label class="f">Opens</label>
+          <select class="f" id="cp_auto">
+            <option value="0">Only after I approve it</option>
+            <option value="1">Immediately on redeem</option>
+          </select></div>
+      </div>
+      <div style="margin-top:8px"><label class="f">Projects it opens</label>
+        <div id="cp_projects" class="muted" style="display:flex;gap:14px;flex-wrap:wrap"></div></div>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="f">Also opens the course</label>
+          <select class="f" id="cp_plan"><option value="">No — projects only</option></select></div>
+        <div><label class="f">How many people may use it</label>
+          <input class="f" id="cp_max" type="number" min="1" placeholder="leave blank for unlimited"></div>
+      </div>
+      <div class="grid2" style="margin-top:8px">
+        <div><label class="f">Stops working on (optional)</label>
+          <input class="f" id="cp_expires" type="date"></div>
+        <div><label class="f">Note (optional)</label>
+          <input class="f" id="cp_note" placeholder="e.g. Aug webinar attendees"></div>
+      </div>
+      <div style="margin-top:10px"><button class="btn btn-navy btn-sm" id="cp_create">Create code</button></div>
+      <div id="cp_msg" style="margin-top:10px"></div>
+      <div id="cp_list" style="margin-top:14px"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Waiting for your approval</h3>
+      <p class="muted" style="margin:0 0 10px">Students who redeemed a code that needs checking.
+        Approving gives them everything the code promises; rejecting hands the seat back to the code.</p>
+      <div id="cp_queue"><div class="spin"></div></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Who has what</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <input class="f" id="pg_search" placeholder="🔍 Search email…" style="max-width:300px">
+        <button class="btn btn-ghost btn-sm" id="pg_refresh">Refresh</button>
+      </div>
+      <div id="pg_list"><div class="spin"></div></div>
+    </div>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -182,12 +280,13 @@
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.className = "btn btn-ghost btn-sm");
     b.className = "btn btn-navy btn-sm";
-    ["curriculum","materials","exams","students","billing"].forEach(t =>
+    ["curriculum","materials","exams","students","billing","projects"].forEach(t =>
       document.getElementById("tab-" + t).style.display = (t === b.dataset.tab ? "" : "none"));
     if (b.dataset.tab === "students") loadStudents();
     if (b.dataset.tab === "exams") loadQuizzes();
     if (b.dataset.tab === "materials") loadMaterials();
     if (b.dataset.tab === "billing") loadBilling();
+    if (b.dataset.tab === "projects") loadProjects();
   });
 
   /* ================= COURSES ================= */
@@ -623,6 +722,311 @@
     a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     a.download = "student_progress.csv"; a.click();
   };
+
+
+  /* ================= PROJECTS & ACCESS ================= */
+  const esc = escapeHtml;              // app.js names it escapeHtml; short alias here
+  let PROJECTS_LIST = [], bulkChecked = null;
+
+  const pgSay = (id, html, cls) =>
+    document.getElementById(id).innerHTML =
+      `<div class="${cls || "muted"}" style="font-size:13px">${html}</div>`;
+
+  async function loadProjects() {
+    const { data: projs, error } = await sb.from("projects").select("*").order("sort_order");
+    PROJECTS_LIST = projs || [];
+    if (!PROJECTS_LIST.length) {
+      // An empty dropdown with the explanation further down the page reads as a
+      // broken screen. Say it where the eye already is — in the control itself,
+      // at the top of the tab, and on the buttons that would otherwise do nothing.
+      const missing = /schema cache|does not exist|relation/i.test((error || {}).message || "");
+      const banner = `<div class="card" style="border-left:4px solid #d97706;margin-bottom:16px">
+        <h3 style="margin:0 0 6px">One step left before this screen works</h3>
+        <p class="muted" style="margin:0">${missing
+          ? "The <code>projects</code> table does not exist yet. In Supabase → SQL editor, run "
+            + "<code>schema-08-projects.sql</code> and choose <b>Run without RLS</b> — the file "
+            + "enables RLS itself. Then reload this page."
+          : "No active projects are configured. Add a row to <code>public.projects</code>, or run "
+            + "<code>schema-08-projects.sql</code> if you have not yet."}</p></div>`;
+      document.getElementById("tab-projects").insertAdjacentHTML("afterbegin", banner);
+      ["pg_project", "pg_bulk_project"].forEach(id =>
+        document.getElementById(id).innerHTML =
+          '<option value="">— run schema-08-projects.sql first —</option>');
+      ["pg_grant", "pg_revoke", "pg_dry", "pg_apply", "cp_create", "cp_gen"].forEach(id =>
+        document.getElementById(id).disabled = true);
+      document.getElementById("pg_list").innerHTML =
+        '<p class="muted">Nothing to show until the projects table exists.</p>';
+      ["cp_projects", "cp_queue"].forEach(id => document.getElementById(id).innerHTML =
+        '<p class="muted">Nothing to show until the projects table exists.</p>');
+      return;
+    }
+    const opts = PROJECTS_LIST.map(p => `<option value="${p.id}">${p.title}</option>`).join("");
+    document.getElementById("pg_project").innerHTML = opts;
+    document.getElementById("pg_bulk_project").innerHTML = opts;
+    // A coupon can open more than one project, so these are checkboxes rather
+    // than the single-select used above.
+    document.getElementById("cp_projects").innerHTML = PROJECTS_LIST.map(p =>
+      `<label style="display:flex;gap:6px;align-items:center;cursor:pointer">
+         <input type="checkbox" class="cp_p" value="${esc(p.id)}"> ${esc(p.title)}</label>`).join("");
+    // The course side of a coupon names a real plan, so its length comes from the
+    // same table the paid flow uses rather than being typed in twice.
+    const { data: plans } = await sb.from("plans").select("id,name,duration_days")
+      .eq("active", true).order("sort_order");
+    document.getElementById("cp_plan").innerHTML =
+      '<option value="">No — projects only</option>' + (plans || []).map(pl =>
+        `<option value="${esc(pl.id)}">Yes — ${esc(pl.name)} (${pl.duration_days} days)</option>`).join("");
+    loadGrantList();
+    loadCoupons();
+    loadQueue();
+  }
+
+  const PROJ_TITLE = id => (PROJECTS_LIST.find(p => p.id === id) || {}).title || id;
+
+  async function loadCoupons() {
+    const box = document.getElementById("cp_list");
+    const { data: rows, error } = await sb.from("coupons").select("*")
+      .order("created_at", { ascending: false });
+    if (error) { box.innerHTML = `<p class="muted">${esc(error.message)}</p>`; return; }
+    if (!(rows || []).length) { box.innerHTML = '<p class="muted">No codes yet.</p>'; return; }
+    const left = c => c.max_redemptions == null ? "unlimited"
+      : Math.max(0, c.max_redemptions - c.redeemed_count) + " left";
+    const dead = c => !c.active ? "off"
+      : c.expires_at && new Date(c.expires_at) < new Date() ? "expired"
+      : c.max_redemptions != null && c.redeemed_count >= c.max_redemptions ? "used up" : "";
+    box.innerHTML = `<table class="tbl"><thead><tr><th>Code</th><th>Opens</th><th>How</th>
+      <th>Used</th><th>Stops</th><th></th></tr></thead><tbody>${rows.map(c => {
+      const off = dead(c);
+      return `<tr${off ? ' style="opacity:.55"' : ""}>
+        <td><b>${esc(c.code)}</b>${c.note ? `<div class="muted">${esc(c.note)}</div>` : ""}</td>
+        <td>${esc((c.project_ids || []).map(PROJ_TITLE).join(", ") || "nothing")}
+          ${c.plan_id ? `<div class="muted">+ course (${esc(c.plan_id)})</div>` : ""}</td>
+        <td class="muted">${c.auto_grant ? "immediately" : "after approval"}</td>
+        <td>${c.redeemed_count} used, ${left(c)}</td>
+        <td class="muted">${c.expires_at ? new Date(c.expires_at).toLocaleDateString() : "—"}
+          ${off ? `<div style="color:#9b1c1c">${off}</div>` : ""}</td>
+        <td><button class="btn btn-ghost btn-sm" data-cp="${esc(c.code)}"
+          data-on="${c.active ? 1 : 0}">${c.active ? "Turn off" : "Turn on"}</button></td></tr>`;
+    }).join("")}</tbody></table>`;
+    box.querySelectorAll("[data-cp]").forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await sb.from("coupons")
+        .update({ active: b.dataset.on !== "1" }).eq("code", b.dataset.cp);
+      if (error) { alert(error.message); b.disabled = false; return; }
+      loadCoupons();
+    });
+  }
+
+  async function loadQueue() {
+    const box = document.getElementById("cp_queue");
+    const { data: rows, error } = await sb.from("coupon_redemptions")
+      .select("*").eq("status", "pending").order("created_at");
+    if (error) { box.innerHTML = `<p class="muted">${esc(error.message)}</p>`; return; }
+    if (!(rows || []).length) {
+      box.innerHTML = '<p class="muted">Nothing waiting. Requests appear here as they come in.</p>';
+      return;
+    }
+    const [{ data: people }, { data: cps }] = await Promise.all([
+      sb.from("profiles").select("id,email,full_name"),
+      sb.from("coupons").select("code,project_ids,plan_id"),
+    ]);
+    const who = {}; (people || []).forEach(p => who[p.id] = p);
+    const cp = {}; (cps || []).forEach(c => cp[c.code] = c);
+    box.innerHTML = `<table class="tbl"><thead><tr><th>Student</th><th>Code</th>
+      <th>Would get</th><th>Asked</th><th></th></tr></thead><tbody>${rows.map(r => {
+      const c = cp[r.code] || {};
+      return `<tr>
+        <td><b>${esc((who[r.user_id] || {}).email || r.user_id)}</b>
+          ${(who[r.user_id] || {}).full_name
+            ? `<div class="muted">${esc(who[r.user_id].full_name)}</div>` : ""}</td>
+        <td>${esc(r.code)}</td>
+        <td>${esc((c.project_ids || []).map(PROJ_TITLE).join(", ") || "—")}
+          ${c.plan_id ? `<div class="muted">+ course (${esc(c.plan_id)})</div>` : ""}</td>
+        <td class="muted">${new Date(r.created_at).toLocaleDateString()}</td>
+        <td style="white-space:nowrap">
+          <button class="btn btn-navy btn-sm" data-ok="${esc(r.id)}">Approve</button>
+          <button class="btn btn-ghost btn-sm" data-no="${esc(r.id)}">Reject</button></td></tr>`;
+    }).join("")}</tbody></table>`;
+    const decide = async (btn, id, approve) => {
+      btn.disabled = true;
+      const reason = approve ? null : (prompt("Why not? (optional, the student does not see this)") || null);
+      const { data, error } = await sb.rpc("admin_decide_redemption",
+        { p_id: id, p_approve: approve, p_reason: reason });
+      if (error) { alert(error.message); btn.disabled = false; return; }
+      pgSay("cp_msg", `Request ${esc(String(data))}.`, "ok");
+      loadQueue(); loadCoupons(); loadGrantList();
+    };
+    box.querySelectorAll("[data-ok]").forEach(b => b.onclick = () => decide(b, b.dataset.ok, true));
+    box.querySelectorAll("[data-no]").forEach(b => b.onclick = () => decide(b, b.dataset.no, false));
+  }
+
+  document.getElementById("cp_gen").onclick = () => {
+    // No I, O, 0 or 1 — these get read aloud and typed back in.
+    const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const pick = n => Array.from({ length: n }, () =>
+      A[Math.floor(Math.random() * A.length)]).join("");
+    document.getElementById("cp_code").value = pick(4) + "-" + pick(4);
+  };
+
+  document.getElementById("cp_create").onclick = async () => {
+    const code = (document.getElementById("cp_code").value || "").trim().toUpperCase();
+    if (!/^[A-Z0-9][A-Z0-9-]{2,31}$/.test(code))
+      return pgSay("cp_msg", "A code needs 3–32 characters: letters, numbers and dashes.", "err");
+    const projects = Array.from(document.querySelectorAll(".cp_p:checked")).map(c => c.value);
+    const plan = document.getElementById("cp_plan").value || null;
+    if (!projects.length && !plan)
+      return pgSay("cp_msg", "Tick at least one project, or let the code open the course.", "err");
+    const auto = document.getElementById("cp_auto").value === "1";
+    const maxRaw = document.getElementById("cp_max").value.trim();
+    const max = maxRaw ? parseInt(maxRaw, 10) : null;
+    if (maxRaw && (!max || max < 1))
+      return pgSay("cp_msg", "The limit has to be a whole number of people, or blank.", "err");
+    // An immediate code is the authorisation on its own, so an unlimited one is a
+    // standing offer to anyone who ever sees it. Worth one deliberate keystroke.
+    if (auto && max === null &&
+        !confirm("This code opens access immediately and has no limit on how many people can "
+               + "use it. Anyone who sees it gets in. Create it anyway?")) return;
+    const exp = document.getElementById("cp_expires").value;
+    const { error } = await sb.from("coupons").insert({
+      code, project_ids: projects, plan_id: plan, auto_grant: auto,
+      max_redemptions: max,
+      expires_at: exp ? new Date(exp + "T23:59:59").toISOString() : null,
+      note: document.getElementById("cp_note").value.trim() || null,
+    });
+    if (error) return pgSay("cp_msg", /duplicate key/i.test(error.message)
+      ? `<b>${esc(code)}</b> already exists — pick another code.` : esc(error.message), "err");
+    pgSay("cp_msg", `<b>${esc(code)}</b> is live. Students enter it on the projects page.`
+      + (auto ? " It opens access as soon as it is used." : " You will see each request above."), "ok");
+    ["cp_code", "cp_max", "cp_expires", "cp_note"].forEach(id =>
+      document.getElementById(id).value = "");
+    document.querySelectorAll(".cp_p:checked").forEach(c => c.checked = false);
+    loadCoupons();
+  };
+
+  async function loadGrantList() {
+    const box = document.getElementById("pg_list");
+    box.innerHTML = '<div class="spin"></div>';
+    const [{ data: grants }, { data: invites }, { data: people }] = await Promise.all([
+      sb.from("project_grants").select("*"),
+      sb.from("project_invites").select("*").is("claimed_at", null),
+      sb.from("profiles").select("id,email,full_name"),
+    ]);
+    const byId = {}; (people || []).forEach(p => byId[p.id] = p);
+    const rows = [];
+    (grants || []).forEach(g => rows.push({
+      email: (byId[g.user_id] || {}).email || g.user_id,
+      name: (byId[g.user_id] || {}).full_name || "",
+      project: g.project_id, state: "active", source: g.source, expires: g.expires_at }));
+    (invites || []).forEach(i => rows.push({
+      email: i.email, name: "", project: i.project_id,
+      state: "waiting for sign-up", source: "invite", expires: i.expires_at }));
+
+    const q = (document.getElementById("pg_search").value || "").toLowerCase();
+    const shown = rows.filter(r => !q || r.email.toLowerCase().includes(q));
+    if (!shown.length) {
+      box.innerHTML = '<p class="muted">Nobody has a project yet. Grant one above.</p>';
+      return;
+    }
+    const title = id => (PROJECTS_LIST.find(p => p.id === id) || {}).title || id;
+    box.innerHTML = `<table class="tbl"><thead><tr><th>Student</th><th>Project</th>
+      <th>State</th><th>How</th><th>Expires</th><th></th></tr></thead><tbody>${
+      shown.sort((a, b) => a.email.localeCompare(b.email)).map(r => `<tr>
+        <td><b>${esc(r.email)}</b>${r.name ? `<div class="muted">${esc(r.name)}</div>` : ""}</td>
+        <td>${esc(title(r.project))}</td>
+        <td>${r.state === "active" ? "✅ active" : "⏳ " + r.state}</td>
+        <td class="muted">${esc(r.source)}</td>
+        <td class="muted">${r.expires ? new Date(r.expires).toLocaleDateString() : "—"}</td>
+        <td><button class="btn btn-ghost btn-sm" data-revoke="${esc(r.email)}"
+          data-proj="${esc(r.project)}">Revoke</button></td></tr>`).join("")}</tbody></table>`;
+    box.querySelectorAll("[data-revoke]").forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await sb.rpc("admin_revoke_project",
+        { p_email: b.dataset.revoke, p_project: b.dataset.proj });
+      if (error) { alert(error.message); b.disabled = false; return; }
+      loadGrantList();
+    });
+  }
+
+  document.getElementById("pg_grant").onclick = async () => {
+    const email = document.getElementById("pg_email").value.trim();
+    if (!email) return pgSay("pg_msg", "Enter an email.", "err");
+    const exp = document.getElementById("pg_expires").value;
+    const { data, error } = await sb.rpc("admin_grant_project", {
+      p_email: email,
+      p_project: document.getElementById("pg_project").value,
+      p_expires: exp ? new Date(exp + "T23:59:59").toISOString() : null,
+      p_note: document.getElementById("pg_note").value.trim() || null,
+    });
+    if (error) return pgSay("pg_msg", esc(error.message), "err");
+    // The two outcomes are genuinely different and the admin needs to know which
+    // happened: one is done, the other is a promise that keeps itself.
+    pgSay("pg_msg", data === "invited"
+      ? `<b>Invited.</b> ${esc(email)} has no account yet — the moment they register with that
+         address the project is theirs. Nothing more for you to do.`
+      : `<b>Granted.</b> ${esc(email)} can open it now.`, data === "invited" ? "muted" : "ok");
+    loadGrantList();
+  };
+
+  document.getElementById("pg_revoke").onclick = async () => {
+    const email = document.getElementById("pg_email").value.trim();
+    if (!email) return pgSay("pg_msg", "Enter an email.", "err");
+    const { data, error } = await sb.rpc("admin_revoke_project",
+      { p_email: email, p_project: document.getElementById("pg_project").value });
+    if (error) return pgSay("pg_msg", esc(error.message), "err");
+    pgSay("pg_msg", "Done — " + esc(String(data)) + ".");
+    loadGrantList();
+  };
+
+  const bulkEmails = () => (document.getElementById("pg_bulk").value || "")
+    .split(/[\n,;\t]+/).map(s => s.trim()).filter(Boolean);
+
+  document.getElementById("pg_dry").onclick = async () => {
+    const list = bulkEmails();
+    const ok = [], bad = [];
+    list.forEach(e => (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) ? ok : bad).push(e));
+    const seen = new Set(), dupes = [];
+    const unique = ok.filter(e => {
+      const k = e.toLowerCase();
+      if (seen.has(k)) { dupes.push(e); return false; }
+      seen.add(k); return true;
+    });
+    const { data: people } = await sb.from("profiles").select("email");
+    const known = new Set((people || []).map(p => (p.email || "").toLowerCase()));
+    const willGrant = unique.filter(e => known.has(e.toLowerCase()));
+    const willInvite = unique.filter(e => !known.has(e.toLowerCase()));
+    bulkChecked = unique;
+    document.getElementById("pg_apply").disabled = !unique.length;
+    // Say what will happen before it happens. A bulk action that reports only
+    // afterwards is one you cannot safely run on a list you did not type.
+    pgSay("pg_bulk_msg", `<b>${unique.length}</b> address${unique.length === 1 ? "" : "es"} ready:
+      <b>${willGrant.length}</b> granted immediately, <b>${willInvite.length}</b> invited and
+      waiting for sign-up.
+      ${dupes.length ? `<br>${dupes.length} duplicate${dupes.length === 1 ? "" : "s"} ignored.` : ""}
+      ${bad.length ? `<br><span style="color:#9b1c1c">${bad.length} not an email address and will be
+        skipped: ${esc(bad.slice(0, 5).join(", "))}${bad.length > 5 ? "…" : ""}</span>` : ""}`);
+  };
+
+  document.getElementById("pg_apply").onclick = async () => {
+    if (!bulkChecked || !bulkChecked.length) return;
+    const btn = document.getElementById("pg_apply");
+    btn.disabled = true;
+    const project = document.getElementById("pg_bulk_project").value;
+    let granted = 0, invited = 0, failed = [];
+    for (const email of bulkChecked) {
+      const { data, error } = await sb.rpc("admin_grant_project",
+        { p_email: email, p_project: project, p_expires: null, p_note: "bulk import" });
+      if (error) failed.push(email + " — " + error.message);
+      else if (data === "invited") invited++; else granted++;
+    }
+    pgSay("pg_bulk_msg", `<b>Done.</b> ${granted} granted, ${invited} invited.
+      ${failed.length ? `<br><span style="color:#9b1c1c">${failed.length} failed:
+        ${esc(failed.slice(0, 3).join("; "))}</span>` : ""}`, "ok");
+    bulkChecked = null;
+    loadGrantList();
+  };
+
+  document.getElementById("pg_refresh").onclick = loadGrantList;
+  document.getElementById("pg_search").oninput = () => { clearTimeout(window.__pgT);
+    window.__pgT = setTimeout(loadGrantList, 250); };
 
   await loadCourses();
 })();

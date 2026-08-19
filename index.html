@@ -3,50 +3,364 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QT GenAI Testing Academy — Login</title>
-<meta name="description" content="Quality Thought's GenAI Application Testing training portal — materials, progress tracking and certification.">
+<title>GenAI Testing &amp; Python Courses — Start Free | GenAITesting</title>
+<meta name="description" content="Learn to test LLM, RAG and AI agent applications, plus Python and DSA in 24 modules. Hands-on projects, verifiable certificates. Free to start, then ₹499.">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://genaitesting.online/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="GenAI Testing &amp; Python courses — start free">
+<meta property="og:description" content="Two courses, one subscription: GenAI application testing (16 modules) and Python with DSA (24 modules). Real projects to attack, and a free part in each.">
+<!-- Must match the canonical exactly. Saying "/" in one place and
+     "/index.html" in the other hands crawlers and social platforms two
+     different URLs for one page, which splits the signals between them. -->
+<meta property="og:url" content="https://genaitesting.online/">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI Application Testing training and certification">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GenAI Testing &amp; Python courses — start free">
+<meta name="twitter:description" content="Two courses, one subscription: GenAI application testing (16 modules) and Python with DSA (24 modules). Real projects to attack, and a free part in each.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
 <link rel="stylesheet" href="app.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "EducationalOrganization",
+   "@id": "https://genaitesting.online/#org",
+   "name": "GenAITesting",
+   "alternateName": "GenAI Testing Academy",
+   "url": "https://genaitesting.online/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://genaitesting.online/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "image": "https://genaitesting.online/social-card.png",
+   "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Hyderabad",
+    "addressRegion": "Telangana",
+    "addressCountry": "IN"
+   },
+   "areaServed": {
+    "@type": "Place",
+    "name": "Worldwide"
+   },
+   "sameAs": [
+    "https://github.com/qtcypress/genaitestingacademy"
+   ]
+  },
+  {
+   "@type": "WebSite",
+   "@id": "https://genaitesting.online/#website",
+   "url": "https://genaitesting.online/",
+   "name": "GenAITesting",
+   "publisher": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "inLanguage": "en"
+  }
+ ]
+}
+</script>
+<style>
+  .hero-split{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+  @media (max-width:860px){.hero-split{grid-template-columns:1fr;gap:28px}}
+  .auth-col{display:flex;justify-content:center}
+</style>
 </head>
 <body>
 <nav class="topbar" id="topbar"></nav>
 
 <header class="hero">
-  <div class="wrap">
-    <h1>GenAI Application Testing<br><span class="accent">Training &amp; Certification</span></h1>
-    <p>LLM evaluation · Red-team testing · Prompt engineering · Agents &amp; multi-agent systems ·
-       MCP-based testing · Automation with <strong style="color:#fff">Promptfoo</strong> +
-       <strong style="color:#fff">DeepEval / RAGAS</strong>.</p>
-    <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap">
-      <button class="btn btn-primary" id="loginBtn" onclick="loginWithGitHub()" style="font-size:15px;padding:12px 22px">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-        Sign in with GitHub
-      </button>
-      <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="pricing.html">See pricing</a>
-      <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="verify.html">Verify a certificate</a>
+  <div class="wrap hero-split">
+    <div>
+      <h1>GenAITesting<br><span class="accent">Training &amp; Certification</span></h1>
+      <p><strong style="color:#fff">GenAI Application Testing</strong> — LLM evaluation, red-team
+         testing, prompt engineering, agents &amp; MCP, automation with Promptfoo and
+         DeepEval / RAGAS.<br>
+         <strong style="color:#fff">Python &amp; DSA</strong> — twenty-four modules from variables
+         to dynamic programming. <span class="accent">The first four are free.</span></p>
+      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="genai-testing-course.html">GenAI Testing course</a>
+        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="python-dsa-course.html">Python &amp; DSA course</a>
+        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="pricing.html">Pricing</a>
+      </div>
+    </div>
+
+    <div class="auth-col">
+      <div class="auth-card">
+        <div class="auth-tabs" role="tablist">
+          <button role="tab" id="tabIn" aria-selected="true" onclick="showTab('in')">Sign in</button>
+          <button role="tab" id="tabUp" aria-selected="false" onclick="showTab('up')">Create account</button>
+        </div>
+
+        <!-- social: same buttons for both tabs -->
+        <button class="btn btn-oauth" type="button" onclick="loginWithGoogle(NEXT)">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          Continue with Google
+        </button>
+
+        <button class="btn btn-oauth gh" type="button" onclick="loginWithGitHub(NEXT)">
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+          Continue with GitHub
+        </button>
+
+        <div class="auth-or">or use your email</div>
+
+        <!-- ============ SIGN IN ============ -->
+        <form id="formIn" onsubmit="return doSignIn(event)">
+          <label class="f" for="inEmail">Email</label>
+          <input class="f" id="inEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+
+          <label class="f" for="inPw">Password</label>
+          <div class="pw-wrap">
+            <input class="f" id="inPw" type="password" autocomplete="current-password" required placeholder="Your password">
+            <button class="pw-toggle" type="button" onclick="togglePw('inPw',this)">SHOW</button>
+          </div>
+
+          <button class="btn btn-primary" id="inBtn" type="submit" style="width:100%;margin-top:18px">Sign in</button>
+          <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('reset')">Forgot your password?</button></p>
+        </form>
+
+        <!-- ============ CREATE ACCOUNT ============ -->
+        <form id="formUp" style="display:none" onsubmit="return doSignUp(event)">
+          <label class="f" for="upName">Full name</label>
+          <input class="f" id="upName" type="text" autocomplete="name" required placeholder="Ram Prasad">
+          <p class="hint">This is the name that will be printed on your certificate.</p>
+
+          <label class="f" for="upEmail">Email</label>
+          <input class="f" id="upEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+
+          <label class="f" for="upPw">Password</label>
+          <div class="pw-wrap">
+            <input class="f" id="upPw" type="password" autocomplete="new-password" required minlength="8" placeholder="At least 8 characters">
+            <button class="pw-toggle" type="button" onclick="togglePw('upPw',this)">SHOW</button>
+          </div>
+          <p class="hint">Use 8 characters or more.</p>
+
+          <button class="btn btn-primary" id="upBtn" type="submit" style="width:100%;margin-top:18px">Create my account</button>
+          <p class="auth-legal">We'll email you a link to confirm your address before you can sign in.</p>
+        </form>
+
+        <!-- ============ FORGOT PASSWORD ============ -->
+        <form id="formReset" style="display:none" onsubmit="return doReset(event)">
+          <p class="muted" style="margin:0 0 4px">Enter your email and we'll send you a link to set a new password.</p>
+          <label class="f" for="rsEmail">Email</label>
+          <input class="f" id="rsEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+          <button class="btn btn-primary" id="rsBtn" type="submit" style="width:100%;margin-top:18px">Send reset link</button>
+          <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('in')">Back to sign in</button></p>
+        </form>
+
+        <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
+      </div>
     </div>
   </div>
 </header>
 
 <main class="wrap section">
-  <div class="grid grid-3">
-    <div class="card"><h3>📚 Learn</h3><p class="muted">HTML lessons, slide decks, documents, infographics and spreadsheets — all in one place, on any device.</p></div>
-    <div class="card"><h3>📈 Track</h3><p class="muted">Your progress is saved as you complete each material. Your trainer sees the same picture.</p></div>
-    <div class="card"><h3>🎓 Certify</h3><p class="muted">Pass the final assessment to earn a certificate with a unique, publicly verifiable number.</p></div>
-  </div>
+
+  <!-- The homepage used to be three cards and a sign-in box, which gave a search
+       engine almost nothing to rank and an AI assistant nothing to quote. These
+       two sections say what is actually taught, in prose, and hand off to the
+       course pages that go into detail. -->
+  <section class="section">
+    <h2>Two courses, one subscription</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3><a href="genai-testing-course.html">GenAI Testing</a></h3>
+        <p class="muted">For testers whose product has grown an AI feature. LLM output
+        evaluation, hallucination detection, prompt injection and red-team testing, RAG
+        retrieval quality and knowledge-base poisoning, AI agents and MCP tool calls, and
+        automation with Promptfoo, DeepEval and RAGAS. Sixteen modules and two hosted
+        applications you attack from the browser. Three certification levels.
+        <strong>Module 1 is free.</strong></p>
+        <p style="margin:14px 0 0"><a class="btn btn-ghost btn-sm" href="genai-testing-course.html">What the modules cover →</a></p>
+      </div>
+      <div class="card">
+        <h3><a href="python-dsa-course.html">Python Zero to Hero, with DSA</a></h3>
+        <p class="muted">Twenty-four modules in six phases, from variables to dynamic
+        programming, five lessons each. Every code sample has a Run button and executes in
+        your browser — there is no Python to install and nothing to configure before your
+        first line runs. Phases 3 to 5 are the interview material.
+        <strong>All of Phase 1 is free.</strong></p>
+        <p style="margin:14px 0 0"><a class="btn btn-ghost btn-sm" href="python-dsa-course.html">See the six phases →</a></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>How it works</h2>
+    <div class="grid grid-3">
+      <div class="card"><h3>Learn</h3><p class="muted">Lessons, slide decks, documents and
+      spreadsheets in one place, on any device. Python lessons run their own code in the
+      page.</p></div>
+      <div class="card"><h3>Practise</h3><p class="muted">Two real applications are hosted
+      for you — a RAG system in five deliberately broken versions, and a multi-agent
+      booking system. You test them, not a slide about them.</p></div>
+      <div class="card"><h3>Certify</h3><p class="muted">Pass an exam and earn a certificate
+      carrying a unique number that <a href="verify.html">anyone can check</a> without an
+      account. Nothing is awarded for finishing videos.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Common questions</h2>
+    <p class="lead" style="max-width:74ch">
+      Whether you need Python first, how this compares with ISTQB CT-AI, how to test a RAG
+      system, and what an AI testing career actually looks like coming from manual testing
+      — all answered on the <a href="faq.html">FAQ page</a>.
+    </p>
+  </section>
+
   <p class="muted" style="text-align:center;margin-top:32px">Tip: on mobile, use your browser's <strong>“Add to Home Screen / Install app”</strong> option to use this portal like a native app — no app store needed.</p>
 </main>
 
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="muted" style="margin:0 0 10px">
+      <a href="genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="faq.html">FAQ</a> ·
+      <a href="projects.html">Hands-on projects</a> ·
+      <a href="pricing.html">Pricing</a> ·
+      <a href="verify.html">Verify a certificate</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:12.5px">
+      GenAITesting — online training in GenAI, LLM and AI agent application testing,
+      run from Hyderabad, India, open to learners anywhere.
+    </p>
+  </div>
+</footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
 <script>
   renderTopbar("home");
-  // already logged in? go straight to the dashboard
-  getSession().then(s => { if (s) location.href = "app.html"; });
+
+  /* Where to land after signing in. Only pages we know about are accepted, so a
+     crafted ?next= can never bounce a student off to another site. */
+  const ALLOWED_NEXT = ["app.html", "pricing.html", "certificate.html", "quiz.html", "admin.html"];
+  const asked = new URLSearchParams(location.search).get("next");
+  const NEXT = ALLOWED_NEXT.includes(asked) ? asked : "app.html";
+
+  // already logged in? go straight through
+  getSession().then(s => { if (s) location.href = NEXT; });
+
+  const PANES = { in: "formIn", up: "formUp", reset: "formReset" };
+
+  function showTab(which) {
+    for (const k in PANES) document.getElementById(PANES[k]).style.display = (k === which) ? "" : "none";
+    document.getElementById("tabIn").setAttribute("aria-selected", which !== "up");
+    document.getElementById("tabUp").setAttribute("aria-selected", which === "up");
+    msg("");
+  }
+
+  function togglePw(id, btn) {
+    const el = document.getElementById(id);
+    const show = el.type === "password";
+    el.type = show ? "text" : "password";
+    btn.textContent = show ? "HIDE" : "SHOW";
+  }
+
+  /* kind: "err" | "ok" | "info" | "" to clear. html allows a link in the message. */
+  function msg(text, kind = "err", html = false) {
+    const el = document.getElementById("authMsg");
+    if (!text) { el.className = "auth-msg"; el.textContent = ""; return; }
+    el.className = "auth-msg show " + kind;
+    if (html) el.innerHTML = text; else el.textContent = text;
+    // on a phone the message can land below the fold — make sure it's seen
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function busy(btnId, on, label) {
+    const b = document.getElementById(btnId);
+    b.disabled = on;
+    if (on) { b.dataset.label = b.textContent; b.textContent = label; }
+    else if (b.dataset.label) b.textContent = b.dataset.label;
+  }
+
+  async function doSignIn(e) {
+    e.preventDefault();
+    msg(""); busy("inBtn", true, "Signing in…");
+    const email = document.getElementById("inEmail").value;
+    try {
+      await signInWithEmail(email, document.getElementById("inPw").value);
+      location.href = NEXT;
+    } catch (err) {
+      const notConfirmed = String(err.message || "").toLowerCase().includes("email not confirmed");
+      msg(authErrorMessage(err), "err");
+      if (notConfirmed) {
+        const el = document.getElementById("authMsg");
+        const b = document.createElement("button");
+        b.className = "linkish"; b.type = "button"; b.textContent = "Resend the confirmation email";
+        b.style.marginLeft = "6px";
+        b.onclick = async () => {
+          try { await resendConfirmation(email, NEXT); msg("Sent — check your inbox (and spam folder).", "ok"); }
+          catch (e2) { msg(authErrorMessage(e2), "err"); }
+        };
+        el.appendChild(document.createTextNode(" "));
+        el.appendChild(b);
+      }
+      busy("inBtn", false);
+    }
+    return false;
+  }
+
+  async function doSignUp(e) {
+    e.preventDefault();
+    msg(""); busy("upBtn", true, "Creating…");
+    try {
+      const outcome = await signUpWithEmail(
+        document.getElementById("upName").value,
+        document.getElementById("upEmail").value,
+        document.getElementById("upPw").value, NEXT);
+
+      if (outcome === "signed-in") { location.href = NEXT; return false; }
+      if (outcome === "exists") {
+        msg("An account already exists for that email. Try signing in, or use “Forgot your password?”.", "info");
+        busy("upBtn", false);
+        return false;
+      }
+      msg("Almost there — we've emailed you a confirmation link. Open it and you'll be signed in. " +
+          "If it hasn't arrived in a couple of minutes, check your spam folder.", "ok");
+      document.getElementById("formUp").reset();
+      busy("upBtn", false);
+    } catch (err) {
+      msg(authErrorMessage(err), "err");
+      busy("upBtn", false);
+    }
+    return false;
+  }
+
+  async function doReset(e) {
+    e.preventDefault();
+    msg(""); busy("rsBtn", true, "Sending…");
+    try {
+      await sendPasswordReset(document.getElementById("rsEmail").value);
+      // Supabase intentionally succeeds even for unknown emails, so we don't confirm the address exists.
+      msg("If that email has an account, a reset link is on its way. Check your inbox and spam folder.", "ok");
+    } catch (err) {
+      msg(authErrorMessage(err), "err");
+    }
+    busy("rsBtn", false);
+    return false;
+  }
 </script>
 </body>
 </html>

@@ -1,14 +1,18 @@
-/* QT GenAI Testing Academy — service worker
+/* GenAITesting — service worker
    Caches the app shell so the site opens instantly and works as an installed app.
    Data (Supabase) always goes to the network. */
 /* Bump this version on every deploy — it evicts the old cache so returning
    students (and installed-app users) never get served a stale app shell. */
-const CACHE = "qt-academy-v4";
+const CACHE = "qt-academy-v25";
 const SHELL = [
   "./", "index.html", "app.html", "viewer.html", "quiz.html",
-  "certificate.html", "verify.html", "pricing.html",
+  "certificate.html", "verify.html", "pricing.html", "reset-password.html",
+  "unsubscribe.html", "projects.html",
+  "genai-testing-course.html", "python-dsa-course.html", "faq.html",
   "app.css", "app.js", "config.js",
-  "icon-192.png", "icon-512.png", "manifest.webmanifest"
+  "icon-192.png", "icon-512.png", "icon-maskable-512.png",
+  "apple-touch-icon.png", "favicon.ico", "favicon.svg", "logo.svg", "social-card.png",
+  "manifest.webmanifest"
 ];
 
 self.addEventListener("install", e => {

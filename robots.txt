@@ -1,0 +1,44 @@
+# genaitesting.online
+#
+# Student-only pages are excluded here *and* carry a noindex meta tag. The tag is
+# what actually keeps them out of the index — a Disallow only stops crawling, and
+# a page that is linked from elsewhere can still be indexed without being read,
+# which is how login pages end up in search results with no description. Both,
+# then, deliberately.
+User-agent: *
+Allow: /
+Disallow: /admin.html
+Disallow: /app.html
+Disallow: /viewer.html
+Disallow: /quiz.html
+Disallow: /certificate.html
+Disallow: /reset-password.html
+Disallow: /unsubscribe.html
+Disallow: /*?next=
+
+# The assistant crawlers are allowed on purpose. Being quoted by an assistant is
+# now a real route to this site, and the FAQ page exists to be quoted — blocking
+# these would forfeit that while doing nothing for privacy, since everything they
+# can reach is already public.
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://genaitesting.online/sitemap.xml

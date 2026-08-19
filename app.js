@@ -1,4 +1,4 @@
-/* ============ QT GenAI Testing Academy — shared app helpers ============
+/* ============ GenAITesting — shared app helpers ============
    Loaded on every page AFTER config.js and the Supabase CDN script.  */
 
 (function () {
@@ -51,9 +51,85 @@ async function requireAdmin() {
   return p;
 }
 
+/* absolute URL of a page in this site, whatever folder we're served from */
+function pageUrl(page) {
+  return location.origin + location.pathname.replace(/[^/]*$/, "") + page;
+}
+
+/* ---------- social sign-in ---------- */
 function loginWithGitHub(redirectPage = "app.html") {
-  const redirectTo = location.origin + location.pathname.replace(/[^/]*$/, "") + redirectPage;
-  sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo } });
+  sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: pageUrl(redirectPage) } });
+}
+
+function loginWithGoogle(redirectPage = "app.html") {
+  sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: pageUrl(redirectPage), queryParams: { prompt: "select_account" } }
+  });
+}
+
+/* ---------- email + password ----------
+   Signing up returns one of three outcomes:
+     "confirm"   – account created, confirmation email sent (the normal path)
+     "exists"    – that email already has an account
+     "signed-in" – only happens if email confirmation is switched OFF in Supabase
+   Supabase deliberately does NOT error on a duplicate email (that would let anyone
+   test which addresses are registered). It returns a decoy user with an empty
+   identities array instead, which is what we check for.                       */
+async function signUpWithEmail(fullName, email, password, redirectPage = "app.html") {
+  const { data, error } = await sb.auth.signUp({
+    email: email.trim(),
+    password,
+    options: { data: { full_name: fullName.trim() }, emailRedirectTo: pageUrl(redirectPage) }
+  });
+  if (error) throw error;
+  if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0)
+    return "exists";
+  return data.session ? "signed-in" : "confirm";
+}
+
+async function signInWithEmail(email, password) {
+  const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
+  if (error) throw error;
+  return data;
+}
+
+async function sendPasswordReset(email) {
+  const { error } = await sb.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: pageUrl("reset-password.html")
+  });
+  if (error) throw error;
+}
+
+async function resendConfirmation(email, redirectPage = "app.html") {
+  const { error } = await sb.auth.resend({
+    type: "signup",
+    email: email.trim(),
+    options: { emailRedirectTo: pageUrl(redirectPage) }
+  });
+  if (error) throw error;
+}
+
+/* Turn Supabase's terse auth errors into something a student can act on. */
+function authErrorMessage(e) {
+  const m = String((e && e.message) || e || "").toLowerCase();
+  if (m.includes("invalid login credentials"))
+    return "That email and password don't match an account. Check the password, or use “Forgot password”.";
+  if (m.includes("email not confirmed"))
+    return "Please confirm your email first — check your inbox for the link we sent.";
+  if (m.includes("password should be at least"))
+    return "Your password needs to be at least 8 characters.";
+  if (m.includes("unable to validate email") || m.includes("invalid format"))
+    return "That doesn't look like a valid email address.";
+  if (m.includes("rate limit") || m.includes("too many") || m.includes("for security purposes"))
+    return "Too many attempts just now. Please wait a minute and try again.";
+  if (m.includes("user already registered"))
+    return "An account already exists for that email. Try signing in instead.";
+  if (m.includes("same as the old password"))
+    return "Please choose a password you haven't used on this account before.";
+  if (m.includes("failed to fetch") || m.includes("networkerror") || m.includes("load failed"))
+    return "We couldn't reach the server. Check your internet connection and try again.";
+  return (e && e.message) || "Something went wrong. Please try again.";
 }
 
 async function logout() {
@@ -70,7 +146,10 @@ async function renderTopbar(active) {
   if (session) {
     const m = session.user.user_metadata || {};
     const name = m.full_name || m.name || m.user_name || session.user.email;
-    const avatar = m.avatar_url ? `<img src="${m.avatar_url}" alt="">` : "";
+    /* GitHub and Google give us a picture; email signups don't — fall back to initials */
+    const avatar = m.avatar_url
+      ? `<img src="${escapeHtml(m.avatar_url)}" alt="">`
+      : `<span class="avatar-initials">${escapeHtml(initialsOf(name))}</span>`;
     userHtml = `<div class="user">${avatar}<span class="uname">${escapeHtml(name)}</span>
       <button class="btn btn-sm btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.35)" onclick="logout()">Logout</button></div>`;
     try {
@@ -93,16 +172,30 @@ async function renderTopbar(active) {
   }
 
   el.innerHTML = `<div class="topbar-inner">
-    <a class="logo" href="${session ? "app.html" : "index.html"}"><span class="logo-dot"></span>${window.QT_CONFIG.SITE_NAME}</a>
+    <a class="logo" href="${session ? "app.html" : "index.html"}"><img class="logo-mark" src="logo.svg" alt="" width="26" height="26">${window.QT_CONFIG.SITE_NAME}</a>
     <span class="spacer"></span>
     ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="app.html">My Course</a>
-    <a class="navlink ${active === "cert" ? "active" : ""}" href="certificate.html">Certificates</a>` : ""}
+    ${window.QT_CONFIG.RAG_CONSOLE_URL ? `<a class="navlink ${active === "projects" ? "active" : ""}" href="projects.html">Projects</a>` : ""}
+    <a class="navlink ${active === "cert" ? "active" : ""}" href="certificate.html">Certificates</a>`
+    /* Signed out means either a visitor deciding whether to sign up, or a crawler.
+       Both need the course pages to be reachable by a link — a page nobody links to
+       is a page search engines treat as unimportant, however good it is. Signed-in
+       students get their own course nav instead and do not need the sales pages. */
+    : `<a class="navlink ${active === "genai" ? "active" : ""}" href="genai-testing-course.html">GenAI Testing</a>
+    <a class="navlink ${active === "python" ? "active" : ""}" href="python-dsa-course.html">Python &amp; DSA</a>
+    <a class="navlink ${active === "faq" ? "active" : ""}" href="faq.html">FAQ</a>`}
     <a class="navlink ${active === "pricing" ? "active" : ""}" href="pricing.html">Pricing</a>
     <a class="navlink ${active === "verify" ? "active" : ""}" href="verify.html">Verify</a>
     ${adminLink} ${accessHtml} ${userHtml}</div>`;
 }
 
 /* ---------- misc ---------- */
+function initialsOf(name) {
+  const parts = String(name || "").trim().split(/[\s@._-]+/).filter(Boolean);
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
 function escapeHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }

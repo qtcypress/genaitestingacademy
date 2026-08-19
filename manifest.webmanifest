@@ -1,7 +1,7 @@
 {
-  "name": "QT GenAI Testing Academy",
-  "short_name": "QT Academy",
-  "description": "Quality Thought's GenAI Application Testing training portal — materials, progress and certification.",
+  "name": "GenAITesting",
+  "short_name": "GenAITesting",
+  "description": "GenAITesting — materials, progress and certification for GenAI application testing, Python and DSA.",
   "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
@@ -9,7 +9,8 @@
   "background_color": "#F7F5F0",
   "theme_color": "#1F3864",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

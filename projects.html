@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Projects — GenAITesting</title>
+<meta name="description" content="Hands-on GenAI testing projects: five versions of a RAG application, and a multi-agent MCP trip planner with 64 red, blue and observability test cases.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="canonical" href="https://genaitesting.online/projects.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="Projects — GenAITesting">
+<meta property="og:description" content="Five versions of a real RAG application, plus a multi-agent MCP system to attack. 64 test cases, and the traces to prove what stopped what.">
+<meta property="og:url" content="https://genaitesting.online/projects.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Projects — GenAITesting">
+<meta name="twitter:description" content="Five versions of a real RAG application, plus a multi-agent MCP system to attack. 64 test cases, and the traces to prove what stopped what.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
+<link rel="stylesheet" href="app.css">
+<style>
+  .proj{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:var(--shadow);margin-bottom:18px}
+  .proj-head{padding:22px 24px;border-bottom:1px solid var(--line)}
+  .proj-head h2{margin:0 0 6px;font-size:20px}
+  .proj-body{padding:20px 24px}
+  .vlist{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin:4px 0 18px}
+  .vitem{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--cream)}
+  .vitem b{color:var(--navy);font-size:14px;display:block}
+  .vitem span{font-size:12.5px;color:var(--slate);line-height:1.45}
+  .locked{background:var(--amber-tint);border:1.5px solid var(--amber);border-radius:var(--radius);
+    padding:16px 18px;font-size:14.5px}
+  .stack{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
+  .tech{font-size:11.5px;color:var(--slate-soft);margin-top:14px}
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<header class="hero" style="padding:40px 0">
+  <div class="wrap">
+    <h1>Hands-on <span class="accent">projects</span></h1>
+    <p>Reading about GenAI failure modes is one thing. Attacking a real application and watching a
+       control hold — or not — is another. Two projects: a RAG assistant built five times, and a
+       multi-agent system that plans and books a trip over MCP. These are what you test on the
+       course. Your trainer assigns the ones you can open.</p>
+  </div>
+</header>
+
+<main class="wrap section">
+  <div id="out"><div class="spin"></div></div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("projects");
+  const out = document.getElementById("out");
+  const CONSOLE_URL = (window.QT_CONFIG.RAG_CONSOLE_URL || "").replace(/\/+$/, "");
+
+  /* ---- wake the console while the student is still reading ----
+     Nobody launches this service and no admin has to: it is deployed and running
+     permanently. What it does is *sleep*. Render's free instance stops after about
+     fifteen minutes with no traffic and takes roughly a minute to start again on the
+     next request — which is why clicking Open can look like it is booting something.
+
+     The fix that costs nothing is to spend that minute earlier. The request below
+     fires the instant this page opens, so Render starts the instance while the
+     student is reading the project cards and deciding. By the time they click Open,
+     it is usually already up.
+
+     `no-cors` because the console sets no CORS headers, so the response is opaque —
+     but the promise still settles when the server answers, and "it answered" is the
+     only bit of information needed here. */
+  let consoleReady = false, wakeStarted = Date.now(), wakeMs = null;
+  const wake = CONSOLE_URL
+    ? fetch(CONSOLE_URL + "/healthz", { mode: "no-cors", cache: "no-store" })
+        .then(() => { consoleReady = true; wakeMs = Date.now() - wakeStarted; })
+        .catch(() => { /* offline, or the instance is still starting — Open still works */ })
+    : Promise.resolve();
+
+  /* One line under the Open button, updated when the instance answers, so a slow
+     first load reads as "starting" rather than "broken". */
+  const paintWake = () => {
+    const el = document.getElementById("wakeNote");
+    if (!el) return;
+    if (consoleReady) {
+      el.innerHTML = '<span style="color:#0B7A4C">\u25CF</span> Console is awake' +
+        (wakeMs !== null && wakeMs > 3000
+          ? " \u2014 it had gone to sleep and took " + Math.round(wakeMs / 1000) + "s to start"
+          : " and ready");
+    } else {
+      el.innerHTML = '<span style="color:#B45309">\u25CF</span> Waking the console \u2014 the free ' +
+        'server sleeps after 15 minutes idle and takes about a minute to start. ' +
+        'You can click Open now; it will load as soon as it is up.';
+    }
+  };
+  wake.then(() => paintWake());
+
+  /* The catalogue comes from the database so a third project is a row, not a
+     deploy. FALLBACK is what this page showed before that table existed, and it
+     is still what gets used if the query fails — a projects page that goes blank
+     because a migration has not run yet would be worse than a slightly stale one. */
+  const FALLBACK = [
+    {id: "rag", title: "RAG project", subtitle: "answers questions from documents", sort_order: 10,
+     blurb: "A retrieval-augmented travel assistant, built in five versions. Each version adds " +
+            "exactly one change, so you can attribute every difference in behaviour to a " +
+            "specific decision."},
+    {id: "agents", title: "MCP agent project", subtitle: "plans a trip and spends money",
+     sort_order: 20,
+     blurb: "An orchestrator plans a whole trip inside a budget and delegates to nine specialist " +
+            "agents over an MCP tool server. The smallest system that shows every agentic " +
+            "failure mode at once: it plans, calls tools, loops, delegates, spends money, " +
+            "messages people, and reads data an attacker could have written."},
+  ];
+
+  const DETAIL = {
+    rag: {
+      items: [
+        ["1.0 — Baseline", "Retrieval, grounding and a first pass at input guardrails. The version everything else is measured against."],
+        ["2.0 — Wider knowledge base", "Twice as many documents, and you can add your own. More to retrieve means more to retrieve wrongly."],
+        ["3.0 — Hardened", "Vector-store inspection, retrieval evaluation with Hit@k and MRR, and stricter abstention."],
+        ["4.0 — Poisoning defences", "Indirect prompt injection hidden inside documents, and the provenance flags that catch it."],
+        ["5.0 — Real LLM", "The same retrieval, but Groq, OpenAI, Hugging Face or your own local Ollama writes the answer."]
+      ],
+      note: "Pick a version and work the tabs: <b>Ask</b> it questions, run the <b>red and blue " +
+            "team</b> suites case by case, add your own files, inspect chunks and Hit@k in " +
+            "<b>Vector DB</b>, and read the trace in <b>Logs</b>.",
+      tech: "What you test here is accuracy: what was retrieved, and whether the answer stayed inside it."
+    },
+    agents: {
+      items: [
+        ["Orchestrator", "Decomposes the request, sequences the sub-agents, holds the budget, and asks you before spending anything."],
+        ["Flight · Transport · Hotel", "Search and place reversible holds. None of them can call a booking tool — enforced at the dispatcher, not asked of the model."],
+        ["Itinerary · Budget", "Day-by-day plan around real arrival and departure times; the budget check uses the system's own figures, never the model's."],
+        ["Booking · Invoice", "Converts holds to bookings only with a confirmation token the system itself issued."],
+        ["Messaging · Support", "Reminders inside quiet hours and per-leg caps, and post-payment problems against the real booking record."]
+      ],
+      note: "Plan a trip and read the flow across agents, the ReAct steps and the tool-call audit " +
+            "log, then run <b>64 test cases</b> — 23 blue team, 26 red team including six MCP " +
+            "tool-poisoning attacks, and 15 observability, planning and ReAct checks.",
+      tech: "What you test here is authority: one invariant protects the rest — no money is spent " +
+            "without explicit human confirmation."
+    }
+  };
+
+  const projCard = (p, n, total, bodyHtml) => {
+    const d = DETAIL[p.id] || {items: [], note: "", tech: ""};
+    return `<div class="proj">
+      <div class="proj-head">
+        <div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.08em;
+          text-transform:uppercase;margin-bottom:6px">Project ${n} of ${total}</div>
+        <h2>${escapeHtml(p.title)}${p.subtitle ? " — " + escapeHtml(p.subtitle) : ""}</h2>
+        <p class="muted" style="margin:0">${escapeHtml(p.blurb || "")}</p>
+      </div>
+      <div class="proj-body">
+        ${d.items.length ? `<div class="vlist">${d.items.map(([t, x]) =>
+          `<div class="vitem"><b>${escapeHtml(t)}</b><span>${escapeHtml(x)}</span></div>`).join("")}</div>` : ""}
+        ${d.note ? `<p class="muted" style="margin:0 0 16px;font-size:13.5px">${d.note}</p>` : ""}
+        ${bodyHtml}
+        ${d.tech ? `<p class="tech">${escapeHtml(d.tech)}</p>` : ""}
+      </div></div>`;
+  };
+
+  const openBtn = (token, until) => `
+    <div class="stack">
+      <a class="btn btn-primary" href="${escapeHtml(CONSOLE_URL + "/?t=" + encodeURIComponent(token))}"
+         target="_blank" rel="noopener">Open ↗</a>
+      <a class="btn btn-ghost" href="app.html">Back to my course</a>
+    </div>
+    <p class="muted" id="wakeNote" style="margin:14px 0 0"></p>
+    <p class="muted" style="margin:6px 0 0">Opens in a new tab. Your link is valid
+      ${until ? "until " + until.toLocaleString() : "for a few hours"}; reload this page for a fresh
+      one.</p>`;
+
+  const lockedBox = (msg, cta) => `<div class="locked">${msg}
+    ${cta ? `<div class="stack" style="margin-top:12px">${cta}</div>` : ""}</div>`;
+
+  const codeBox = () => `
+    <div class="proj" style="margin-top:18px">
+      <div class="proj-body">
+        <h3 style="margin:0 0 6px">Have a code?</h3>
+        <p class="muted" style="margin:0 0 12px;font-size:13.5px">If your trainer gave you an
+          access code, enter it here. Some codes open a project immediately; others are checked by
+          an administrator first, and you will see it appear on this page once approved.</p>
+        <div class="stack">
+          <input class="f" id="cpn" placeholder="e.g. QT-AUG-RAG" style="max-width:260px;
+            padding:9px 12px;border:1px solid #d9d9d9;border-radius:8px;font:inherit">
+          <button class="btn btn-primary" id="cpnGo">Redeem</button>
+        </div>
+        <div id="cpnMsg" style="margin-top:10px"></div>
+      </div></div>`;
+
+  function wireCode() {
+    const btn = document.getElementById("cpnGo");
+    if (!btn) return;
+    btn.onclick = async () => {
+      const code = (document.getElementById("cpn").value || "").trim();
+      const msg = document.getElementById("cpnMsg");
+      if (!code) { msg.innerHTML = '<span class="muted">Enter a code first.</span>'; return; }
+      btn.disabled = true;
+      const { data, error } = await sb.rpc("redeem_coupon", { p_code: code });
+      btn.disabled = false;
+      if (error) { msg.innerHTML = '<span style="color:#9b1c1c">' +
+        escapeHtml(error.message) + "</span>"; return; }
+      const r = Array.isArray(data) ? data[0] : data;
+      const good = r && (r.status === "approved" || r.status === "pending");
+      msg.innerHTML = '<span style="color:' + (good ? "#1d6b34" : "#9b1c1c") + '">' +
+        escapeHtml((r && r.message) || "Something went wrong.") + "</span>";
+      if (r && r.status === "approved") setTimeout(() => location.reload(), 1200);
+    };
+  }
+
+  // ---- catalogue -----------------------------------------------------------
+  let catalogue = FALLBACK;
+  try {
+    const { data } = await sb.from("projects").select("*").eq("active", true).order("sort_order");
+    if (data && data.length) catalogue = data;
+  } catch (e) { /* table not created yet — FALLBACK stands */ }
+
+  const render = (bodyFor) => {
+    out.innerHTML = catalogue.map((p, i) =>
+      projCard(p, i + 1, catalogue.length, bodyFor(p))).join("") + codeBox();
+    wireCode();
+  };
+
+  const session = await getSession();
+  if (!session) {
+    render(() => lockedBox("<strong>Sign in to open a project.</strong> " +
+      "Projects are assigned to your account by your trainer.",
+      '<a class="btn btn-primary" href="index.html?next=projects.html">Sign in</a>' +
+      '<a class="btn btn-ghost" href="pricing.html">See plans</a>'));
+    return;
+  }
+
+  if (!CONSOLE_URL) {
+    render(() => lockedBox("<strong>The console is going live shortly.</strong>",
+      '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
+    return;
+  }
+
+  let grant = null, failure = null;
+  try {
+    const { data, error } = await sb.functions.invoke("rag-access");
+    if (error) failure = error; else grant = data;
+  } catch (e) { failure = e; }
+
+  if (failure) {
+    render(() => lockedBox("<strong>Couldn't check your access just now.</strong> " +
+      escapeHtml(failure.message || String(failure)),
+      '<button class="btn btn-primary" onclick="location.reload()">Try again</button>'));
+    return;
+  }
+
+  if (grant && grant.allowed && grant.token) {
+    // `projects` arrives once the scoped Edge Function is deployed. Before that
+    // the token opens everything, so treat a missing list as "all of them" —
+    // the console is the thing that actually enforces this either way.
+    const mine = Array.isArray(grant.projects) && grant.projects.length
+      ? grant.projects : catalogue.map(p => p.id);
+    const until = grant.expires_at ? new Date(grant.expires_at) : null;
+    setTimeout(paintWake, 0);   // the card has just been written; fill in its status line
+    render(p => mine.indexOf(p.id) >= 0
+      ? openBtn(grant.token, until)
+      : lockedBox("<strong>Not on your account yet.</strong> You have access to the other " +
+          "project but not this one. Ask your trainer to add it, or redeem a code below.",
+          '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
+    return;
+  }
+
+  // Signed in, but nothing granted.
+  const why = grant && grant.reason === "no active access"
+    ? "<strong>Projects are assigned to your account.</strong> Your trainer can add a project " +
+      "by email, or you can redeem a code below. Module 1 of the course is free to preview."
+    : "<strong>No project on your account yet.</strong> " +
+      escapeHtml((grant && grant.reason) || "Ask your trainer to add one, or redeem a code below.");
+  render(() => lockedBox(why,
+    '<a class="btn btn-primary" href="pricing.html">See plans</a>' +
+    '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
+})();
+</script>
+</body>
+</html>
