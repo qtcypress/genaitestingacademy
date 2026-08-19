@@ -1,0 +1,75 @@
+# Keep the TripSage console warm.
+#
+# The console runs on a Render free instance, which stops after 15 minutes with no
+# traffic and then takes about a minute to boot again. A student clicking "Open
+# project" in the middle of that minute sees a blank tab, decides the project is
+# broken, and does not click again. This workflow buys back that minute by making
+# sure the instance is never idle for 15 minutes in the first place.
+#
+# Two things worth knowing before relying on it:
+#
+#   * Render's free tier includes 750 instance-hours per month. Running continuously
+#     uses about 730 of them, so this fits — but it leaves almost nothing for any
+#     other free service on the same Render account.
+#   * GitHub does not promise punctual cron. Scheduled runs are delayed when Actions
+#     is busy, and delays of five to fifteen minutes are ordinary. That is why the
+#     schedule is every 10 minutes and each run pings twice, five minutes apart:
+#     one late run still lands inside Render's 15-minute window.
+#
+# One more silent failure mode: GitHub disables scheduled workflows on a repository
+# with no activity for 60 days, without saying so anywhere a student would notice. If
+# the console starts feeling slow again after a quiet stretch, check Actions → Keep
+# console awake and press "Enable workflow".
+#
+# Actions minutes are unlimited on public repositories. On a private repository the
+# Free plan gives 2,000 minutes a month and GitHub bills every job as at least one
+# whole minute, so this schedule would run past that allowance — on a private repo,
+# use an external pinger (cron-job.org, UptimeRobot) instead, which costs nothing.
+
+name: Keep console awake
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:        # so you can wake it by hand before a class starts
+
+permissions:
+  contents: read            # this workflow reads nothing and writes nothing
+
+concurrency:
+  group: keep-console-awake
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CONSOLE: https://tripsage-rag-console.onrender.com
+    steps:
+      - name: Ping the console
+        run: |
+          # A cold instance can take a minute to answer, so a single fast curl would
+          # report failure exactly when the ping is doing its job. Three attempts with
+          # a generous timeout; the step fails only if the service is genuinely gone,
+          # which is worth an email. One slow boot is not.
+          ping() {
+            for attempt in 1 2 3; do
+              start=$(date +%s)
+              if body=$(curl -fsS --max-time 90 "$CONSOLE/healthz"); then
+                echo "attempt $attempt: awake in $(( $(date +%s) - start ))s — $body"
+                return 0
+              fi
+              echo "attempt $attempt: no answer after $(( $(date +%s) - start ))s"
+              sleep 15
+            done
+            echo "::error::$CONSOLE/healthz did not answer after 3 attempts"
+            return 1
+          }
+
+          ping
+
+          # Second ping five minutes in. A GitHub cron that fires late still leaves the
+          # instance touched inside Render's 15-minute idle window.
+          sleep 300
+          ping
