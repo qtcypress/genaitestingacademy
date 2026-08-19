@@ -844,7 +844,27 @@ const PROJECTS = [
   ["agents", "MCP agent project", "plans a trip and spends money"],
 ];
 const PROJ_KEY = "qt-console-project";
-let PROJECT = sessionStorage.getItem(PROJ_KEY) || "rag";
+
+/* Which project to open, in priority order:
+     1. ?p= in the URL — the student just clicked a specific project on the LMS
+        projects page, and that click is the most recent statement of intent there is.
+     2. sessionStorage — they switched tabs in here earlier and reloaded.
+     3. rag, as the default.
+   Without step 1 this defaulted to whatever was in sessionStorage, so pressing Open
+   on the MCP agent project could land you on the RAG tab depending on what you had
+   looked at before. Clicking one project and arriving at another is the kind of bug
+   a student reads as "the site is broken" rather than reporting.
+   The value is checked against the known ids rather than trusted, so a crafted ?p=
+   selects nothing instead of reaching the renderer. A project the student's token
+   does not cover is corrected in init() against ALLOWED — the URL can ask, it
+   cannot grant. */
+const PROJ_IDS = PROJECTS.map(([k]) => k);
+const askedProject = new URLSearchParams(location.search).get("p");
+let PROJECT = (PROJ_IDS.indexOf(askedProject) >= 0 ? askedProject : null)
+  || sessionStorage.getItem(PROJ_KEY)
+  || "rag";
+if (PROJ_IDS.indexOf(PROJECT) < 0) PROJECT = "rag";
+sessionStorage.setItem(PROJ_KEY, PROJECT);
 
 let ALLOWED = null;                    // set from /api/versions; null = everything
 
