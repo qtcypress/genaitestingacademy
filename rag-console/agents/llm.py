@@ -169,7 +169,7 @@ def _spend(session_id):
     _shared_used[session_id] = used + 1
 
 
-UA = "TripSageConsole/1.0 (QT GenAI Testing Academy; +https://genaitesting.online)"
+UA = "TripSageConsole/1.0 (GenAITesting; +https://genaitesting.online)"
 
 
 # Groq's free tier limits tokens *per minute*, and a Concierge run spends most
