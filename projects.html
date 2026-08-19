@@ -38,6 +38,35 @@
     padding:16px 18px;font-size:14.5px}
   .stack{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:4px}
   .tech{font-size:11.5px;color:var(--slate-soft);margin-top:14px}
+
+  /* Project tabs — the same strip the console shows at its top, deliberately
+     identical so that choosing a project here and arriving there feels like one
+     product rather than two. Copied rule for rule from server.py's .projtabs. */
+  .projtabs{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}
+  .projtabs button{flex:1 1 240px;text-align:left;background:var(--paper);
+    border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;
+    padding:14px 16px;cursor:pointer;font:inherit;box-shadow:var(--shadow);
+    transition:border-color .15s ease}
+  .projtabs button:hover{border-color:#c9c9c9;border-left-color:var(--orange)}
+  .projtabs button b{display:block;font-size:14px;color:var(--navy)}
+  .projtabs button span{display:block;font-size:12px;color:#777;margin-top:2px}
+  .projtabs button.on{background:var(--navy);border-color:var(--navy);
+    border-left-color:var(--orange)}
+  .projtabs button.on b{color:#fff}
+  .projtabs button.on span{color:#c9d4e6}
+  /* Unlike the console, this page lists every project rather than only the ones
+     you can open — it is the page where you find out the other one exists and ask
+     for it. So a tab you cannot open says so instead of being hidden. */
+  .projtabs button .tag-locked{display:inline-block;margin-top:6px;font-size:10px;
+    font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a6d3b;
+    background:var(--amber-tint);border-radius:999px;padding:2px 8px}
+  .projtabs button.on .tag-locked{color:#3b2f14;background:var(--amber)}
+  /* The console opens each project with a "What you are testing here" callout.
+     Same callout, same words, same position. */
+  .whatbox{background:var(--cream);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin:0 0 16px;font-size:13.5px;line-height:1.6}
+  .whatbox b{color:var(--navy)}
+  .whatbox .other{color:var(--slate-soft)}
 </style>
 </head>
 <body>
@@ -134,7 +163,7 @@
       note: "Pick a version and work the tabs: <b>Ask</b> it questions, run the <b>red and blue " +
             "team</b> suites case by case, add your own files, inspect chunks and Hit@k in " +
             "<b>Vector DB</b>, and read the trace in <b>Logs</b>.",
-      tech: "What you test here is accuracy: what was retrieved, and whether the answer stayed inside it."
+      tech: "accuracy — what was retrieved, and whether the answer stayed inside it."
     },
     agents: {
       items: [
@@ -147,32 +176,62 @@
       note: "Plan a trip and read the flow across agents, the ReAct steps and the tool-call audit " +
             "log, then run <b>64 test cases</b> — 23 blue team, 26 red team including six MCP " +
             "tool-poisoning attacks, and 15 observability, planning and ReAct checks.",
-      tech: "What you test here is authority: one invariant protects the rest — no money is spent " +
+      tech: "authority — one invariant protects all the others: no money is spent " +
             "without explicit human confirmation."
     }
   };
 
-  const projCard = (p, n, total, bodyHtml) => {
+  /* Which project is showing. Persisted so a reload — or coming back from the
+     console — puts you where you were, and reflected into the Open link so the
+     console opens the same project you picked here. */
+  const PROJ_KEY = "qt-projects-tab";
+
+  const projTabs = (cat, cur, unlocked) =>
+    cat.length < 2 ? "" : `<div class="projtabs">${cat.map(p => {
+      const locked = unlocked && unlocked.indexOf(p.id) < 0;
+      return `<button class="${p.id === cur ? "on" : ""}" data-proj="${escapeHtml(p.id)}">
+        <b>${escapeHtml(p.title)}</b>
+        <span>${escapeHtml(p.subtitle || "")}</span>
+        ${locked ? '<span class="tag-locked">Not on your account</span>' : ""}
+      </button>`;
+    }).join("")}</div>`;
+
+  /* The console tells you what kind of system you are looking at before you touch
+     it, and contrasts it with the other tab, because "accuracy" and "authority"
+     are different jobs and confusing them is the commonest mistake here. Same
+     sentence, same place. */
+  const whatBox = (p, other) => {
+    const d = DETAIL[p.id] || {};
+    if (!d.tech) return "";
+    return `<div class="whatbox"><b>What you are testing here:</b> ${escapeHtml(d.tech)}
+      ${other ? `<span class="other">The other tab, <b>${escapeHtml(other.title)}</b>, is a
+        different kind of system — ${escapeHtml(other.subtitle || "")}.</span>` : ""}</div>`;
+  };
+
+  const projPanel = (p, other, bodyHtml) => {
     const d = DETAIL[p.id] || {items: [], note: "", tech: ""};
     return `<div class="proj">
       <div class="proj-head">
-        <div class="muted" style="font-size:11px;font-weight:800;letter-spacing:.08em;
-          text-transform:uppercase;margin-bottom:6px">Project ${n} of ${total}</div>
         <h2>${escapeHtml(p.title)}${p.subtitle ? " — " + escapeHtml(p.subtitle) : ""}</h2>
-        <p class="muted" style="margin:0">${escapeHtml(p.blurb || "")}</p>
       </div>
       <div class="proj-body">
+        ${whatBox(p, other)}
+        <p class="muted" style="margin:0 0 16px">${escapeHtml(p.blurb || "")}</p>
         ${d.items.length ? `<div class="vlist">${d.items.map(([t, x]) =>
           `<div class="vitem"><b>${escapeHtml(t)}</b><span>${escapeHtml(x)}</span></div>`).join("")}</div>` : ""}
         ${d.note ? `<p class="muted" style="margin:0 0 16px;font-size:13.5px">${d.note}</p>` : ""}
         ${bodyHtml}
-        ${d.tech ? `<p class="tech">${escapeHtml(d.tech)}</p>` : ""}
       </div></div>`;
   };
 
-  const openBtn = (token, until) => `
+  /* ?p= names the project. Without it the console fell back to whatever was in its
+     own sessionStorage, so pressing Open on the MCP agent project could land the
+     student on the RAG tab depending on what they had looked at previously. The
+     token still decides what they may open; this only decides what they see first. */
+  const openBtn = (token, until, projId) => `
     <div class="stack">
-      <a class="btn btn-primary" href="${escapeHtml(CONSOLE_URL + "/?t=" + encodeURIComponent(token))}"
+      <a class="btn btn-primary" href="${escapeHtml(CONSOLE_URL + "/?t=" + encodeURIComponent(token)
+           + "&p=" + encodeURIComponent(projId))}"
          target="_blank" rel="noopener">Open ↗</a>
       <a class="btn btn-ghost" href="app.html">Back to my course</a>
     </div>
@@ -226,9 +285,29 @@
     if (data && data.length) catalogue = data;
   } catch (e) { /* table not created yet — FALLBACK stands */ }
 
-  const render = (bodyFor) => {
-    out.innerHTML = catalogue.map((p, i) =>
-      projCard(p, i + 1, catalogue.length, bodyFor(p))).join("") + codeBox();
+  /* One project at a time, chosen by the tab strip — the console's shape. The
+     previous version stacked every project down the page, which is why the two
+     areas looked like different products.
+     `unlocked` is null until we know what the student may open, so the tabs do not
+     flash a "Not on your account" badge at someone who does have access. */
+  let CURRENT = sessionStorage.getItem(PROJ_KEY);
+  if (!catalogue.some(p => p.id === CURRENT)) CURRENT = (catalogue[0] || {id: "rag"}).id;
+
+  const render = (bodyFor, unlocked) => {
+    const cur = catalogue.find(p => p.id === CURRENT) || catalogue[0];
+    if (!cur) { out.innerHTML = codeBox(); wireCode(); return; }
+    const other = catalogue.find(p => p.id !== cur.id) || null;
+    out.innerHTML = projTabs(catalogue, cur.id, unlocked)
+      + projPanel(cur, other, bodyFor(cur)) + codeBox();
+    out.querySelectorAll("[data-proj]").forEach(b => b.onclick = () => {
+      if (b.dataset.proj === CURRENT) return;
+      CURRENT = b.dataset.proj;
+      sessionStorage.setItem(PROJ_KEY, CURRENT);
+      render(bodyFor, unlocked);
+      /* The status line lives inside the panel we just replaced, so repaint it
+         rather than leaving the new panel with an empty line where it belongs. */
+      paintWake();
+    });
     wireCode();
   };
 
@@ -269,10 +348,10 @@
     const until = grant.expires_at ? new Date(grant.expires_at) : null;
     setTimeout(paintWake, 0);   // the card has just been written; fill in its status line
     render(p => mine.indexOf(p.id) >= 0
-      ? openBtn(grant.token, until)
+      ? openBtn(grant.token, until, p.id)
       : lockedBox("<strong>Not on your account yet.</strong> You have access to the other " +
           "project but not this one. Ask your trainer to add it, or redeem a code below.",
-          '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
+          '<a class="btn btn-ghost" href="app.html">Back to my course</a>'), mine);
     return;
   }
 
