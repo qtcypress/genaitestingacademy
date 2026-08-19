@@ -1,6 +1,6 @@
 # Testing GenAI Systems — the TripSage projects
 
-**A handout for students of the QT GenAI Testing Academy.**
+**A handout for students of GenAITesting.**
 
 You are going to test two systems in this course. Not read about them — open them, attack them,
 and write up what you find. This handout explains what they are, why they are built the way they

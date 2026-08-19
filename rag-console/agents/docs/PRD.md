@@ -2,11 +2,11 @@
 
 **Product:** an MCP-based multi-agent system that plans, books and supports a complete trip
 inside a stated budget.
-**Audience for this document:** students of the QT GenAI Testing Academy, who will test this
+**Audience for this document:** students of GenAITesting, who will test this
 system rather than build it. It is written the way a real PRD is written, because reading a real
 PRD and deriving tests from it is part of the exercise.
 
-**Status:** v1.0, 10 Aug 2026 · **Owner:** Quality Thought · **Reviewers:** engineering, QA
+**Status:** v1.0, 10 Aug 2026 · **Owner:** GenAITesting · **Reviewers:** engineering, QA
 
 ---
 
