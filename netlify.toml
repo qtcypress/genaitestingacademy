@@ -8,6 +8,11 @@
 [build]
   command = "bash scripts/build-site.sh _site"
   publish = "_site"
+  # A production deploy costs 15 of the 300 free credits a month — twenty deploys,
+  # and this repo holds the migrations, the edge functions and the rag-console
+  # service as well as the site. This hook skips the build when nothing that can
+  # reach _site changed. Exit 0 skips, exit 1 builds; it errs towards building.
+  ignore = "bash scripts/should-build.sh"
 
 [build.environment]
   PYTHON_VERSION = "3.11"
