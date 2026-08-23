@@ -1,0 +1,31 @@
+# Netlify builds the site from the repository rather than from a dragged zip.
+#
+# publish is _site, not ".", deliberately: the repo root also contains the database
+# schema, the edge functions, the rag-console service and the page generators, none
+# of which should be on the public internet. scripts/build-site.sh copies only the
+# curated list and refuses to finish if any .sql, .py, .md or .ts file ends up in
+# the output.
+[build]
+  command = "bash scripts/build-site.sh _site"
+  publish = "_site"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+
+# The service worker and the sitemap must never be served stale — a cached sw.js
+# keeps an old app shell alive on returning students' devices for as long as the
+# cache lives, which is the one file where a stale copy is self-perpetuating.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sitemap.xml"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
