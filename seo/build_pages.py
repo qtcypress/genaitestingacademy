@@ -142,7 +142,7 @@ def tail(active, rel=""):
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="{rel}config.js"></script>
 <script src="{rel}app.js"></script>
-<script>renderTopbar("{active}");</script>
+<script>renderTopbar("{active}", "{rel}");</script>
 </body>
 </html>
 """
