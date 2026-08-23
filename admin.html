@@ -41,7 +41,88 @@
     <button class="btn btn-ghost btn-sm" data-tab="students">👥 Students</button>
     <button class="btn btn-ghost btn-sm" data-tab="projects">🧪 Projects &amp; Access</button>
     <button class="btn btn-ghost btn-sm" data-tab="billing">💳 Pricing &amp; Payments</button>
+    <button class="btn btn-ghost btn-sm" data-tab="seo">🔎 SEO assistant</button>
   </div>
+
+
+  <!-- ============ SEO ASSISTANT ============ -->
+  <section id="tab-seo" style="display:none">
+
+    <!-- The checklist exists because SEO does not fail from ignorance, it fails from
+         forgetting. State lives in the database rather than the tab, so the answer to
+         "where was I" survives closing the browser and moving machine. -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Step by step — what to do next</h3>
+      <p class="muted" style="margin:0 0 14px;font-size:13.5px">
+        Work down the list. Anything greyed out is waiting on the step above it —
+        submitting a sitemap before the site is verified simply fails. Weekly and
+        monthly items come back on their own, which is the whole point.
+      </p>
+      <div id="seoList"><span class="spin"></span></div>
+    </div>
+
+    <!-- The composer. Every field shows its own SEO limit as you type, because a
+         title that is four characters too long is invisible until Google truncates
+         it in public. -->
+    <div class="card" style="margin-bottom:16px">
+      <h3 style="margin-top:0">Write a blog post</h3>
+      <p class="muted" style="margin:0 0 14px;font-size:13.5px">
+        Paste a link to an article, a doc page or a blog you want to respond to. The
+        assistant reads it and drafts a post in your voice — then you edit it until it
+        sounds like you, and publish. Nothing goes live until you press Publish.
+      </p>
+
+      <label class="f">Reference link <span class="muted" style="font-weight:400">(optional — leave blank to write from scratch)</span></label>
+      <div class="stack" style="display:flex;gap:8px;flex-wrap:wrap">
+        <input class="f" id="seo_src" placeholder="https://example.com/an-article-about-rag-testing" style="flex:1 1 340px">
+        <button class="btn btn-primary" id="seo_draft">Draft it</button>
+      </div>
+      <div id="seo_draftMsg" class="muted" style="margin-top:10px;font-size:13px"></div>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+
+      <label class="f">Title <span class="muted" id="ct_title">0 / 60</span></label>
+      <input class="f" id="seo_title" maxlength="70" placeholder="How to detect LLM hallucinations in testing">
+
+      <label class="f">Meta description <span class="muted" id="ct_desc">0 / 155</span></label>
+      <textarea class="f" id="seo_desc" rows="2" maxlength="170"
+        placeholder="What this post answers, in one sentence somebody would click."></textarea>
+
+      <div class="grid2">
+        <div>
+          <label class="f">URL slug</label>
+          <input class="f" id="seo_slug" placeholder="how-to-detect-llm-hallucinations">
+        </div>
+        <div>
+          <label class="f">Search keywords <span class="muted" style="font-weight:400">(comma separated)</span></label>
+          <input class="f" id="seo_kw" placeholder="LLM hallucination detection, RAG faithfulness">
+        </div>
+      </div>
+      <p class="muted" style="font-size:12.5px;margin:6px 0 0">
+        These go into the page's Article schema, not a meta keywords tag — Google has
+        ignored that tag since 2009 and Bing treats it as a spam signal. What actually
+        counts is the same words appearing in the title, the first paragraph and the
+        headings, so put them there too.
+      </p>
+
+      <label class="f" style="margin-top:14px">Body <span class="muted" id="ct_body">0 words</span></label>
+      <textarea class="f" id="seo_body" rows="16" spellcheck="true"
+        placeholder="HTML. Use &lt;h2&gt; for each question the post answers and &lt;p class=&quot;lead&quot;&gt; for paragraphs."></textarea>
+
+      <div id="seo_checks" style="margin:14px 0"></div>
+
+      <div class="stack" style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="seo_save">Save draft</button>
+        <button class="btn btn-primary" id="seo_publish">Publish to the website</button>
+      </div>
+      <div id="seo_pubMsg" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-top:0">Drafts and published posts</h3>
+      <div id="seo_drafts"><span class="spin"></span></div>
+    </div>
+  </section>
 
   <!-- ============ CURRICULUM ============ -->
   <section id="tab-curriculum">
@@ -280,14 +361,266 @@
   document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
     document.querySelectorAll(".tabs button").forEach(x => x.className = "btn btn-ghost btn-sm");
     b.className = "btn btn-navy btn-sm";
-    ["curriculum","materials","exams","students","billing","projects"].forEach(t =>
+    ["curriculum","materials","exams","students","billing","projects","seo"].forEach(t =>
       document.getElementById("tab-" + t).style.display = (t === b.dataset.tab ? "" : "none"));
     if (b.dataset.tab === "students") loadStudents();
     if (b.dataset.tab === "exams") loadQuizzes();
     if (b.dataset.tab === "materials") loadMaterials();
     if (b.dataset.tab === "billing") loadBilling();
     if (b.dataset.tab === "projects") loadProjects();
+    if (b.dataset.tab === "seo") loadSeo();
   });
+
+
+  /* ================= SEO ASSISTANT =================
+     Two jobs. The checklist answers "what should I do next", and remembers the
+     answer in the database so it survives a closed tab. The composer writes a post
+     and checks it against the rules that are invisible until they bite — a title
+     four characters too long looks fine here and gets truncated in public. */
+
+  const SEO_LIMITS = { titleMax: 60, descMax: 155, descMin: 80, bodyMinWords: 200 };
+
+  async function loadSeo() {
+    await Promise.all([loadSeoChecklist(), loadSeoDrafts()]);
+    wireComposer();
+  }
+
+  async function loadSeoChecklist() {
+    const box = document.getElementById("seoList");
+    const { data, error } = await sb.rpc("seo_checklist");
+    if (error) {
+      box.innerHTML = `<div class="locked"><strong>The checklist needs its migration.</strong>
+        Run <code>schema-10-seo-assistant.sql</code> in the Supabase SQL editor, then reload.
+        <span class="muted">(${escapeHtml(error.message)})</span></div>`;
+      return;
+    }
+    const rows = data || [];
+    const todo = rows.filter(t => t.due && !t.blocked);
+    const blocked = rows.filter(t => t.due && t.blocked);
+    const done = rows.filter(t => !t.due);
+
+    const card = (t, state) => {
+      const cadence = t.cadence === "once" ? "" :
+        `<span class="mod-tag">${escapeHtml(t.cadence)}</span>`;
+      const link = t.link
+        ? `<a class="btn btn-ghost btn-sm" href="${escapeHtml(t.link)}" target="_blank" rel="noopener">Open ↗</a>`
+        : "";
+      const act = state === "done"
+        ? `<span class="pill pill-done">done ${t.done_at ? new Date(t.done_at).toLocaleDateString() : ""}</span>`
+        : state === "blocked"
+          ? `<span class="mod-tag">waiting on the step above</span>`
+          : `<button class="btn btn-primary btn-sm" data-seodone="${escapeHtml(t.id)}">Mark done</button>`;
+      return `<div class="proj" style="margin-bottom:10px;opacity:${state === "blocked" ? ".55" : "1"}">
+        <div class="proj-body" style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap">
+            <b style="color:var(--navy);font-size:15px">${escapeHtml(t.title)}</b>
+            <span style="display:flex;gap:8px;align-items:center">${cadence}${link}${act}</span>
+          </div>
+          <p class="muted" style="margin:8px 0 0;font-size:13.5px">${escapeHtml(t.why)}</p>
+          ${t.how ? `<details style="margin-top:8px"><summary class="muted" style="font-size:13px;cursor:pointer">How</summary>
+            <pre style="white-space:pre-wrap;font-size:12.5px;background:var(--cream);border:1px solid var(--line);
+              border-radius:8px;padding:10px 12px;margin:8px 0 0">${escapeHtml(t.how)}</pre></details>` : ""}
+        </div></div>`;
+    };
+
+    box.innerHTML =
+      (todo.length
+        ? `<p class="muted" style="font-size:12.5px;font-weight:700;letter-spacing:.06em;
+             text-transform:uppercase;margin:0 0 8px">Do next</p>` + todo.map(t => card(t, "todo")).join("")
+        : `<div class="locked" style="margin-bottom:14px"><strong>Nothing due.</strong>
+             The weekly and monthly items will reappear on their own.</div>`)
+      + (blocked.length ? `<p class="muted" style="font-size:12.5px;font-weight:700;letter-spacing:.06em;
+             text-transform:uppercase;margin:18px 0 8px">Waiting</p>` + blocked.map(t => card(t, "blocked")).join("") : "")
+      + (done.length ? `<details style="margin-top:18px"><summary class="muted" style="cursor:pointer">
+             ${done.length} done</summary><div style="margin-top:10px">`
+             + done.map(t => card(t, "done")).join("") + `</div></details>` : "");
+
+    box.querySelectorAll("[data-seodone]").forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      const { error } = await sb.rpc("seo_task_done", { p_id: b.dataset.seodone });
+      if (error) { showToast(error.message, true); b.disabled = false; return; }
+      showToast("Marked done.");
+      loadSeoChecklist();
+    });
+  }
+
+  /* ---------- composer ---------- */
+  const $seo = id => document.getElementById("seo_" + id);
+
+  function slugify(t) {
+    return String(t || "").toLowerCase().normalize("NFKD")
+      .replace(/[^a-z0-9\s-]/g, "").trim().replace(/\s+/g, "-").slice(0, 80);
+  }
+
+  function seoCounts() {
+    const t = $seo("title").value, d = $seo("desc").value;
+    const words = $seo("body").value.replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+    const paint = (id, n, max, min) => {
+      const el = document.getElementById(id);
+      el.textContent = `${n} / ${max}`;
+      el.style.color = n > max ? "var(--rose)" : (min && n && n < min ? "#8a6d3b" : "var(--slate-soft)");
+    };
+    paint("ct_title", t.length, SEO_LIMITS.titleMax);
+    paint("ct_desc", d.length, SEO_LIMITS.descMax, SEO_LIMITS.descMin);
+    document.getElementById("ct_body").textContent = words + " words";
+    return { t, d, words };
+  }
+
+  /* The checks are advisory except where they are not: over-length title or
+     description is a hard stop, because the build asserts the same limits and a
+     publish that fails the build is worse than one refused here. */
+  function seoChecks() {
+    const { t, d, words } = seoCounts();
+    const kw = $seo("kw").value.split(",").map(s => s.trim()).filter(Boolean);
+    const body = $seo("body").value;
+    const first = (body.match(/<p[^>]*>(.*?)<\/p>/is) || [, ""])[1].replace(/<[^>]*>/g, "");
+    const out = [];
+    const add = (ok, hard, msg) => out.push({ ok, hard, msg });
+
+    add(t.length > 0 && t.length <= SEO_LIMITS.titleMax, true,
+        `Title ${t.length}/${SEO_LIMITS.titleMax} characters`);
+    add(d.length >= SEO_LIMITS.descMin && d.length <= SEO_LIMITS.descMax, true,
+        `Description ${d.length} characters (aim ${SEO_LIMITS.descMin}–${SEO_LIMITS.descMax})`);
+    add(/^[a-z0-9][a-z0-9-]{2,80}$/.test($seo("slug").value), true,
+        "Slug is lowercase words and hyphens");
+    add(words >= SEO_LIMITS.bodyMinWords, false,
+        words >= SEO_LIMITS.bodyMinWords
+          ? `${words} words`
+          : `${words} words — under ${SEO_LIMITS.bodyMinWords} rarely ranks for anything`);
+    add(/<h2[ >]/i.test(body), false,
+        "Has at least one h2 — assistants quote sections, so give them section headings");
+    add(kw.length > 0, false, "At least one keyword");
+    if (kw.length) {
+      const main = kw[0].toLowerCase();
+      add(t.toLowerCase().includes(main.split(" ")[0]), false,
+          `Main keyword appears in the title`);
+      add(first.toLowerCase().includes(main.split(" ")[0]), false,
+          `Main keyword appears in the first paragraph`);
+    }
+    add(/href=['"](?:\.\.?\/|\/|https:\/\/genaitesting\.online\/)/.test(body), false,
+        "Links to at least one other page on the site");
+
+    document.getElementById("seo_checks").innerHTML = out.map(c =>
+      `<div style="font-size:13px;line-height:1.7;color:${c.ok ? "#1d6b34" : (c.hard ? "#9b1c1c" : "#8a6d3b")}">
+        ${c.ok ? "✓" : (c.hard ? "✗" : "!")} ${escapeHtml(c.msg)}</div>`).join("");
+    return out.every(c => c.ok || !c.hard);
+  }
+
+  let composerWired = false;
+  function wireComposer() {
+    if (composerWired) return;
+    composerWired = true;
+
+    ["title", "desc", "body", "kw", "slug"].forEach(f =>
+      $seo(f).addEventListener("input", seoChecks));
+    $seo("title").addEventListener("blur", () => {
+      if (!$seo("slug").value) $seo("slug").value = slugify($seo("title").value);
+      seoChecks();
+    });
+
+    $seo("draft").onclick = async () => {
+      const msg = document.getElementById("seo_draftMsg");
+      const btn = $seo("draft");
+      btn.disabled = true; msg.textContent = "Reading the reference and drafting…";
+      const { data, error } = await invokeFn("seo-draft", {
+        body: { source_url: $seo("src").value.trim() || null },
+      });
+      btn.disabled = false;
+      if (error) {
+        /* The function needs two secrets Ram sets himself. Say which, rather than
+           showing a generic failure that looks like a bug in the page. */
+        msg.innerHTML = error.status === 404
+          ? `<span style="color:#9b1c1c">The drafting function is not deployed yet.</span>
+             Deploy <code>edge-functions/seo-draft</code> and set <code>ANTHROPIC_API_KEY</code>
+             in Supabase → Edge Functions → Secrets. You can still write the post by hand below.`
+          : `<span style="color:#9b1c1c">${escapeHtml(error.friendly || error.message)}</span>`;
+        return;
+      }
+      $seo("title").value = data.title || "";
+      $seo("desc").value = data.description || "";
+      $seo("slug").value = data.slug || slugify(data.title);
+      $seo("kw").value = (data.keywords || []).join(", ");
+      $seo("body").value = data.body_html || "";
+      msg.innerHTML = `<span style="color:#1d6b34">Drafted.</span> Read every line before
+        publishing — it has not been checked by anyone yet.`;
+      seoChecks();
+    };
+
+    $seo("save").onclick = () => saveDraft(false);
+    $seo("publish").onclick = () => saveDraft(true);
+  }
+
+  function composerPayload() {
+    return {
+      slug: $seo("slug").value.trim(),
+      title: $seo("title").value.trim(),
+      description: $seo("desc").value.trim(),
+      keywords: $seo("kw").value.split(",").map(s => s.trim()).filter(Boolean),
+      body_html: $seo("body").value,
+      source_url: $seo("src").value.trim() || null,
+    };
+  }
+
+  async function saveDraft(publish) {
+    const out = document.getElementById("seo_pubMsg");
+    if (!seoChecks()) {
+      out.innerHTML = `<span style="color:#9b1c1c">Fix the ✗ items first — the site build
+        asserts the same limits, so publishing would fail there instead.</span>`;
+      return;
+    }
+    const row = composerPayload();
+    const { error } = await sb.from("seo_drafts").upsert(
+      { ...row, status: "draft" }, { onConflict: "slug" });
+    if (error) { out.innerHTML = `<span style="color:#9b1c1c">${escapeHtml(error.message)}</span>`; return; }
+
+    if (!publish) {
+      out.innerHTML = `<span style="color:#1d6b34">Draft saved.</span> It will still be here
+        if you close this tab.`;
+      loadSeoDrafts();
+      return;
+    }
+
+    out.textContent = "Publishing…";
+    const { data, error: pErr } = await invokeFn("seo-publish", { body: { slug: row.slug } });
+    if (pErr) {
+      out.innerHTML = pErr.status === 404
+        ? `<span style="color:#9b1c1c">The publish function is not deployed yet.</span>
+           Deploy <code>edge-functions/seo-publish</code> and set <code>GITHUB_TOKEN</code>
+           in Supabase → Edge Functions → Secrets. The draft is saved either way.`
+        : `<span style="color:#9b1c1c">${escapeHtml(pErr.friendly || pErr.message)}</span>`;
+      return;
+    }
+    out.innerHTML = `<span style="color:#1d6b34">Committed to the repository.</span>
+      Netlify builds it in a minute or two, then it is live at
+      <code>/blog/${escapeHtml(row.slug)}.html</code>. ${data && data.commit_url
+        ? `<a href="${escapeHtml(data.commit_url)}" target="_blank" rel="noopener">See the commit ↗</a>` : ""}`;
+    loadSeoDrafts();
+    loadSeoChecklist();     // publishing satisfies the weekly task
+  }
+
+  async function loadSeoDrafts() {
+    const box = document.getElementById("seo_drafts");
+    const { data, error } = await sb.from("seo_drafts")
+      .select("slug,title,status,updated_at,published_at").order("updated_at", { ascending: false }).limit(30);
+    if (error) { box.innerHTML = `<span class="muted">${escapeHtml(error.message)}</span>`; return; }
+    if (!data || !data.length) { box.innerHTML = `<p class="muted" style="margin:0">Nothing yet.</p>`; return; }
+    box.innerHTML = `<div class="modlist">` + data.map(d => `
+      <div class="mod">
+        <span class="mod-n">${d.status === "published" ? "live" : d.status}</span>
+        <span class="mod-t">${escapeHtml(d.title)}</span>
+        <span class="mod-s">/blog/${escapeHtml(d.slug)}.html · updated ${new Date(d.updated_at).toLocaleDateString()}</span>
+        <button class="btn btn-ghost btn-sm" data-seoedit="${escapeHtml(d.slug)}">Edit</button>
+      </div>`).join("") + `</div>`;
+    box.querySelectorAll("[data-seoedit]").forEach(b => b.onclick = async () => {
+      const { data: row } = await sb.from("seo_drafts").select("*").eq("slug", b.dataset.seoedit).single();
+      if (!row) return;
+      $seo("title").value = row.title; $seo("desc").value = row.description;
+      $seo("slug").value = row.slug; $seo("kw").value = (row.keywords || []).join(", ");
+      $seo("body").value = row.body_html; $seo("src").value = row.source_url || "";
+      seoChecks();
+      document.getElementById("seo_title").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   /* ================= COURSES ================= */
   async function loadCourses() {
