@@ -1,0 +1,72 @@
+# Daily SEO watchdog.
+#
+# Why here and not in a Cowork scheduled task: the Cowork cloud sandbox cannot reach
+# genaitesting.online, google.com, bing.com or api.indexnow.org. Of seven hosts
+# tested, only api.github.com answered. Actions has real network access, costs
+# nothing on a public repository, and runs whether or not anyone's laptop is on.
+#
+# What it protects against is a specific, observed failure pattern: SEO breakage is
+# silent. A page that quietly becomes noindex, a canonical that drifts, a 404
+# sitemap — none of these throw an error, none show up while clicking round the
+# site, and all of them were found on this site by hand rather than by anything
+# telling us. This turns "someone eventually noticed" into "the build went red the
+# next morning".
+#
+# It reports by failing. GitHub emails the repository owner on a failed scheduled
+# run, so no extra notification plumbing is needed.
+
+name: SEO watchdog
+
+on:
+  schedule:
+    - cron: "30 2 * * *"      # 08:00 IST, before the working day
+  push:
+    branches: [main]
+    paths:
+      - "*.html"
+      - "app.css"
+      - "app.js"
+      - "robots.txt"
+      - "sitemap.xml"
+      - "seo/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-watchdog
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the live site
+        run: python3 seo/check_live.py
+
+      # A push that changed the site is exactly when Bing should be told. Doing it
+      # here rather than in a separate workflow means it can only run after the
+      # checks pass — we should not be advertising a page we just broke.
+      - name: Tell IndexNow about the change
+        if: github.event_name == 'push'
+        run: |
+          KEY=$(grep -oP 'INDEXNOW_KEY = "\K[0-9a-f]{32}' seo/build.py)
+          if [ -z "$KEY" ]; then echo "::warning::no IndexNow key found, skipping"; exit 0; fi
+          # The key file is the proof of ownership; if it is not being served there
+          # is no point submitting, and a silent 403 would look like success.
+          if ! curl -fsS "https://genaitesting.online/$KEY.txt" | grep -q "$KEY"; then
+            echo "::error::IndexNow key file is not serving — submissions would be rejected"; exit 1
+          fi
+          for u in "" genai-testing-course.html python-dsa-course.html faq.html \
+                   pricing.html projects.html verify.html; do
+            full="https://genaitesting.online/$u"
+            code=$(curl -s -o /dev/null -w "%{http_code}" \
+              "https://api.indexnow.org/indexnow?url=$(printf %s "$full" | jq -sRr @uri)&key=$KEY&keyLocation=https://genaitesting.online/$KEY.txt")
+            echo "  $code  $full"
+            # 200 accepted, 202 accepted-pending-verification; anything else is real
+            case "$code" in 200|202) ;; *) echo "::warning::IndexNow returned $code for $full" ;; esac
+          done

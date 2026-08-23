@@ -1,0 +1,77 @@
+# One content slot a week.
+#
+# The value here is the cadence, not the prose. Ranking for anything competitive
+# needs pages that answer real questions, and the reason sites stall is not that
+# nobody knows this — it is that nothing ever forces the next one to be written.
+# This makes something arrive every Monday that has to be dealt with.
+#
+# Without an ANTHROPIC_API_KEY secret it opens an issue containing a full brief.
+# With one it also drafts the answer and opens a pull request instead. Either way a
+# human reads it before anything reaches the site: unreviewed generated content on
+# a page whose entire value is being trustworthy is a bad trade, and it is how sites
+# earn a manual action from Google.
+
+name: Weekly content slot
+
+on:
+  schedule:
+    - cron: "30 3 * * 1"      # Monday 09:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  slot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Take the next item off the backlog
+        id: slot
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            python3 seo/content_slot.py --draft
+            echo "mode=draft" >> "$GITHUB_OUTPUT"
+          else
+            python3 seo/content_slot.py --brief
+            echo "mode=brief" >> "$GITHUB_OUTPUT"
+          fi
+          # no SLOT_TITLE means the backlog is empty — that is a notice, not a failure
+          if [ ! -f SLOT_TITLE.txt ]; then echo "empty=1" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Rebuild the pages
+        if: steps.slot.outputs.mode == 'draft' && steps.slot.outputs.empty != '1'
+        run: python3 seo/build.py "$(date -u +%Y-%m-%d)"
+
+      - name: Open a pull request with the draft
+        if: steps.slot.outputs.mode == 'draft' && steps.slot.outputs.empty != '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BR="content-slot/$(date -u +%Y-%m-%d)"
+          git config user.name "content-slot"
+          git config user.email "noreply@github.com"
+          git checkout -b "$BR"
+          git add seo/ *.html sitemap.xml
+          git commit -m "$(cat SLOT_TITLE.txt)" -m "Drafted from seo/content-backlog.md. Not reviewed by anyone yet."
+          git push origin "$BR"
+          gh pr create --title "$(cat SLOT_TITLE.txt)" --body-file SLOT_BODY.md --base main --head "$BR"
+
+      - name: Open an issue with the brief
+        if: steps.slot.outputs.mode == 'brief' && steps.slot.outputs.empty != '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue create --title "$(cat SLOT_TITLE.txt)" --body-file SLOT_BODY.md
+          # the backlog line was marked OPEN; keep that in the repo
+          git config user.name "content-slot"
+          git config user.email "noreply@github.com"
+          git add seo/content-backlog.md
+          git commit -m "Mark backlog item as open" || exit 0
+          git push
