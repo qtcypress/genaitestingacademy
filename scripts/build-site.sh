@@ -37,11 +37,13 @@ for f in "${PAGES[@]}" "${ASSETS[@]}"; do
   cp "$f" "$OUT/"
 done
 
-# Blog posts, once there are any. Copied wholesale because each one is a finished
-# static page; the generator writes them and the sitemap already lists them.
+# Blog posts, once there are any — the rendered pages only. blog/posts/*.json is
+# the source the generator reads; publishing it would serve every article twice, once
+# as a page and once as raw data, which is a duplicate-content problem rather than a
+# feature.
 if [ -d blog ]; then
   mkdir -p "$OUT/blog"
-  cp -r blog/. "$OUT/blog/"
+  find blog -maxdepth 1 -name "*.html" -exec cp {} "$OUT/blog/" \;
 fi
 
 # The IndexNow key proves domain ownership to Bing and must keep being served.
