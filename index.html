@@ -99,6 +99,11 @@
 
     <div class="auth-col">
       <div class="auth-card">
+        <div id="startFreeNote" class="start-free" hidden>
+          <strong>One step to Module 1.</strong> It is free in full — no card, nothing
+          to cancel. Use GitHub or Google below and you will be reading it in a few
+          seconds.
+        </div>
         <div class="auth-tabs" role="tablist">
           <button role="tab" id="tabIn" aria-selected="true" onclick="showTab('in')">Sign in</button>
           <button role="tab" id="tabUp" aria-selected="false" onclick="showTab('up')">Create account</button>
@@ -262,6 +267,11 @@
   // already logged in? go straight through
   getSession().then(s => { if (s) location.href = NEXT; });
 
+  /* Arrived from a "Start free" link on a course page. Say why they are here and
+     open Create account rather than Sign in — a guest who has just read a syllabus
+     and pressed a free CTA is not usually somebody with an existing password. */
+  const startFree = new URLSearchParams(location.search).get("start") === "free";
+
   const PANES = { in: "formIn", up: "formUp", reset: "formReset" };
 
   function showTab(which) {
@@ -269,6 +279,12 @@
     document.getElementById("tabIn").setAttribute("aria-selected", which !== "up");
     document.getElementById("tabUp").setAttribute("aria-selected", which === "up");
     msg("");
+  }
+
+  if (startFree) {
+    const note = document.getElementById("startFreeNote");
+    if (note) note.hidden = false;
+    showTab("up");
   }
 
   function togglePw(id, btn) {
