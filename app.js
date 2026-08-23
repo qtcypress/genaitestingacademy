@@ -202,7 +202,12 @@ async function logout() {
 }
 
 /* ---------- top bar ---------- */
-async function renderTopbar(active) {
+/* `rel` prefixes every link and the logo. Pages one directory down — the blog —
+   pass "../". Without it the topbar on a post points at /blog/app.html and the
+   logo at /blog/logo.svg, so every link 404s and the mark renders as a broken
+   image. Root-absolute paths would also fix it, but this repo is still published
+   to GitHub Pages under a subpath, where those would break instead. */
+async function renderTopbar(active, rel = "") {
   const el = document.getElementById("topbar");
   if (!el) return;
   const session = await getSession();
@@ -219,7 +224,7 @@ async function renderTopbar(active) {
     try {
       const { data: p } = await sb.from("profiles").select("role").eq("id", session.user.id).single();
       if (p && p.role === "admin")
-        adminLink = `<a class="navlink ${active === "admin" ? "active" : ""}" href="admin.html">Admin</a>`;
+        adminLink = `<a class="navlink ${active === "admin" ? "active" : ""}" href="${rel}admin.html">Admin</a>`;
     } catch (e) { /* ignore */ }
   }
   /* access badge: days left, or a prompt to subscribe */
@@ -230,26 +235,26 @@ async function renderTopbar(active) {
       const a = (data || [])[0];
       if (a && a.is_admin) accessHtml = `<span class="pill pill-done" style="margin-right:6px">Admin</span>`;
       else if (a && a.has_access) accessHtml =
-        `<a class="navlink" href="pricing.html" title="Extend your access">\u2713 ${a.days_left}d left</a>`;
-      else accessHtml = `<a class="btn btn-primary btn-sm" style="margin-right:8px" href="pricing.html">Unlock full access</a>`;
+        `<a class="navlink" href="${rel}pricing.html" title="Extend your access">\u2713 ${a.days_left}d left</a>`;
+      else accessHtml = `<a class="btn btn-primary btn-sm" style="margin-right:8px" href="${rel}pricing.html">Unlock full access</a>`;
     } catch (e) { /* non-fatal */ }
   }
 
   el.innerHTML = `<div class="topbar-inner">
-    <a class="logo" href="${session ? "app.html" : "index.html"}"><img class="logo-mark" src="logo.svg" alt="" width="26" height="26">${window.QT_CONFIG.SITE_NAME}</a>
+    <a class="logo" href="${rel}${session ? "app.html" : "index.html"}"><img class="logo-mark" src="${rel}logo.svg" alt="" width="26" height="26">${window.QT_CONFIG.SITE_NAME}</a>
     <span class="spacer"></span>
-    ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="app.html">My Course</a>
-    ${window.QT_CONFIG.RAG_CONSOLE_URL ? `<a class="navlink ${active === "projects" ? "active" : ""}" href="projects.html">Projects</a>` : ""}
-    <a class="navlink ${active === "cert" ? "active" : ""}" href="certificate.html">Certificates</a>`
+    ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="${rel}app.html">My Course</a>
+    ${window.QT_CONFIG.RAG_CONSOLE_URL ? `<a class="navlink ${active === "projects" ? "active" : ""}" href="${rel}projects.html">Projects</a>` : ""}
+    <a class="navlink ${active === "cert" ? "active" : ""}" href="${rel}certificate.html">Certificates</a>`
     /* Signed out means either a visitor deciding whether to sign up, or a crawler.
        Both need the course pages to be reachable by a link — a page nobody links to
        is a page search engines treat as unimportant, however good it is. Signed-in
        students get their own course nav instead and do not need the sales pages. */
-    : `<a class="navlink ${active === "genai" ? "active" : ""}" href="genai-testing-course.html">GenAI Testing</a>
-    <a class="navlink ${active === "python" ? "active" : ""}" href="python-dsa-course.html">Python &amp; DSA</a>
-    <a class="navlink ${active === "faq" ? "active" : ""}" href="faq.html">FAQ</a>`}
-    <a class="navlink ${active === "pricing" ? "active" : ""}" href="pricing.html">Pricing</a>
-    <a class="navlink ${active === "verify" ? "active" : ""}" href="verify.html">Verify</a>
+    : `<a class="navlink ${active === "genai" ? "active" : ""}" href="${rel}genai-testing-course.html">GenAI Testing</a>
+    <a class="navlink ${active === "python" ? "active" : ""}" href="${rel}python-dsa-course.html">Python &amp; DSA</a>
+    <a class="navlink ${active === "faq" ? "active" : ""}" href="${rel}faq.html">FAQ</a>`}
+    <a class="navlink ${active === "pricing" ? "active" : ""}" href="${rel}pricing.html">Pricing</a>
+    <a class="navlink ${active === "verify" ? "active" : ""}" href="${rel}verify.html">Verify</a>
     ${adminLink} ${accessHtml} ${userHtml}</div>`;
 }
 
