@@ -1,5 +1,5 @@
 -- ============================================================
--- QT GenAI Testing Academy — Migration 04
+-- GenAITesting — Migration 04
 -- Three levelled exams across all 16 modules.
 -- Basic = recall & concepts · Advanced = application · Expert = judgement.
 -- Each issues its own certificate on a pass. Safe to re-run.

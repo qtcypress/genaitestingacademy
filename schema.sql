@@ -1,5 +1,5 @@
 -- ============================================================
--- QT GenAI Testing Academy — Supabase schema
+-- GenAITesting — Supabase schema
 -- Run this whole file in: Supabase Dashboard → SQL Editor → New query → Run
 -- Safe to re-run (idempotent where possible).
 -- ============================================================

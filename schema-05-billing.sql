@@ -1,5 +1,5 @@
 -- ============================================================
--- QT GenAI Testing Academy — Migration 05
+-- GenAITesting — Migration 05
 -- Paid access: plans (prices held server-side), subscriptions, payments.
 -- Module 1 stays free; modules 2+ and all exams require active access.
 --

@@ -1,5 +1,5 @@
 -- ============================================================
--- QT GenAI Testing Academy — Migration 03
+-- GenAITesting — Migration 03
 -- Seeds the "GenAI Testing" course, its 16 modules with lesson
 -- plans, and re-files the existing materials into those modules.
 -- Safe to re-run (upserts on stable ids).

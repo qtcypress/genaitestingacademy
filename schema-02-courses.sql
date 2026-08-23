@@ -1,5 +1,5 @@
 -- ============================================================
--- QT GenAI Testing Academy — Migration 02
+-- GenAITesting — Migration 02
 -- Adds: courses, modules (with lesson plans), material types,
 --       three exam levels, and one certificate per level.
 -- Safe to re-run.
