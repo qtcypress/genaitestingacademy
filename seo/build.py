@@ -7,6 +7,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from build_pages import SITE, OUT          # noqa: E402
 import pages_genai, pages_python, pages_faq  # noqa: E402
+import blog  # noqa: E402
 
 # (filename, builder, sitemap priority). Only pages that should be indexed appear
 # here — the sitemap is a statement about what we want crawled, so putting a
@@ -96,7 +97,14 @@ def main(lastmod):
         (OUT / name).write_text(html, encoding="utf-8")
         written.append((name, len(html)))
 
-    entries = EXISTING_PUBLIC + [(n, p) for n, _, p in PAGES]
+    # The blog writes its own files and tells us what to put in the sitemap, so a
+    # published post is crawlable the moment it is committed — forgetting the
+    # sitemap entry is the classic way a new post sits unindexed for weeks.
+    posts = blog.write_all()
+    if posts:
+        print(f"  wrote {'blog/index.html':34s} + {len(posts)} post(s)")
+
+    entries = EXISTING_PUBLIC + [(n, p) for n, _, p in PAGES] + blog.sitemap_entries(posts)
     # homepage first, then by descending priority, so the file reads sensibly
     entries.sort(key=lambda e: (-float(e[1]), e[0]))
     (OUT / "sitemap.xml").write_text(sitemap(entries, lastmod), encoding="utf-8")

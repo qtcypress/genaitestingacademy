@@ -83,7 +83,10 @@ def _rendered_len(s):
 
 
 def head(*, path, title, desc, og_title=None, og_desc=None, ld=None,
-         extra_css="", robots=None):
+         extra_css="", robots=None, rel=""):
+    # `rel` prefixes every same-site asset path. Blog posts live one directory down,
+    # so they need "../". Getting this wrong does not error — it silently serves a
+    # page with no stylesheet, which is why it is a parameter rather than a habit.
     # Google truncates a title around 60 characters and a description around 155,
     # and a truncated description is worse than a short one because the sentence
     # that was meant to earn the click gets cut mid-word. Asserting here rather
@@ -108,11 +111,11 @@ def head(*, path, title, desc, og_title=None, og_desc=None, ld=None,
 <title>{title}</title>
 <meta name="description" content="{desc}">
 {robots_tag}<link rel="canonical" href="{url}">
-<link rel="manifest" href="manifest.webmanifest">
+<link rel="manifest" href="{rel}manifest.webmanifest">
 <meta name="theme-color" content="#1F3864">
-<link rel="icon" href="favicon.ico" sizes="32x32">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="{rel}favicon.ico" sizes="32x32">
+<link rel="icon" href="{rel}favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{rel}apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="{BRAND}">
 <meta property="og:title" content="{og_title or title}">
@@ -127,13 +130,25 @@ def head(*, path, title, desc, og_title=None, og_desc=None, ld=None,
 <meta name="twitter:title" content="{og_title or title}">
 <meta name="twitter:description" content="{og_desc or desc}">
 <meta name="twitter:image" content="{SITE}/social-card.png">
-<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="{rel}app.css">
 {ld_block}{extra_css}</head>
 <body>
 <nav class="topbar" id="topbar"></nav>
 """
 
 
+def tail(active, rel=""):
+    return f"""
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="{rel}config.js"></script>
+<script src="{rel}app.js"></script>
+<script>renderTopbar("{active}");</script>
+</body>
+</html>
+"""
+
+
+# Kept so the existing three pages need no edit; new callers should use tail().
 TAIL = """
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
@@ -151,17 +166,17 @@ def crumbs(items):
         for i, (n, u) in enumerate(items)]}
 
 
-def footer(active_note=""):
+def footer(active_note="", rel=""):
     return f"""
 <footer class="site-foot">
   <div class="wrap">
     <p class="muted" style="margin:0 0 10px">
-      <a href="genai-testing-course.html">GenAI Testing course</a> ·
-      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
-      <a href="faq.html">FAQ</a> ·
-      <a href="projects.html">Hands-on projects</a> ·
-      <a href="pricing.html">Pricing</a> ·
-      <a href="verify.html">Verify a certificate</a>
+      <a href="{rel}genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="{rel}python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="{rel}faq.html">FAQ</a> ·
+      <a href="{rel}projects.html">Hands-on projects</a> ·
+      <a href="{rel}pricing.html">Pricing</a> ·
+      <a href="{rel}verify.html">Verify a certificate</a>
     </p>
     <p class="muted" style="margin:0;font-size:12.5px">
       {BRAND} — online training in GenAI, LLM and AI agent application testing,
