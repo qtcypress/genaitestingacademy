@@ -22,6 +22,12 @@ PAGES = [
 EXISTING_PUBLIC = [("", "1.0"), ("pricing.html", "0.8"),
                    ("projects.html", "0.7"), ("verify.html", "0.5")]
 
+# IndexNow lets Bing (and therefore Copilot) be told about new and changed pages
+# without an account, a login or a verification meta tag — the proof of ownership is
+# that this key is readable at the domain root. Google ignores IndexNow, so this
+# does nothing for Google; Search Console is still the only route there.
+INDEXNOW_KEY = "748d1fbebc479643769b06de35ffc7f3"
+
 ROBOTS = """# genaitesting.online
 #
 # Student-only pages are excluded here *and* carry a noindex meta tag. The tag is

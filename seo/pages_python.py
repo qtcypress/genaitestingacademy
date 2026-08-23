@@ -9,6 +9,7 @@ code that runs in the browser with nothing to install, and a genuinely free firs
 phase rather than a free trailer.
 """
 from build_pages import SITE, BRAND, head, TAIL, crumbs, offers, ORG, WEBSITE, footer
+from curriculum import python_syllabus, python_syllabus_ld
 
 TITLE = "Python &amp; DSA Course: 24 Modules, Phase 1 Free | GenAITesting"
 DESC = ("Python and DSA in 24 modules, variables to dynamic programming. Every example "
@@ -50,20 +51,7 @@ COURSE = {
         "courseMode": ["online", "asynchronous"],
         "location": {"@type": "VirtualLocation", "url": SITE + "/app.html"},
     },
-    "syllabusSections": [
-        {"@type": "Syllabus", "name": "Phase 1 — Foundations (Modules 1–4)",
-         "description": "Variables and types, operators, strings, conditionals, loops, lists and tuples, dictionaries and sets, functions. Free with an account."},
-        {"@type": "Syllabus", "name": "Phase 2 — Intermediate Python (Modules 5–8)",
-         "description": "Object-oriented programming, modules and packages, file I/O and error handling, comprehensions, generators and decorators."},
-        {"@type": "Syllabus", "name": "Phase 3 — DSA Foundations (Modules 9–12)",
-         "description": "Complexity analysis, array and string problems, linked lists, stacks and queues with recursion."},
-        {"@type": "Syllabus", "name": "Phase 4 — DSA Core (Modules 13–16)",
-         "description": "Trees, graphs, hashing, sorting and searching algorithms."},
-        {"@type": "Syllabus", "name": "Phase 5 — DSA Advanced (Modules 17–20)",
-         "description": "Dynamic programming, greedy algorithms, backtracking, advanced graph algorithms."},
-        {"@type": "Syllabus", "name": "Phase 6 — Expert (Modules 21–24)",
-         "description": "Concurrency, testing with pytest, packaging, design patterns, performance and a capstone project."},
-    ],
+    "syllabusSections": python_syllabus_ld(),
 }
 
 LD = {"@context": "https://schema.org", "@graph": [
@@ -132,6 +120,8 @@ BODY = """
     </div>
   </section>
 
+  {{SYLLABUS}}
+
   <section class="section">
     <h2>Why the code runs in the browser</h2>
     <p class="lead">
@@ -172,6 +162,8 @@ BODY = """
 
 
 def build():
-    return head(path="python-dsa-course.html", title=TITLE, desc=DESC,
+    return (head(path="python-dsa-course.html", title=TITLE, desc=DESC,
                 og_title="Python & DSA course — 24 modules, code runs in your browser, Phase 1 free",
-                ld=LD) + BODY + footer() + (TAIL % "python")
+                 ld=LD)
+            + BODY.replace("{{SYLLABUS}}", python_syllabus())
+            + footer() + (TAIL % "python"))

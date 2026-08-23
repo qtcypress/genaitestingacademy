@@ -8,6 +8,7 @@ Udemy, Coursera, Testleaf, The Testing Academy and ISTQB CT-AI — all of which
 have a full course page, which is why this page has to exist at all.
 """
 from build_pages import SITE, BRAND, head, TAIL, crumbs, offers, ORG, WEBSITE, footer
+from curriculum import genai_syllabus, genai_syllabus_ld
 
 TITLE = "GenAI &amp; LLM Testing Course for QA Testers | GenAITesting"
 DESC = ("Test LLM, RAG and AI agent applications: hallucination and prompt-injection "
@@ -46,6 +47,7 @@ COURSE = {
         "courseWorkload": "PT93H",
         "location": {"@type": "VirtualLocation", "url": SITE + "/app.html"},
     },
+    "syllabusSections": genai_syllabus_ld(),
     "educationalCredentialAwarded": [
         {"@type": "EducationalOccupationalCredential", "name": "GenAI Testing — Basic Level"},
         {"@type": "EducationalOccupationalCredential", "name": "GenAI Testing — Advanced Level"},
@@ -134,6 +136,8 @@ BODY = """
     </div>
   </section>
 
+  {{SYLLABUS}}
+
   <section class="section">
     <h2 id="projects">You test real running applications, not slides</h2>
     <p class="lead">
@@ -197,6 +201,8 @@ BODY = """
 
 
 def build():
-    return head(path="genai-testing-course.html", title=TITLE, desc=DESC,
+    return (head(path="genai-testing-course.html", title=TITLE, desc=DESC,
                 og_title="GenAI Testing course — LLM, RAG and AI agent testing for QA engineers",
-                ld=LD) + BODY + footer() + (TAIL % "genai")
+                 ld=LD)
+            + BODY.replace("{{SYLLABUS}}", genai_syllabus())
+            + footer() + (TAIL % "genai"))
