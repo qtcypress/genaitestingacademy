@@ -1,0 +1,16 @@
+{
+  "slug": "how-to-detect-llm-hallucinations",
+  "title": "How to detect LLM hallucinations in testing",
+  "description": "Four layered checks that catch a confident, well-written, false answer: grounding, self-consistency, LLM-as-judge, and the unknown-entity probe.",
+  "published": "2026-08-19",
+  "author": "GenAITesting",
+  "keywords": [
+    "LLM hallucination detection",
+    "test LLM output",
+    "grounding check",
+    "self-consistency",
+    "LLM as a judge",
+    "RAG faithfulness"
+  ],
+  "body_html": "    <p class=\"lead\">A hallucination is not a crash. It is a fluent, confident, well-formatted answer that happens to be false, and it passes every check a traditional test suite makes — the status code is 200, the schema validates, the response arrives in time. That is why testers who move to GenAI find their existing suite goes green on the exact bug they were hired to catch.</p>\n\n    <h2>Start with grounding, because it is cheap and decisive</h2>\n    <p class=\"lead\">If the system is meant to answer from documents you supplied, then every factual claim in the output should appear in those documents. Check each claim against the retrieved text and treat anything unsupported as a hallucination, however plausible it reads. This is the strongest signal available and it needs no second model — you already know what was retrieved.</p>\n\n    <h2>Where there is no source text, use self-consistency</h2>\n    <p class=\"lead\">Ask the same question several times at non-zero temperature. Answers that vary on facts which should not vary are a signal, because a model's fabrications are far less stable than the things it genuinely encodes. Stable wrongness still gets through, so this is a supplement rather than a replacement.</p>\n\n    <h2>LLM-as-a-judge scales, but inherits blind spots</h2>\n    <p class=\"lead\">A second model scoring the answer against a reference scales to thousands of cases cheaply. It also brings its own errors, and a judge that shares an architecture with the system under test tends to share its mistakes. Spot-check a sample by hand rather than trusting the score outright.</p>\n\n    <h2>The test that finds the most, fastest</h2>\n    <p class=\"lead\">Ask questions whose correct answer is \"I don't know\" — about products that do not exist, policies never written, people you invented. A system that confidently answers those will confidently answer anything, and this single probe finds more real problems than any metric. If abstention is not designed in, no amount of measuring will add it.</p>"
+}
