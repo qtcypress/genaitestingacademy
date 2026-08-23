@@ -32,6 +32,70 @@ async function requireLogin() {
   return session;
 }
 
+/* ---------- calling an Edge Function without dead-ending ----------
+   A Supabase access token lives about an hour, and the SDK only keeps it fresh
+   while the tab is awake and visible. A page left open over lunch, or a tab the
+   browser suspended and restored, therefore calls an Edge Function with a token
+   the gateway has already stopped accepting. Supabase answers 401
+   (UNAUTHORIZED_ASYMMETRIC_JWT) before the function body ever runs, and
+   functions.invoke reports that to us as the single string
+
+       "Edge Function returned a non-2xx status code"
+
+   which is what a student was being shown. It says nothing about what went wrong
+   or what to do, and it is the same sentence whether their sign-in aged out or the
+   database is on fire.
+
+   So this does two things the raw call does not. It reads what the server actually
+   said, off the Response that FunctionsHttpError carries on `.context`. And when
+   the only problem is a stale token, it refreshes and tries once more, so the
+   common case heals itself and nobody is shown an error at all.
+
+   One retry, not a loop: if the refresh token is dead too, the answer is to sign
+   in again, and retrying cannot discover that any faster. */
+async function invokeFn(name, opts = {}) {
+  const attempt = async () => {
+    const { data, error } = await sb.functions.invoke(name, opts);
+    if (!error) return { data, error: null };
+    let status = null, body = "";
+    const res = error.context;
+    if (res && typeof res.status === "number") {
+      status = res.status;
+      // The SDK has not read the body for a non-2xx, but clone defensively in case
+      // a future version does — a consumed body must not turn into a thrown error
+      // on the path whose whole job is reporting errors clearly.
+      try { body = await (res.clone ? res.clone() : res).text(); } catch (e) { body = ""; }
+    }
+    return { data: null, error: Object.assign(error, { status, body }) };
+  };
+
+  let r = await attempt();
+
+  if (r.error && r.error.status === 401) {
+    let refreshed = null;
+    try { refreshed = (await sb.auth.refreshSession()).data.session; } catch (e) { refreshed = null; }
+    if (refreshed) r = await attempt();
+  }
+
+  if (r.error) {
+    r.error.needsSignIn = r.error.status === 401;
+    r.error.friendly = friendlyFnError(r.error);
+  }
+  return r;
+}
+
+/* The server's own message if it sent one, because "no active access" is worth
+   reading and "non-2xx status code" is not. */
+function friendlyFnError(e) {
+  if (e.needsSignIn) return "Your sign-in has expired.";
+  let msg = "";
+  try { msg = (JSON.parse(e.body || "{}").error) || ""; } catch (x) { msg = ""; }
+  if (msg) return msg;
+  if (e.status >= 500) return "The server had a problem (HTTP " + e.status + ").";
+  if (e.status) return "The server returned HTTP " + e.status + ".";
+  return e.message || "Something went wrong.";
+}
+
 async function getProfile() {
   const session = await requireLogin();
   const { data, error } = await sb.from("profiles").select("*").eq("id", session.user.id).single();

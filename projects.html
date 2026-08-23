@@ -326,16 +326,30 @@
     return;
   }
 
+  /* invokeFn (app.js) refreshes a stale token and retries once before reporting
+     anything, so the usual cause of a failure here — a page left open longer than
+     the hour a Supabase token lives — never reaches the student at all. */
   let grant = null, failure = null;
   try {
-    const { data, error } = await sb.functions.invoke("rag-access");
+    const { data, error } = await invokeFn("rag-access");
     if (error) failure = error; else grant = data;
   } catch (e) { failure = e; }
 
   if (failure) {
-    render(() => lockedBox("<strong>Couldn't check your access just now.</strong> " +
-      escapeHtml(failure.message || String(failure)),
-      '<button class="btn btn-primary" onclick="location.reload()">Try again</button>'));
+    /* An expired sign-in and a broken server are different problems with different
+       answers, and telling a student to "try again" when what they need is to sign
+       in again just makes them press a button that cannot work. */
+    const expired = failure.needsSignIn;
+    render(() => lockedBox(
+      expired
+        ? "<strong>Your sign-in has expired.</strong> Sign in again and you will come " +
+          "straight back to this page."
+        : "<strong>Couldn't check your access just now.</strong> " +
+          escapeHtml(failure.friendly || failure.message || String(failure)),
+      expired
+        ? '<a class="btn btn-primary" href="index.html?next=projects.html">Sign in again</a>'
+        : '<button class="btn btn-primary" onclick="location.reload()">Try again</button>' +
+          '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
     return;
   }
 

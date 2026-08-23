@@ -171,7 +171,7 @@
 
     try {
       // 1. ask our server to create the order (it decides the amount)
-      const { data: order, error: fnErr } = await sb.functions.invoke("razorpay-create-order", {
+      const { data: order, error: fnErr } = await invokeFn("razorpay-create-order", {
         body: { plan_id: planId }
       });
       if (fnErr || !order || order.error) {
@@ -195,7 +195,7 @@
           },
           handler: async (resp) => {
             btn.textContent = "Confirming…";
-            const { data: v, error: vErr } = await sb.functions.invoke("razorpay-verify-payment", {
+            const { data: v, error: vErr } = await invokeFn("razorpay-verify-payment", {
               body: {
                 razorpay_order_id: resp.razorpay_order_id,
                 razorpay_payment_id: resp.razorpay_payment_id,
