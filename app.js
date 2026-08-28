@@ -89,7 +89,12 @@ async function invokeFn(name, opts = {}) {
 function friendlyFnError(e) {
   if (e.needsSignIn) return "Your sign-in has expired.";
   let msg = "";
-  try { msg = (JSON.parse(e.body || "{}").error) || ""; } catch (x) { msg = ""; }
+  // `reason` as well as `error`: a function that answers "no, and here is why"
+  // puts the why in `reason`, and dropping it is how a student ends up reading
+  // "the server returned HTTP 403" instead of "no project has been assigned to
+  // your account". Whatever the function chose to say, say that.
+  try { const b = JSON.parse(e.body || "{}"); msg = b.error || b.reason || ""; }
+  catch (x) { msg = ""; }
   if (msg) return msg;
   if (e.status >= 500) return "The server had a problem (HTTP " + e.status + ").";
   if (e.status) return "The server returned HTTP " + e.status + ".";
