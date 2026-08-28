@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     const missing = pErr.code === "42883" ||
       /could not find the function|does not exist|schema cache/i.test(pErr.message ?? "");
     if (!missing) return json({ error: "could not check projects: " + pErr.message }, 500);
-    if (!access?.has_access) return json({ allowed: false, reason: "no active access" }, 403);
+    if (!access?.has_access) return json({ allowed: false, reason: "no active access" });
     const legacyExpiry = String(Math.floor(Date.now() / 1000) + WINDOW);
     return json({
       allowed: true,
@@ -101,13 +101,21 @@ Deno.serve(async (req) => {
   if (!projects.length) {
     // A paid subscription is course access; it is not project access. Saying so
     // plainly beats handing over a token that opens nothing.
+    //
+    // Answered with 200, deliberately. "Has this student been given a project?"
+    // is a question this function answered successfully; the answer is no. A 403
+    // would say "you may not ask", which is false, and the Supabase SDK turns any
+    // non-2xx into a thrown error — so a 403 here never reached the branch in
+    // projects.html that explains how to get a project, and every student without
+    // one was shown "Couldn't check your access just now. The server returned
+    // HTTP 403" above a Try again button that could not possibly help.
     return json({
       allowed: false,
       reason: access?.has_access
         ? "your subscription is active, but no project has been assigned to your account"
         : "no active access",
       projects: [],
-    }, 403);
+    });
   }
 
   // The scope is inside the signature, so a student cannot widen their own token
