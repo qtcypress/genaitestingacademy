@@ -18,7 +18,7 @@ which needs a sitemap entry too.
 ---
 
 OPEN | faq | What is prompt injection, and how do I test for it? | Direct vs indirect; the indirect case is the one teams miss because the payload arrives inside a retrieved document and never passes through input validation.
-TODO | faq | What is RAGAS and which metrics actually matter? | Faithfulness, answer relevancy, context precision and recall — what each one catches and what it misses. Name the trap: high faithfulness with bad retrieval still means a useless answer.
+OPEN | faq | What is RAGAS and which metrics actually matter? | Faithfulness, answer relevancy, context precision and recall — what each one catches and what it misses. Name the trap: high faithfulness with bad retrieval still means a useless answer.
 TODO | faq | What is Promptfoo and how do I write my first evaluation? | The YAML test case as the unit; why a declarative assertion beats an eyeballed output; how it lands in CI.
 TODO | faq | How do you test an AI agent that calls tools? | Tool selection, refusals, loop and budget limits, hand-offs. The point most people miss: a refusal is a control working, not a bug.
 TODO | faq | DeepEval or Promptfoo — which should I use? | An honest comparison, including when neither is the answer and a plain assertion is enough.
