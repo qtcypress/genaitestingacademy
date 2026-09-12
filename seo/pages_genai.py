@@ -141,7 +141,7 @@ BODY = """
   <section class="section">
     <h2 id="projects">You test real running applications, not slides</h2>
     <p class="lead">
-      Two applications are hosted for you, and you work them from a browser with no
+      Three applications are hosted for you, and you work them from a browser with no
       installation. This is the part that separates the course from a video playlist:
       you are looking at a real system's actual output when you decide whether it is
       a defect.
