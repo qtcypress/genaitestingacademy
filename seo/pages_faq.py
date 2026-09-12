@@ -141,7 +141,7 @@ QA = [
      question separates the useful ones from the rest.
      <a href="genai-testing-course.html">This course</a> is run from Hyderabad and is
      delivered entirely online, so it is the same material whether you are in the city
-     or not — you work two hosted applications from your browser, at your own pace,
+     or not — you work three hosted applications from your browser, at your own pace,
      with nothing to install. Pricing is in rupees and Phase 1 is free, so you can see
      the material before deciding."""),
 
