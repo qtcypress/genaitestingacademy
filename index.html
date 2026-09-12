@@ -73,9 +73,49 @@
 }
 </script>
 <style>
-  .hero-split{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
-  @media (max-width:860px){.hero-split{grid-template-columns:1fr;gap:28px}}
-  .auth-col{display:flex;justify-content:center}
+  .hero-split{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center}
+  @media (max-width:860px){.hero-split{grid-template-columns:1fr;gap:30px}}
+
+  /* The right of the fold used to be a sign-in box. A visitor who has not decided
+     to buy anything yet has no reason to fill one in, so it now shows the thing
+     that actually distinguishes this course: a real, deliberately broken
+     application you attack from the browser. It is plain markup rather than a
+     screenshot so it stays sharp on any display and costs nothing to load. */
+  .peek{background:#101A30;border:1px solid rgba(255,255,255,.14);border-radius:14px;
+        box-shadow:0 18px 40px rgba(0,0,0,.35);overflow:hidden;font-size:13px}
+  .peek-bar{display:flex;align-items:center;gap:6px;padding:9px 12px;
+            background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.1)}
+  .peek-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.22)}
+  .peek-title{margin-left:6px;color:#CFD5E4;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+  .peek-tabs{display:flex;gap:4px;padding:10px 12px 0;flex-wrap:wrap}
+  .peek-tab{padding:5px 11px;border-radius:8px 8px 0 0;font-size:12px;font-weight:600;color:#9FB0CC}
+  .peek-tab.on{background:rgba(255,255,255,.1);color:#fff}
+  .peek-body{padding:14px 16px 18px}
+  .peek-q{color:#fff;font-weight:600;margin:0 0 10px}
+  .peek-a{color:#CFD5E4;margin:0 0 12px;line-height:1.6;font-size:12.5px}
+  .peek-flag{display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:9px;
+             background:rgba(238,76,18,.16);border:1px solid rgba(247,148,32,.45);
+             color:#FFD9A8;font-size:12px;font-weight:600}
+  .peek-foot{margin:12px 0 0;color:#8FA1BE;font-size:11.5px;line-height:1.5}
+
+  /* Trust strip: plain facts, no invented numbers. */
+  .facts{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:26px;
+         padding-top:20px;border-top:1px solid rgba(255,255,255,.14)}
+  .fact b{display:block;color:#fff;font-size:19px;line-height:1.1;font-family:var(--f-head,inherit)}
+  .fact span{color:#9FB0CC;font-size:12px}
+  /* Cards in a row read as one set only if they end on the same line, so the
+     body grows and the call to action sits on the floor of each card. */
+  #specialties .card{display:flex;flex-direction:column}
+  #specialties .card > p.muted{flex:1}
+  #specialties .card .btn{white-space:nowrap}
+
+  .signin-split{display:grid;grid-template-columns:1fr minmax(320px,420px);gap:36px;align-items:start}
+  @media (max-width:860px){.signin-split{grid-template-columns:1fr;gap:24px}}
+  .freelist{list-style:none;padding:0;margin:16px 0 0}
+  .freelist li{position:relative;padding-left:26px;margin:0 0 12px;color:var(--slate);font-size:14.5px;line-height:1.6}
+  .freelist li::before{content:"";position:absolute;left:2px;top:7px;width:12px;height:7px;
+    border-left:2.5px solid var(--orange);border-bottom:2.5px solid var(--orange);
+    transform:rotate(-45deg)}
 </style>
 </head>
 <body>
@@ -84,20 +124,148 @@
 <header class="hero">
   <div class="wrap hero-split">
     <div>
-      <h1>GenAITesting<br><span class="accent">Training &amp; Certification</span></h1>
-      <p><strong style="color:#fff">GenAI Application Testing</strong> — LLM evaluation, red-team
-         testing, prompt engineering, agents &amp; MCP, automation with Promptfoo and
-         DeepEval / RAGAS.<br>
-         <strong style="color:#fff">Python &amp; DSA</strong> — twenty-four modules from variables
-         to dynamic programming. <span class="accent">The first four are free.</span></p>
-      <div style="margin-top:24px;display:flex;gap:12px;flex-wrap:wrap">
-        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="genai-testing-course.html">GenAI Testing course</a>
-        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="python-dsa-course.html">Python &amp; DSA course</a>
-        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="pricing.html">Pricing</a>
+      <p class="hero-eyebrow" style="color:var(--amber)">GenAI · LLM · RAG · AI agents</p>
+      <h1>Test the AI features<br><span class="accent">your product just grew</span></h1>
+      <p>Your test suite goes green and the answer is still wrong. This course is about the
+         gap between those two facts — hallucination detection, prompt injection, RAG
+         retrieval quality, agent tool calls — taught against two real applications you
+         attack from the browser, not slides about them.</p>
+      <p style="margin-top:14px">There is a <strong style="color:#fff">Python &amp; DSA track</strong>
+         too, twenty-four modules from variables to dynamic programming, with every code
+         sample running in the page.</p>
+      <div style="margin-top:26px;display:flex;gap:12px;flex-wrap:wrap">
+        <a class="btn btn-primary" href="#signin" onclick="openSignup()">Start free — Module 1</a>
+        <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="#specialties">See what you'll do</a>
+      </div>
+      <div class="facts">
+        <div class="fact"><b>16 + 24</b><span>modules across two tracks</span></div>
+        <div class="fact"><b>2</b><span>real apps to break</span></div>
+        <div class="fact"><b>Free</b><span>to start, no card</span></div>
       </div>
     </div>
 
-    <div class="auth-col">
+    <div>
+      <div class="peek" role="img" aria-label="Preview of the hands-on RAG console: a question is asked, the system answers confidently, and a grounding check flags the answer as unsupported by the retrieved documents.">
+        <div class="peek-bar">
+          <span class="peek-dot"></span><span class="peek-dot"></span><span class="peek-dot"></span>
+          <span class="peek-title">RAG console — v2</span>
+        </div>
+        <div class="peek-tabs">
+          <span class="peek-tab on">Ask</span>
+          <span class="peek-tab">Red team</span>
+          <span class="peek-tab">Vector DB</span>
+          <span class="peek-tab">Logs</span>
+        </div>
+        <div class="peek-body">
+          <p class="peek-q">“What is the cancellation window for a Tokyo booking?”</p>
+          <p class="peek-a">Cancellations are free up to <strong style="color:#fff">48 hours</strong>
+            before departure, after which a 30% fee applies.</p>
+          <span class="peek-flag">⚠ Not grounded — no retrieved chunk supports “48 hours”</span>
+          <p class="peek-foot">HTTP 200 · schema valid · 1.2 s — every traditional
+            assertion passes. The answer is still invented.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap section">
+
+  <!-- The homepage used to be three cards and a sign-in box, which gave a search
+       engine almost nothing to rank and an AI assistant nothing to quote. These
+       two sections say what is actually taught, in prose, and hand off to the
+       course pages that go into detail. -->
+  <section class="section" id="specialties">
+    <h2>What you'll learn, and what you'll break</h2>
+    <p class="lead" style="max-width:74ch">Three things sit behind the login. Each one has a
+      part you can open free, so you can judge the teaching before you judge the price.</p>
+    <div class="grid grid-3" style="margin-top:18px">
+
+      <div class="card">
+        <p class="hero-eyebrow" style="color:var(--orange);margin:0 0 8px">Course</p>
+        <h3 style="margin-top:0"><a href="genai-testing-course.html">GenAI application testing</a></h3>
+        <p class="muted">For testers whose product has grown an AI feature. LLM output
+        evaluation, hallucination detection, prompt injection and red-team testing, RAG
+        retrieval quality and knowledge-base poisoning, AI agents and MCP tool calls, and
+        automation with Promptfoo, DeepEval and RAGAS. Sixteen modules, three certification
+        levels. <strong>Module 1 is free.</strong></p>
+        <p style="margin:14px 0 0">
+          <a class="btn btn-ghost btn-sm" href="genai-testing-course.html">See the 16 modules →</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <p class="hero-eyebrow" style="color:var(--orange);margin:0 0 8px">Course</p>
+        <h3 style="margin-top:0"><a href="python-dsa-course.html">Python Zero to Hero, with DSA</a></h3>
+        <p class="muted">Twenty-four modules in six phases, from variables to dynamic
+        programming, five lessons each. Every code sample has a Run button and executes in
+        your browser — there is no Python to install and nothing to configure before your
+        first line runs. Phases 3 to 5 are the interview material.
+        <strong>All of Phase 1 is free.</strong></p>
+        <p style="margin:14px 0 0">
+          <a class="btn btn-ghost btn-sm" href="python-dsa-course.html">See the six phases →</a>
+        </p>
+      </div>
+
+      <div class="card">
+        <p class="hero-eyebrow" style="color:var(--orange);margin:0 0 8px">Hands-on</p>
+        <h3 style="margin-top:0"><a href="projects.html">Two applications to attack</a></h3>
+        <p class="muted">A RAG system in five deliberately broken versions, and a multi-agent
+        booking system. Both run in the cloud and open in your browser — ask them questions,
+        run the red-team and blue-team suites case by case, add your own documents, inspect
+        the chunks and Hit@k in the vector database, and read the trace in the logs. Nothing
+        to install.</p>
+        <p style="margin:14px 0 0">
+          <a class="btn btn-ghost btn-sm" href="projects.html">Look inside the projects →</a>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>How it works</h2>
+    <div class="grid grid-3">
+      <div class="card"><h3>Learn</h3><p class="muted">Lessons, slide decks, documents and
+      spreadsheets in one place, on any device. Python lessons run their own code in the
+      page.</p></div>
+      <div class="card"><h3>Practise</h3><p class="muted">Two real applications are hosted
+      for you — a RAG system in five deliberately broken versions, and a multi-agent
+      booking system. You test them, not a slide about them.</p></div>
+      <div class="card"><h3>Certify</h3><p class="muted">Pass an exam and earn a certificate
+      carrying a unique number that <a href="verify.html">anyone can check</a> without an
+      account. Nothing is awarded for finishing videos.</p></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Common questions</h2>
+    <p class="lead" style="max-width:74ch">
+      Whether you need Python first, how this compares with ISTQB CT-AI, how to test a RAG
+      system, and what an AI testing career actually looks like coming from manual testing
+      — all answered on the <a href="faq.html">FAQ page</a>.
+    </p>
+  </section>
+
+  <section class="section" id="signin">
+    <h2>Start free</h2>
+    <div class="signin-split" style="margin-top:18px">
+      <div>
+        <p class="lead" style="max-width:56ch;margin-top:0">No card, nothing to cancel. An
+          account takes a few seconds and opens the free parts of both tracks straight
+          away.</p>
+        <ul class="freelist">
+          <li><strong>Module 1 of GenAI Testing</strong> in full — what actually breaks in an
+            LLM feature, and why a green test suite misses it.</li>
+          <li><strong>All of Python Phase 1</strong> — five lessons, every example running in
+            the page, nothing to install.</li>
+          <li><strong>The course syllabus and the FAQ</strong> stay open to everyone, signed in
+            or not, so you can read before you decide.</li>
+          <li>Hands-on projects and the certification exams need a subscription — from
+            <a href="pricing.html">₹499 for a month</a>.</li>
+        </ul>
+      </div>
+      <div>
       <div class="auth-card">
         <div id="startFreeNote" class="start-free" hidden>
           <strong>One step to Module 1.</strong> It is free in full — no card, nothing
@@ -173,63 +341,8 @@
 
         <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
       </div>
-    </div>
-  </div>
-</header>
-
-<main class="wrap section">
-
-  <!-- The homepage used to be three cards and a sign-in box, which gave a search
-       engine almost nothing to rank and an AI assistant nothing to quote. These
-       two sections say what is actually taught, in prose, and hand off to the
-       course pages that go into detail. -->
-  <section class="section">
-    <h2>Two courses, one subscription</h2>
-    <div class="grid grid-2">
-      <div class="card">
-        <h3><a href="genai-testing-course.html">GenAI Testing</a></h3>
-        <p class="muted">For testers whose product has grown an AI feature. LLM output
-        evaluation, hallucination detection, prompt injection and red-team testing, RAG
-        retrieval quality and knowledge-base poisoning, AI agents and MCP tool calls, and
-        automation with Promptfoo, DeepEval and RAGAS. Sixteen modules and two hosted
-        applications you attack from the browser. Three certification levels.
-        <strong>Module 1 is free.</strong></p>
-        <p style="margin:14px 0 0"><a class="btn btn-ghost btn-sm" href="genai-testing-course.html">What the modules cover →</a></p>
-      </div>
-      <div class="card">
-        <h3><a href="python-dsa-course.html">Python Zero to Hero, with DSA</a></h3>
-        <p class="muted">Twenty-four modules in six phases, from variables to dynamic
-        programming, five lessons each. Every code sample has a Run button and executes in
-        your browser — there is no Python to install and nothing to configure before your
-        first line runs. Phases 3 to 5 are the interview material.
-        <strong>All of Phase 1 is free.</strong></p>
-        <p style="margin:14px 0 0"><a class="btn btn-ghost btn-sm" href="python-dsa-course.html">See the six phases →</a></p>
       </div>
     </div>
-  </section>
-
-  <section class="section">
-    <h2>How it works</h2>
-    <div class="grid grid-3">
-      <div class="card"><h3>Learn</h3><p class="muted">Lessons, slide decks, documents and
-      spreadsheets in one place, on any device. Python lessons run their own code in the
-      page.</p></div>
-      <div class="card"><h3>Practise</h3><p class="muted">Two real applications are hosted
-      for you — a RAG system in five deliberately broken versions, and a multi-agent
-      booking system. You test them, not a slide about them.</p></div>
-      <div class="card"><h3>Certify</h3><p class="muted">Pass an exam and earn a certificate
-      carrying a unique number that <a href="verify.html">anyone can check</a> without an
-      account. Nothing is awarded for finishing videos.</p></div>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2>Common questions</h2>
-    <p class="lead" style="max-width:74ch">
-      Whether you need Python first, how this compares with ISTQB CT-AI, how to test a RAG
-      system, and what an AI testing career actually looks like coming from manual testing
-      — all answered on the <a href="faq.html">FAQ page</a>.
-    </p>
   </section>
 
   <p class="muted" style="text-align:center;margin-top:32px">Tip: on mobile, use your browser's <strong>“Add to Home Screen / Install app”</strong> option to use this portal like a native app — no app store needed.</p>
@@ -281,10 +394,25 @@
     msg("");
   }
 
-  if (startFree) {
+  /* The sign-in card now lives further down the page, because a visitor who has
+     not decided anything yet has no reason to fill one in. Anyone who *has*
+     decided — they pressed "Start free", or arrived from a course page with a
+     ?next= — should not have to go looking for it, so bring it to them. */
+  function openSignup() {
     const note = document.getElementById("startFreeNote");
     if (note) note.hidden = false;
     showTab("up");
+    const box = document.getElementById("signin");
+    if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  if (startFree) {
+    openSignup();
+  } else if (asked) {
+    /* Came from a link that names where to go afterwards, so they are here to
+       sign in, not to read the homepage. */
+    const box = document.getElementById("signin");
+    if (box) box.scrollIntoView({ block: "start" });
   }
 
   function togglePw(id, btn) {
