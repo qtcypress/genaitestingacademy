@@ -116,6 +116,20 @@
   .freelist li::before{content:"";position:absolute;left:2px;top:7px;width:12px;height:7px;
     border-left:2.5px solid var(--orange);border-bottom:2.5px solid var(--orange);
     transform:rotate(-45deg)}
+  /* Sign-in is a dialog, not a section. The homepage's job is to show the work;
+     the account wall only appears at the moment someone reaches for something
+     behind it. <dialog> rather than a hand-rolled overlay because it brings the
+     focus trap, Escape-to-close and inert background with it. */
+  #signinModal{border:none;padding:0;background:transparent;overflow:visible;
+    width:min(440px,calc(100vw - 28px));max-height:calc(100vh - 32px)}
+  #signinModal::backdrop{background:rgba(16,26,48,.66)}
+  .modal-shell{position:relative;max-height:calc(100vh - 32px);overflow-y:auto;border-radius:var(--radius)}
+  .modal-title{margin:0;padding:20px 22px 0;font-size:20px}
+  .modal-shell .auth-card{border:none;box-shadow:none;margin:0}
+  .modal-shell{background:var(--paper);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .modal-close{position:absolute;top:10px;right:12px;z-index:2;background:none;border:none;
+    font-size:26px;line-height:1;color:var(--slate-soft);cursor:pointer;padding:4px 8px;border-radius:8px}
+  .modal-close:hover{background:var(--cream);color:var(--navy)}
 </style>
 </head>
 <body>
@@ -134,7 +148,7 @@
          too, twenty-four modules from variables to dynamic programming, with every code
          sample running in the page.</p>
       <div style="margin-top:26px;display:flex;gap:12px;flex-wrap:wrap">
-        <a class="btn btn-primary" href="#signin" onclick="openSignup()">Start free — Module 1</a>
+        <a class="btn btn-primary" href="#free" onclick="return openSignin(true)">Start free — Module 1</a>
         <a class="btn btn-ghost" style="color:#fff;border-color:rgba(255,255,255,.4)" href="#specialties">See what you'll do</a>
       </div>
       <div class="facts">
@@ -247,102 +261,44 @@
     </p>
   </section>
 
-  <section class="section" id="signin">
-    <h2>Start free</h2>
-    <div class="signin-split" style="margin-top:18px">
-      <div>
-        <p class="lead" style="max-width:56ch;margin-top:0">No card, nothing to cancel. An
-          account takes a few seconds and opens the free parts of both tracks straight
-          away.</p>
-        <ul class="freelist">
-          <li><strong>Module 1 of GenAI Testing</strong> in full — what actually breaks in an
-            LLM feature, and why a green test suite misses it.</li>
-          <li><strong>All of Python Phase 1</strong> — five lessons, every example running in
-            the page, nothing to install.</li>
-          <li><strong>The course syllabus and the FAQ</strong> stay open to everyone, signed in
-            or not, so you can read before you decide.</li>
-          <li>Hands-on projects and the certification exams need a subscription — from
-            <a href="pricing.html">₹499 for a month</a>.</li>
-        </ul>
-      </div>
-      <div>
-      <div class="auth-card">
-        <div id="startFreeNote" class="start-free" hidden>
-          <strong>One step to Module 1.</strong> It is free in full — no card, nothing
-          to cancel. Use GitHub or Google below and you will be reading it in a few
-          seconds.
-        </div>
-        <div class="auth-tabs" role="tablist">
-          <button role="tab" id="tabIn" aria-selected="true" onclick="showTab('in')">Sign in</button>
-          <button role="tab" id="tabUp" aria-selected="false" onclick="showTab('up')">Create account</button>
-        </div>
-
-        <!-- social: same buttons for both tabs -->
-        <button class="btn btn-oauth" type="button" onclick="loginWithGoogle(NEXT)">
-          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
-            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
-            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-          </svg>
-          Continue with Google
-        </button>
-
-        <button class="btn btn-oauth gh" type="button" onclick="loginWithGitHub(NEXT)">
-          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
-          Continue with GitHub
-        </button>
-
-        <div class="auth-or">or use your email</div>
-
-        <!-- ============ SIGN IN ============ -->
-        <form id="formIn" onsubmit="return doSignIn(event)">
-          <label class="f" for="inEmail">Email</label>
-          <input class="f" id="inEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-
-          <label class="f" for="inPw">Password</label>
-          <div class="pw-wrap">
-            <input class="f" id="inPw" type="password" autocomplete="current-password" required placeholder="Your password">
-            <button class="pw-toggle" type="button" onclick="togglePw('inPw',this)">SHOW</button>
-          </div>
-
-          <button class="btn btn-primary" id="inBtn" type="submit" style="width:100%;margin-top:18px">Sign in</button>
-          <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('reset')">Forgot your password?</button></p>
-        </form>
-
-        <!-- ============ CREATE ACCOUNT ============ -->
-        <form id="formUp" style="display:none" onsubmit="return doSignUp(event)">
-          <label class="f" for="upName">Full name</label>
-          <input class="f" id="upName" type="text" autocomplete="name" required placeholder="Ram Prasad">
-          <p class="hint">This is the name that will be printed on your certificate.</p>
-
-          <label class="f" for="upEmail">Email</label>
-          <input class="f" id="upEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-
-          <label class="f" for="upPw">Password</label>
-          <div class="pw-wrap">
-            <input class="f" id="upPw" type="password" autocomplete="new-password" required minlength="8" placeholder="At least 8 characters">
-            <button class="pw-toggle" type="button" onclick="togglePw('upPw',this)">SHOW</button>
-          </div>
-          <p class="hint">Use 8 characters or more.</p>
-
-          <button class="btn btn-primary" id="upBtn" type="submit" style="width:100%;margin-top:18px">Create my account</button>
-          <p class="auth-legal">We'll email you a link to confirm your address before you can sign in.</p>
-        </form>
-
-        <!-- ============ FORGOT PASSWORD ============ -->
-        <form id="formReset" style="display:none" onsubmit="return doReset(event)">
-          <p class="muted" style="margin:0 0 4px">Enter your email and we'll send you a link to set a new password.</p>
-          <label class="f" for="rsEmail">Email</label>
-          <input class="f" id="rsEmail" type="email" autocomplete="email" required placeholder="you@example.com">
-          <button class="btn btn-primary" id="rsBtn" type="submit" style="width:100%;margin-top:18px">Send reset link</button>
-          <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('in')">Back to sign in</button></p>
-        </form>
-
-        <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
-      </div>
-      </div>
+  <section class="section" id="free">
+    <h2>Free to open right now</h2>
+    <p class="lead" style="max-width:74ch">Five lessons, no card and nothing to cancel. Pick
+      one and it will ask you to create an account — that is the only wall, and it takes a
+      few seconds.</p>
+    <div class="modlist" style="margin-top:16px">
+      <a class="mod mod-free" href="#" data-free>
+        <span class="mod-n">GenAI Testing · Module 1</span>
+        <span class="mod-t">Introduction to Gen AI</span>
+        <span class="mod-tag mod-tag-free">Free — 3 h</span>
+        <span class="mod-s">What generative AI is, how it differs from traditional software,
+          and why it needs a different testing mindset.</span>
+      </a>
+      <a class="mod mod-free" href="#" data-free>
+        <span class="mod-n">Python · Lesson 1</span>
+        <span class="mod-t">First Contact — Values, Operators, Strings &amp; Decisions</span>
+        <span class="mod-tag mod-tag-free">Free</span>
+        <span class="mod-s">Runs in the page. Nothing to install before your first line.</span>
+      </a>
+      <a class="mod mod-free" href="#" data-free>
+        <span class="mod-n">Python · Lesson 2</span>
+        <span class="mod-t">Collections &amp; Repetition — Lists, Tuples &amp; Loops</span>
+        <span class="mod-tag mod-tag-free">Free</span>
+      </a>
+      <a class="mod mod-free" href="#" data-free>
+        <span class="mod-n">Python · Lesson 3</span>
+        <span class="mod-t">Dictionaries, Sets &amp; Functions</span>
+        <span class="mod-tag mod-tag-free">Free</span>
+      </a>
+      <a class="mod mod-free" href="#" data-free>
+        <span class="mod-n">Python · Lesson 4</span>
+        <span class="mod-t">Files, Errors &amp; a First Look at OOP</span>
+        <span class="mod-tag mod-tag-free">Free</span>
+      </a>
     </div>
+    <p class="muted" style="margin-top:14px">The rest of both tracks, the two hands-on
+      projects and the certification exams need a subscription — from
+      <a href="pricing.html">₹499 for a month</a>.</p>
   </section>
 
   <p class="muted" style="text-align:center;margin-top:32px">Tip: on mobile, use your browser's <strong>“Add to Home Screen / Install app”</strong> option to use this portal like a native app — no app store needed.</p>
@@ -365,6 +321,88 @@
     </p>
   </div>
 </footer>
+<dialog id="signinModal" aria-labelledby="signinModalTitle">
+  <div class="modal-shell">
+    <button class="modal-close" type="button" aria-label="Close" onclick="closeSignin()">&times;</button>
+    <h2 id="signinModalTitle" class="modal-title">Start free</h2>
+    <div class="auth-card">
+      <div id="startFreeNote" class="start-free" hidden>
+        <strong>One step to Module 1.</strong> It is free in full — no card, nothing
+        to cancel. Use GitHub or Google below and you will be reading it in a few
+        seconds.
+      </div>
+      <div class="auth-tabs" role="tablist">
+        <button role="tab" id="tabIn" aria-selected="true" onclick="showTab('in')">Sign in</button>
+        <button role="tab" id="tabUp" aria-selected="false" onclick="showTab('up')">Create account</button>
+      </div>
+
+      <!-- social: same buttons for both tabs -->
+      <button class="btn btn-oauth" type="button" onclick="loginWithGoogle(NEXT)">
+        <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <button class="btn btn-oauth gh" type="button" onclick="loginWithGitHub(NEXT)">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        Continue with GitHub
+      </button>
+
+      <div class="auth-or">or use your email</div>
+
+      <!-- ============ SIGN IN ============ -->
+      <form id="formIn" onsubmit="return doSignIn(event)">
+        <label class="f" for="inEmail">Email</label>
+        <input class="f" id="inEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+
+        <label class="f" for="inPw">Password</label>
+        <div class="pw-wrap">
+          <input class="f" id="inPw" type="password" autocomplete="current-password" required placeholder="Your password">
+          <button class="pw-toggle" type="button" onclick="togglePw('inPw',this)">SHOW</button>
+        </div>
+
+        <button class="btn btn-primary" id="inBtn" type="submit" style="width:100%;margin-top:18px">Sign in</button>
+        <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('reset')">Forgot your password?</button></p>
+      </form>
+
+      <!-- ============ CREATE ACCOUNT ============ -->
+      <form id="formUp" style="display:none" onsubmit="return doSignUp(event)">
+        <label class="f" for="upName">Full name</label>
+        <input class="f" id="upName" type="text" autocomplete="name" required placeholder="Your full name">
+        <p class="hint">This is the name that will be printed on your certificate.</p>
+
+        <label class="f" for="upEmail">Email</label>
+        <input class="f" id="upEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+
+        <label class="f" for="upPw">Password</label>
+        <div class="pw-wrap">
+          <input class="f" id="upPw" type="password" autocomplete="new-password" required minlength="8" placeholder="At least 8 characters">
+          <button class="pw-toggle" type="button" onclick="togglePw('upPw',this)">SHOW</button>
+        </div>
+        <p class="hint">Use 8 characters or more.</p>
+
+        <button class="btn btn-primary" id="upBtn" type="submit" style="width:100%;margin-top:18px">Create my account</button>
+        <p class="auth-legal">We'll email you a link to confirm your address before you can sign in.</p>
+      </form>
+
+      <!-- ============ FORGOT PASSWORD ============ -->
+      <form id="formReset" style="display:none" onsubmit="return doReset(event)">
+        <p class="muted" style="margin:0 0 4px">Enter your email and we'll send you a link to set a new password.</p>
+        <label class="f" for="rsEmail">Email</label>
+        <input class="f" id="rsEmail" type="email" autocomplete="email" required placeholder="you@example.com">
+        <button class="btn btn-primary" id="rsBtn" type="submit" style="width:100%;margin-top:18px">Send reset link</button>
+        <p class="auth-foot"><button class="linkish" type="button" onclick="showTab('in')">Back to sign in</button></p>
+      </form>
+
+      <div class="auth-msg" id="authMsg" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="app.js"></script>
@@ -394,26 +432,47 @@
     msg("");
   }
 
-  /* The sign-in card now lives further down the page, because a visitor who has
-     not decided anything yet has no reason to fill one in. Anyone who *has*
-     decided — they pressed "Start free", or arrived from a course page with a
-     ?next= — should not have to go looking for it, so bring it to them. */
-  function openSignup() {
+  /* The account wall is a dialog now. The homepage is content; the wall appears
+     only when somebody reaches for something behind it — a free lesson, or the
+     Start free button. Anyone arriving from a course page with ?start=free or
+     ?next= has already reached for it, so it opens on load for them. */
+  const modal = document.getElementById("signinModal");
+
+  function openSignin(isNew) {
     const note = document.getElementById("startFreeNote");
-    if (note) note.hidden = false;
-    showTab("up");
-    const box = document.getElementById("signin");
-    if (box) box.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (note) note.hidden = !isNew;
+    showTab(isNew ? "up" : "in");
+    if (modal && !modal.open) modal.showModal();
+    /* Focus the first thing they will actually type into, not the close button,
+       but not on a phone — showing the keyboard immediately hides the dialog. */
+    if (!window.matchMedia("(max-width: 700px)").matches) {
+      const f = modal && modal.querySelector(isNew ? "#upName" : "#inEmail");
+      if (f) setTimeout(() => f.focus(), 60);
+    }
+    return false;
   }
 
-  if (startFree) {
-    openSignup();
-  } else if (asked) {
-    /* Came from a link that names where to go afterwards, so they are here to
-       sign in, not to read the homepage. */
-    const box = document.getElementById("signin");
-    if (box) box.scrollIntoView({ block: "start" });
+  function closeSignin() { if (modal && modal.open) modal.close(); }
+
+  /* Clicking the backdrop should dismiss it, the way every other dialog on the
+     web behaves. The dialog element itself fills the backdrop, so the test is
+     whether the click landed outside the card rather than on it. */
+  if (modal) {
+    modal.addEventListener("click", e => {
+      const r = modal.getBoundingClientRect();
+      const outside = e.clientX < r.left || e.clientX > r.right ||
+                      e.clientY < r.top  || e.clientY > r.bottom;
+      if (outside) closeSignin();
+    });
   }
+
+  /* Every free lesson is a door to the same wall. */
+  document.querySelectorAll("[data-free]").forEach(a => {
+    a.addEventListener("click", e => { e.preventDefault(); openSignin(true); });
+  });
+
+  if (startFree) openSignin(true);
+  else if (asked) openSignin(false);
 
   function togglePw(id, btn) {
     const el = document.getElementById(id);
