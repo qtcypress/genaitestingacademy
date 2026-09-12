@@ -31,7 +31,16 @@ if [ -z "$CHANGED" ]; then
 fi
 
 # Paths that cannot affect anything scripts/build-site.sh copies into _site.
-IRRELEVANT='^(schema.*\.sql|edge-functions/|rag-console/|RAG project/|\.github/|[A-Z-]+\.md|README\.md|seo/content-backlog\.md|blog/posts/.*\.json)'
+#
+# The second group is build *output* that happens to be committed. build-site.sh
+# runs `python3 seo/build.py` before it copies anything, and that regenerates
+# faq.html, genai-testing-course.html, python-dsa-course.html, sitemap.xml and
+# robots.txt from the generators in seo/. Whatever those files contain in the
+# repo is overwritten, so a commit that only refreshes them would republish
+# byte-identical output for 15 credits. The real sources — seo/*.py — are not
+# listed here, so a genuine content change still deploys. And should-build.sh
+# itself cannot reach _site by construction.
+IRRELEVANT='^(schema.*\.sql|edge-functions/|rag-console/|RAG project/|\.github/|[A-Z-]+\.md|README\.md|seo/content-backlog\.md|blog/posts/.*\.json|faq\.html|genai-testing-course\.html|python-dsa-course\.html|sitemap\.xml|robots\.txt|scripts/should-build\.sh)'
 
 RELEVANT=""
 while IFS= read -r f; do
