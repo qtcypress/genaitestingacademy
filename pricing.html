@@ -74,7 +74,7 @@
       <li><span class="tick">✓</span> All 24 Python &amp; DSA modules — phases 2 to 6, plus the capstone</li>
       <li><span class="tick">✓</span> All three certification exams — Basic, Advanced and Expert</li>
       <li><span class="tick">✓</span> A separate verifiable certificate for each level you pass</li>
-      <li><span class="tick">✓</span> Both capstone projects (RAG, and MCP with multi-agents)</li>
+      <li><span class="tick">✓</span> All three capstone projects — RAG, MCP multi-agents, and capital markets</li>
       <li><span class="tick">✓</span> Progress tracking, and any new modules added while your access is live</li>
       <li><span class="tick">✓</span> Installable on your phone — no app store needed</li>
     </ul>
@@ -133,8 +133,19 @@
   const { data: plans, error } = await sb.from("plans").select("*")
     .eq("active", true).order("sort_order");
   if (error || !plans || !plans.length) {
-    plansBox.innerHTML = `<div class="card"><p class="muted" style="margin:0">
-      Plans aren't available right now${error ? ": " + escapeHtml(error.message) : ""}.</p></div>`;
+    /* This page must read as a price list to a stranger, so a failure here says
+       what it costs and what to do, not "TypeError: Failed to fetch". The figures
+       are the published ones; the live table is still the only thing checkout
+       will bill against, which is why this branch does not offer a Buy button. */
+    plansBox.innerHTML = `<div class="card">
+      <p style="margin:0 0 10px"><strong>Prices couldn't load just now.</strong>
+        The published plans are <strong>₹499</strong> for a month,
+        <strong>₹1,199</strong> for three months and <strong>₹3,999</strong> for a year —
+        one subscription, both tracks, no auto-renewal.</p>
+      <p class="muted" style="margin:0">
+        <button class="linkish" type="button" onclick="location.reload()">Try again</button>
+        — if it keeps failing, your network may be blocking our database host.</p>
+    </div>`;
     return;
   }
 
