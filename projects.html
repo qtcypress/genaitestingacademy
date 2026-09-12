@@ -325,9 +325,18 @@
   }
 
   // ---- catalogue -----------------------------------------------------------
+  /* A hanging request is worse than a failing one: a rejected promise lands in the
+     catch below, but one that never settles freezes every await after it and the
+     page renders nothing at all. That is exactly what was happening — the projects
+     query sat pending indefinitely and the whole panel stayed blank. So the query
+     gets a deadline, and missing it just means the built-in list is used. */
+  const withDeadline = (promise, ms) =>
+    Promise.race([promise, new Promise(r => setTimeout(() => r({ data: null, timedOut: true }), ms))]);
+
   let catalogue = FALLBACK;
   try {
-    const { data } = await sb.from("projects").select("*").eq("active", true).order("sort_order");
+    const { data } = await withDeadline(
+      sb.from("projects").select("*").eq("active", true).order("sort_order"), 2500);
     if (data && data.length) {
       /* The database is the source of truth for what exists, but it must not be
          able to *lose* a project: a capstone that is live and linked from the
