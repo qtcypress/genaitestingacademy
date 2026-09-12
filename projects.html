@@ -43,11 +43,14 @@
      identical so that choosing a project here and arriving there feels like one
      product rather than two. Copied rule for rule from server.py's .projtabs. */
   .projtabs{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}
-  .projtabs button{flex:1 1 240px;text-align:left;background:var(--paper);
+  .projtabs button{flex:1 1 210px;text-align:left;background:var(--paper);
     border:1px solid var(--line);border-left:4px solid var(--line);border-radius:12px;
     padding:14px 16px;cursor:pointer;font:inherit;box-shadow:var(--shadow);
     transition:border-color .15s ease}
   .projtabs button:hover{border-color:#c9c9c9;border-left-color:var(--orange)}
+  .projtabs button .cap-n{display:block;font-size:10px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--orange);margin-bottom:4px}
+  .projtabs button.on .cap-n{color:var(--amber)}
   .projtabs button b{display:block;font-size:14px;color:var(--navy)}
   .projtabs button span{display:block;font-size:12px;color:#777;margin-top:2px}
   .projtabs button.on{background:var(--navy);border-color:var(--navy);
@@ -74,11 +77,12 @@
 
 <header class="hero" style="padding:40px 0">
   <div class="wrap">
-    <h1>Hands-on <span class="accent">projects</span></h1>
+    <h1>Three hands-on <span class="accent">capstones</span></h1>
     <p>Reading about GenAI failure modes is one thing. Attacking a real application and watching a
-       control hold — or not — is another. Two projects: a RAG assistant built five times, and a
-       multi-agent system that plans and books a trip over MCP. These are what you test on the
-       course. Your trainer assigns the ones you can open.</p>
+       control hold — or not — is another. A RAG assistant built five times, a multi-agent system
+       that plans and books a trip over MCP, and a capital-markets capstone that answers the same
+       derivatives questions three different ways. These are what you test on the course. Your
+       trainer assigns the ones you can open.</p>
   </div>
 </header>
 
@@ -149,6 +153,17 @@
             "agents over an MCP tool server. The smallest system that shows every agentic " +
             "failure mode at once: it plans, calls tools, loops, delegates, spends money, " +
             "messages people, and reads data an attacker could have written."},
+    /* Runs on its own host and carries its own sign-in, so it takes `external`
+       rather than a console token — the Open link goes straight there and the
+       entitlement check below leaves it alone. */
+    {id: "capital", title: "Capital markets capstone", subtitle: "three architectures, one domain",
+     sort_order: 30,
+     external: "https://capitalmarket.genaitesting.online/",
+     blurb: "Indian derivatives — put-call parity, physical settlement, theta decay, STT. The " +
+            "same questions answered three ways: a citation-bound RAG assistant, a single " +
+            "tool-calling agent, and a supervisor delegating to three specialists over MCP. " +
+            "Testing the same domain across three architectures is how you learn which " +
+            "failures belong to the architecture and which belong to the model."},
   ];
 
   const DETAIL = {
@@ -178,6 +193,20 @@
             "tool-poisoning attacks, and 15 observability, planning and ReAct checks.",
       tech: "authority — one invariant protects all the others: no money is spent " +
             "without explicit human confirmation."
+    },
+    capital: {
+      items: [
+        ["RAG Assistant", "Answers strictly from a 15-document capital-markets corpus, with citations. Evidence and trace panels show what it retrieved before it answered."],
+        ["Single tool-calling agent", "Picks a tool, calls it, then explains the result. The interesting failures are in the selection, not the arithmetic."],
+        ["MCP multi-agent system", "A supervisor delegates to three specialists, each bound to its own MCP server. Routing is a thing you can get wrong."],
+        ["Tool Console · Market Data", "Call any tool directly with raw JSON — the fastest way to write contract tests. Market payloads carry a provenance badge; check it before trusting a number."],
+        ["Test Lab · Defect Board", "The published IEEE 829 suite, executable in the browser. File findings by area and severity, keep them private, and publish the ones worth sharing."]
+      ],
+      note: "Run a slice of the shipped suite from the <b>Test Runner</b> and file a finding " +
+            "straight from a failure — the full <b>327-case</b> run is a local command. Your " +
+            "model key stays in your browser and is never stored on the server.",
+      tech: "comparison — the same domain built three ways, so you can tell an " +
+            "architecture problem from a model problem."
     }
   };
 
@@ -187,9 +216,10 @@
   const PROJ_KEY = "qt-projects-tab";
 
   const projTabs = (cat, cur, unlocked) =>
-    cat.length < 2 ? "" : `<div class="projtabs">${cat.map(p => {
-      const locked = unlocked && unlocked.indexOf(p.id) < 0;
+    cat.length < 2 ? "" : `<div class="projtabs">${cat.map((p, i) => {
+      const locked = !p.external && unlocked && unlocked.indexOf(p.id) < 0;
       return `<button class="${p.id === cur ? "on" : ""}" data-proj="${escapeHtml(p.id)}">
+        <span class="cap-n">Capstone ${i + 1}</span>
         <b>${escapeHtml(p.title)}</b>
         <span>${escapeHtml(p.subtitle || "")}</span>
         ${locked ? '<span class="tag-locked">Not on your account</span>' : ""}
@@ -200,22 +230,28 @@
      it, and contrasts it with the other tab, because "accuracy" and "authority"
      are different jobs and confusing them is the commonest mistake here. Same
      sentence, same place. */
-  const whatBox = (p, other) => {
+  const whatBox = (p, others) => {
     const d = DETAIL[p.id] || {};
     if (!d.tech) return "";
+    /* With two capstones this named "the other tab". With three that reads as a
+       mistake, so it now names each of the rest and what makes it different —
+       which is the actual point of having three. */
+    const rest = (others || []).filter(Boolean);
+    const list = rest.map(o => `<b>${escapeHtml(o.title)}</b> — ${escapeHtml(o.subtitle || "")}`)
+                     .join("; ");
     return `<div class="whatbox"><b>What you are testing here:</b> ${escapeHtml(d.tech)}
-      ${other ? `<span class="other">The other tab, <b>${escapeHtml(other.title)}</b>, is a
-        different kind of system — ${escapeHtml(other.subtitle || "")}.</span>` : ""}</div>`;
+      ${rest.length ? `<span class="other">The other ${rest.length === 1 ? "capstone is" : "capstones are"}
+        a different kind of system — ${list}.</span>` : ""}</div>`;
   };
 
-  const projPanel = (p, other, bodyHtml) => {
+  const projPanel = (p, others, bodyHtml) => {
     const d = DETAIL[p.id] || {items: [], note: "", tech: ""};
     return `<div class="proj">
       <div class="proj-head">
         <h2>${escapeHtml(p.title)}${p.subtitle ? " — " + escapeHtml(p.subtitle) : ""}</h2>
       </div>
       <div class="proj-body">
-        ${whatBox(p, other)}
+        ${whatBox(p, others)}
         <p class="muted" style="margin:0 0 16px">${escapeHtml(p.blurb || "")}</p>
         ${d.items.length ? `<div class="vlist">${d.items.map(([t, x]) =>
           `<div class="vitem"><b>${escapeHtml(t)}</b><span>${escapeHtml(x)}</span></div>`).join("")}</div>` : ""}
@@ -228,6 +264,16 @@
      own sessionStorage, so pressing Open on the MCP agent project could land the
      student on the RAG tab depending on what they had looked at previously. The
      token still decides what they may open; this only decides what they see first. */
+  /* A project hosted elsewhere carries its own sign-in, so there is no console
+     token to mint and nothing to put in the URL. */
+  const openExternal = (url) => `
+    <div class="stack">
+      <a class="btn btn-primary" href="${escapeHtml(url)}" target="_blank" rel="noopener">Open ↗</a>
+      <a class="btn btn-ghost" href="app.html">Back to my course</a>
+    </div>
+    <p class="muted" style="margin:14px 0 0">Opens in a new tab on its own site, which asks you
+      to sign in there the first time so your findings and defects stay yours.</p>`;
+
   const openBtn = (token, until, projId) => `
     <div class="stack">
       <a class="btn btn-primary" href="${escapeHtml(CONSOLE_URL + "/?t=" + encodeURIComponent(token)
@@ -282,7 +328,22 @@
   let catalogue = FALLBACK;
   try {
     const { data } = await sb.from("projects").select("*").eq("active", true).order("sort_order");
-    if (data && data.length) catalogue = data;
+    if (data && data.length) {
+      /* The database is the source of truth for what exists, but it must not be
+         able to *lose* a project: a capstone that is live and linked from the
+         course pages should still appear here if its row has not been added yet.
+         So DB rows win on content, and anything only FALLBACK knows about is
+         appended rather than dropped. Adding the row later changes nothing. */
+      const known = new Set(data.map(r => r.id));
+      catalogue = data.concat(FALLBACK.filter(f => !known.has(f.id)));
+      catalogue.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      /* `external` lives in FALLBACK, not the table — carry it across so a DB row
+         for the same project still opens on its own host. */
+      catalogue.forEach(p => {
+        const f = FALLBACK.find(x => x.id === p.id);
+        if (f && f.external && !p.external) p.external = f.external;
+      });
+    }
   } catch (e) { /* table not created yet — FALLBACK stands */ }
 
   /* One project at a time, chosen by the tab strip — the console's shape. The
@@ -296,9 +357,9 @@
   const render = (bodyFor, unlocked) => {
     const cur = catalogue.find(p => p.id === CURRENT) || catalogue[0];
     if (!cur) { out.innerHTML = codeBox(); wireCode(); return; }
-    const other = catalogue.find(p => p.id !== cur.id) || null;
+    const others = catalogue.filter(p => p.id !== cur.id);
     out.innerHTML = projTabs(catalogue, cur.id, unlocked)
-      + projPanel(cur, other, bodyFor(cur)) + codeBox();
+      + projPanel(cur, others, bodyFor(cur)) + codeBox();
     out.querySelectorAll("[data-proj]").forEach(b => b.onclick = () => {
       if (b.dataset.proj === CURRENT) return;
       CURRENT = b.dataset.proj;
@@ -313,7 +374,7 @@
 
   const session = await getSession();
   if (!session) {
-    render(() => lockedBox("<strong>Sign in to open a project.</strong> " +
+    render(p => p.external ? openExternal(p.external) : lockedBox("<strong>Sign in to open a project.</strong> " +
       "Projects are assigned to your account by your trainer.",
       '<a class="btn btn-primary" href="index.html?next=projects.html">Sign in</a>' +
       '<a class="btn btn-ghost" href="pricing.html">See plans</a>'));
@@ -321,7 +382,7 @@
   }
 
   if (!CONSOLE_URL) {
-    render(() => lockedBox("<strong>The console is going live shortly.</strong>",
+    render(p => p.external ? openExternal(p.external) : lockedBox("<strong>The console is going live shortly.</strong>",
       '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
     return;
   }
@@ -340,7 +401,7 @@
        answers, and telling a student to "try again" when what they need is to sign
        in again just makes them press a button that cannot work. */
     const expired = failure.needsSignIn;
-    render(() => lockedBox(
+    render(p => p.external ? openExternal(p.external) : lockedBox(
       expired
         ? "<strong>Your sign-in has expired.</strong> Sign in again and you will come " +
           "straight back to this page."
@@ -361,10 +422,11 @@
       ? grant.projects : catalogue.map(p => p.id);
     const until = grant.expires_at ? new Date(grant.expires_at) : null;
     setTimeout(paintWake, 0);   // the card has just been written; fill in its status line
-    render(p => mine.indexOf(p.id) >= 0
+    render(p => p.external ? openExternal(p.external)
+      : mine.indexOf(p.id) >= 0
       ? openBtn(grant.token, until, p.id)
-      : lockedBox("<strong>Not on your account yet.</strong> You have access to the other " +
-          "project but not this one. Ask your trainer to add it, or redeem a code below.",
+      : lockedBox("<strong>Not on your account yet.</strong> This capstone has not been " +
+          "added to your account. Ask your trainer to add it, or redeem a code below.",
           '<a class="btn btn-ghost" href="app.html">Back to my course</a>'), mine);
     return;
   }
@@ -375,7 +437,7 @@
       "by email, or you can redeem a code below. Module 1 of the course is free to preview."
     : "<strong>No project on your account yet.</strong> " +
       escapeHtml((grant && grant.reason) || "Ask your trainer to add one, or redeem a code below.");
-  render(() => lockedBox(why,
+  render(p => p.external ? openExternal(p.external) : lockedBox(why,
     '<a class="btn btn-primary" href="pricing.html">See plans</a>' +
     '<a class="btn btn-ghost" href="app.html">Back to my course</a>'));
 })();
