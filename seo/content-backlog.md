@@ -21,7 +21,7 @@ OPEN | faq | What is prompt injection, and how do I test for it? | Direct vs ind
 OPEN | faq | What is RAGAS and which metrics actually matter? | Faithfulness, answer relevancy, context precision and recall — what each one catches and what it misses. Name the trap: high faithfulness with bad retrieval still means a useless answer.
 OPEN | faq | What is Promptfoo and how do I write my first evaluation? | The YAML test case as the unit; why a declarative assertion beats an eyeballed output; how it lands in CI.
 OPEN | faq | How do you test an AI agent that calls tools? | Tool selection, refusals, loop and budget limits, hand-offs. The point most people miss: a refusal is a control working, not a bug.
-TODO | faq | DeepEval or Promptfoo — which should I use? | An honest comparison, including when neither is the answer and a plain assertion is enough.
+OPEN | faq | DeepEval or Promptfoo — which should I use? | An honest comparison, including when neither is the answer and a plain assertion is enough.
 TODO | faq | What is Model Context Protocol (MCP), and what breaks in it? | What MCP standardises, and the failure modes it introduces — tool poisoning, over-broad tool grants, results the model trusts too readily.
 TODO | faq | How do I write test cases for an LLM feature? | Moving from "expected result" to "acceptance criteria you can defend", with a worked example.
 TODO | faq | What is LLM-as-a-judge, and when should you trust it? | Where it scales well, where it inherits the judge's blind spots, and why it needs human spot-checks rather than blind faith.
