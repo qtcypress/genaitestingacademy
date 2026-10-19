@@ -25,7 +25,7 @@ OPEN | faq | DeepEval or Promptfoo — which should I use? | An honest compariso
 OPEN | faq | What is Model Context Protocol (MCP), and what breaks in it? | What MCP standardises, and the failure modes it introduces — tool poisoning, over-broad tool grants, results the model trusts too readily.
 OPEN | faq | How do I write test cases for an LLM feature? | Moving from "expected result" to "acceptance criteria you can defend", with a worked example.
 OPEN | faq | What is LLM-as-a-judge, and when should you trust it? | Where it scales well, where it inherits the judge's blind spots, and why it needs human spot-checks rather than blind faith.
-TODO | faq | How do you test an LLM application for bias? | Constructing paired prompts that differ only in the attribute under test, and why a single anecdote is not evidence.
+OPEN | faq | How do you test an LLM application for bias? | Constructing paired prompts that differ only in the attribute under test, and why a single anecdote is not evidence.
 TODO | faq | What is a golden dataset and how do I build one? | Size, sourcing, keeping it out of the prompt, and refreshing it when the product changes.
 TODO | faq | How do I run LLM evaluations in CI without a huge bill? | Caching and recording responses, sampling, tiering suites by cost, and which checks need no model call at all.
 TODO | page | AI testing career path: from manual tester to AI testing engineer | The strongest non-course page available to us — real demand ("How to become an AI/QA tester?", "Is manual testing a good career in 2026?") and we can answer it from experience rather than speculation. Needs honest salary talk or none at all.
