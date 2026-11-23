@@ -6,3 +6,25 @@ _site/
 # and the page generators. Committing the output means two copies to keep in
 # step and a diff on every build.
 blog/*.html
+
+# Runtime output from the capstone consoles. rag_engine.py writes every one of
+# these and reads none of them back — tripsage.log and trace.jsonl are the audit
+# trail, relevance_judgments.csv and retrieval_eval.csv are results a student
+# generates by using the Test Runner, and vectorstore.json is a persisted index
+# rebuilt from the corpus on each run.
+#
+# Listing them here stops new ones being added. It does NOT untrack the copies
+# already committed — .gitignore never does — and 24 of them are still in the
+# tree, so a clone still arrives carrying someone else's results. Clearing that
+# needs one push:
+#
+#   git rm --cached $(git ls-files | grep -E '__pycache__|logs/(tripsage\.log|\
+#     trace\.jsonl|relevance_judgments\.csv|retrieval_eval\.csv|vectorstore\.json)$')
+#
+# Each logs/.gitkeep deliberately stays tracked, so a fresh clone still has the
+# directory to write into.
+**/logs/tripsage.log
+**/logs/trace.jsonl
+**/logs/relevance_judgments.csv
+**/logs/retrieval_eval.csv
+**/logs/vectorstore.json
