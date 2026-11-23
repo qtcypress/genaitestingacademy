@@ -21,9 +21,43 @@ function showToast(msg, isError = false, ms = 3200) {
 }
 
 /* ---------- auth helpers ---------- */
+/* ---------- who is asking, without the risk of freezing the page ----------
+   This is the one await that can take a whole page down with it.
+
+   sb.auth.getSession() normally answers out of localStorage in a millisecond or
+   two. It reaches the network only when the stored token has expired and needs
+   refreshing — and that request is the problem: when the auth host is slow or
+   unreachable it can hang rather than fail, and because almost every page calls
+   this first, every await behind it is stuck too. The page then renders nothing
+   at all, which is strictly worse than rendering the signed-out view.
+
+   The projects and pricing queries were given deadlines in September for exactly
+   this reason. This call sits one line earlier than both and was missed, so the
+   same failure could still happen — but only to signed-in students, which is the
+   worst group to have it happen to and the least likely to be noticed in testing.
+
+   A timeout is reported as "no session". That is the honest answer rather than a
+   convenient one: if the token could not be refreshed then it cannot authenticate
+   an API call either, so a caller that pressed on would fail anyway. This way it
+   fails into a branch that already exists, explains itself, and offers a way in.
+
+   Eight seconds is deliberately generous — a working refresh takes well under
+   one — so this fires on a broken host, not a slow one. */
+const SESSION_DEADLINE_MS = 8000;
+
 async function getSession() {
-  const { data } = await sb.auth.getSession();
-  return data.session;
+  try {
+    const result = await Promise.race([
+      sb.auth.getSession(),
+      new Promise(resolve => setTimeout(() => resolve(null), SESSION_DEADLINE_MS)),
+    ]);
+    return (result && result.data && result.data.session) || null;
+  } catch (e) {
+    /* A rejected promise was always survivable — the one that never settles is
+       what this guards against — but collapsing both to null keeps every caller
+       on a single code path. */
+    return null;
+  }
 }
 
 async function requireLogin() {
