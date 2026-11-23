@@ -20,6 +20,23 @@ if [ -z "${CACHED_COMMIT_REF:-}" ] || [ -z "${COMMIT_REF:-}" ]; then
   exit 1
 fi
 
+# And when the "previous" commit IS this commit, which is not the same thing as
+# it being unset. Netlify fills CACHED_COMMIT_REF from the build cache; when the
+# cache is missing ("Failed to fetch cache, continuing with build") it can come
+# back as the commit being built. The diff below is then empty by construction,
+# this script reports "nothing changed", and the deploy is skipped — precisely
+# when the cache is cold, which is precisely when a build is most likely to be
+# needed. That is how merge 6395627 silently failed to publish the getSession
+# fix: eleven weeks of skipped deploys had looked like the hook working, and this
+# looked identical.
+#
+# There is no baseline to compare against here, so the honest answer is the same
+# one the branch above gives: build.
+if [ "$CACHED_COMMIT_REF" = "$COMMIT_REF" ]; then
+  echo "cached commit is the commit being built — no baseline to diff, building"
+  exit 1
+fi
+
 if ! CHANGED=$(git diff --name-only "$CACHED_COMMIT_REF" "$COMMIT_REF" 2>/dev/null); then
   echo "cannot diff $CACHED_COMMIT_REF..$COMMIT_REF — building to be safe"
   exit 1
