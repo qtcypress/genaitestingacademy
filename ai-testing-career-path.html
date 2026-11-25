@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual Tester to AI Testing Engineer | GenAITesting</title>
+<meta name="description" content="What changes when you move from manual or automation testing into AI testing, which skills transfer unchanged, what to learn in order, and how to prove it.">
+<link rel="canonical" href="https://genaitesting.online/ai-testing-career-path.html">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="From manual tester to AI testing engineer — the actual career path">
+<meta property="og:description" content="What changes when you move from manual or automation testing into AI testing, which skills transfer unchanged, what to learn in order, and how to prove it.">
+<meta property="og:url" content="https://genaitesting.online/ai-testing-career-path.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI application testing training and certification">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="From manual tester to AI testing engineer — the actual career path">
+<meta name="twitter:description" content="What changes when you move from manual or automation testing into AI testing, which skills transfer unchanged, what to learn in order, and how to prove it.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
+<link rel="stylesheet" href="app.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "EducationalOrganization",
+   "@id": "https://genaitesting.online/#org",
+   "name": "GenAITesting",
+   "alternateName": "GenAI Testing Academy",
+   "url": "https://genaitesting.online/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://genaitesting.online/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "image": "https://genaitesting.online/social-card.png",
+   "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Hyderabad",
+    "addressRegion": "Telangana",
+    "addressCountry": "IN"
+   },
+   "areaServed": {
+    "@type": "Place",
+    "name": "Worldwide"
+   },
+   "sameAs": [
+    "https://github.com/qtcypress/genaitestingacademy"
+   ]
+  },
+  {
+   "@type": "WebSite",
+   "@id": "https://genaitesting.online/#website",
+   "url": "https://genaitesting.online/",
+   "name": "GenAITesting",
+   "publisher": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "inLanguage": "en"
+  },
+  {
+   "@type": "Article",
+   "@id": "https://genaitesting.online/ai-testing-career-path.html#article",
+   "headline": "From manual tester to AI testing engineer: the career path",
+   "description": "What changes when you move from manual or automation testing into AI testing, which skills transfer unchanged, what to learn in order, and how to prove it.",
+   "author": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "publisher": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "inLanguage": "en",
+   "about": [
+    "Software testing careers",
+    "AI testing",
+    "LLM testing",
+    "QA engineering",
+    "Career change"
+   ],
+   "audience": {
+    "@type": "Audience",
+    "audienceType": "Manual testers, automation testers and SDETs considering AI testing"
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Home",
+     "item": "https://genaitesting.online/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "AI testing career path",
+     "item": "https://genaitesting.online/ai-testing-career-path.html"
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="hero-eyebrow">Careers</p>
+    <h1>From manual tester to<br><span class="accent">AI testing engineer</span></h1>
+    <p>
+      What actually changes, which of your existing skills transfer unchanged, what to
+      learn and in what order, and how to get the first piece of evidence that you can
+      do this work. Written for people who already test software, not for people
+      starting from nothing.
+    </p>
+  </div>
+</header>
+
+<main class="wrap section">
+
+  <section class="section">
+    <h2>The one thing that changes</h2>
+    <p class="lead">
+      Every test you have ever written rests on an assumption so basic it is rarely
+      stated: the same input produces the same output, so a difference means a defect.
+      Generative AI breaks that assumption and nothing else. The model returns a
+      different answer to the same question on Tuesday than it did on Monday, and both
+      answers can be correct. Your assertion has nowhere to anchor.
+    </p>
+    <p class="lead">
+      So the work moves from <em>comparing output to an expected result</em> to
+      <em>defining what acceptable means and then checking it holds</em>. That is a
+      different sentence in a bug report and a different conversation with a developer,
+      but it is still testing, and it is still the same instinct — this thing claims to
+      work; let us find out where it does not.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>What transfers, unchanged</h2>
+    <p class="lead">
+      More than people expect, and this is the part the career-change content usually
+      gets wrong by implying you are starting over.
+    </p>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Adversarial thinking</h3>
+        <p class="muted">The habit of reading a requirement and immediately thinking
+        "what if it is empty, enormous, in another language, or deliberately hostile" is
+        the single most valuable thing in AI testing, and it is exactly what a good
+        manual tester already does. Prompt injection testing is adversarial thinking
+        pointed at a new surface.</p>
+      </div>
+      <div class="card">
+        <h3>Writing a defect someone will act on</h3>
+        <p class="muted">Reproduction steps, evidence, expected versus actual, severity
+        argued rather than asserted. This gets <em>harder</em> with AI features, because
+        "it said something wrong once" is not a reproducible defect. The people who can
+        already write a convincing bug report have a real advantage.</p>
+      </div>
+      <div class="card">
+        <h3>Knowing the domain</h3>
+        <p class="muted">Whether an answer about a mortgage, a prescription or a refund
+        policy is actually correct requires knowing the domain, and you do. This is the
+        skill a machine-learning engineer joining your team does not have, and it is why
+        testers are the right people for this work rather than a stopgap.</p>
+      </div>
+      <div class="card">
+        <h3>Scepticism about metrics</h3>
+        <p class="muted">Anyone who has watched a team celebrate 90% test coverage over
+        a broken feature already understands the central trap of AI evaluation, where a
+        confident score can sit on top of a system that does not work.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>What to learn, in order</h2>
+    <p class="lead">
+      The order matters more than the list. Most people try to learn the tools first,
+      find that the tools assume concepts they do not have, and conclude the subject is
+      harder than it is.
+    </p>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>1. Enough Python to read and change code</h3>
+        <p class="muted">Not software engineering — the ability to read a script, change
+        a value, run it and understand the error. If you already automate in any
+        language this is a week. If you do not code at all, this is the longest step and
+        there is no way around it: every evaluation framework is a library you import.
+        <a href="python-dsa-course.html">The Python track</a> starts at variables.</p>
+      </div>
+      <div class="card">
+        <h3>2. How a RAG application is wired</h3>
+        <p class="muted">Retrieval, then generation. Most AI features in real companies
+        are RAG rather than a bare model, and almost every interesting failure is a
+        retrieval failure wearing a generation costume. Understanding the two halves is
+        what lets you diagnose rather than describe.</p>
+      </div>
+      <div class="card">
+        <h3>3. Evaluation before tooling</h3>
+        <p class="muted">Faithfulness, relevance, groundedness, precision and recall on
+        retrieval — what each one measures and what it misses. Learn this before
+        Promptfoo or DeepEval, because the tools are thin wrappers around these ideas
+        and are baffling without them. <a href="faq.html">The FAQ</a> covers each
+        metric and the trap in reading it alone.</p>
+      </div>
+      <div class="card">
+        <h3>4. One evaluation tool, properly</h3>
+        <p class="muted">Then pick one and get it into a pipeline that fails a build.
+        One tool understood well beats four tried once, and "I put LLM evaluations in
+        CI" is a sentence that gets interviews.</p>
+      </div>
+      <div class="card">
+        <h3>5. Adversarial testing</h3>
+        <p class="muted">Prompt injection, both direct and the indirect kind that
+        arrives inside a retrieved document, jailbreaks, data leakage, and what happens
+        when an agent is given a tool it should refuse to use. This is where experienced
+        testers pull ahead fastest.</p>
+      </div>
+      <div class="card">
+        <h3>6. Agents, last</h3>
+        <p class="muted">Tool selection, loops, budgets, hand-offs. Genuinely harder,
+        genuinely newer, and the area where the least settled practice exists — which
+        also means nobody expects you to have it on day one.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>Is manual testing still a good career?</h2>
+    <p class="lead">
+      Yes, and the version of this question worth answering is narrower than the one
+      usually asked. What is disappearing is not testing but the <em>pure execution</em>
+      role — running a scripted regression pass by hand, where the value was in the
+      hours rather than the judgement. That erosion started long before generative AI
+      and is mostly automation's doing.
+    </p>
+    <p class="lead">
+      What is not disappearing is deciding what correct means, arguing severity,
+      designing the case nobody thought of, and taking responsibility for shipping. AI
+      features make that work more valuable rather than less, because there is now a
+      category of software whose output nobody can fully predict and somebody has to be
+      accountable for whether it is fit to release. The honest framing is not "manual
+      testing is dead" but "the execution part was always the replaceable part".
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>About money</h2>
+    <p class="lead">
+      This page deliberately quotes no salary figures, and the reason is worth stating
+      because almost every competing page does. The numbers in circulation for AI
+      testing roles come from self-reported aggregator data on small samples; across
+      sources they differ by a factor of three for the same title and city, and they are
+      out of date by the time they are published. A range invented here would make this
+      page look authoritative and would not survive contact with a real offer.
+    </p>
+    <p class="lead">
+      What works instead: search your own market's live listings for the actual title —
+      AI quality engineer, LLM evaluation engineer, AI testing engineer — and read the
+      twenty most recent. Many list a band. That tells you what your city pays this
+      quarter, which no article can. Ask a recruiter who places into these roles; they
+      have better data than any public site. What can be said generally is that the
+      differential comes from scarcity rather than from the title, so it rewards
+      demonstrable evidence rather than a course certificate on its own.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>The first piece of evidence</h2>
+    <p class="lead">
+      The difficulty in this transition is not learning; it is proving. Nobody will give
+      you AI testing work on the strength of having studied AI testing, and the gap is
+      usually closed by one of two things.
+    </p>
+    <p class="lead">
+      The first is the AI feature already in your current company. Most organisations
+      have shipped one and almost none have a considered test approach for it. Writing
+      that approach — even three pages on what acceptable means and how you would check
+      it — is both real work and the exact artefact that gets you the role internally,
+      which is the easiest route by a distance.
+    </p>
+    <p class="lead">
+      The second is a project you can show. Not a certificate: a repository with an
+      evaluation suite, a golden dataset, a documented adversarial finding, and an
+      honest write-up of what it does not cover. That last part matters more than it
+      sounds — knowing the limits of your own test suite is the thing that reads as
+      experience. The <a href="projects.html">capstone projects</a> exist for this, and
+      the deliberately poisoned RAG application in particular produces findings worth
+      writing up.
+    </p>
+  </section>
+
+  <section class="section">
+    <h2>Where to start</h2>
+    <p class="lead">
+      If you can already read code, start at evaluation and skip the Python track.
+      If you cannot, start with Python — it is the actual prerequisite and no amount of
+      conceptual understanding substitutes for it.
+      <a href="genai-testing-course.html">The GenAI testing course</a> covers steps two
+      to six above against applications you attack rather than read about, and
+      <a href="faq.html">the FAQ</a> answers most of the specific questions on this page
+      in more detail. There is also
+      <a href="istqb-ct-ai-vs-hands-on-course.html">an honest comparison with ISTQB
+      CT-AI</a>, which is a different and complementary thing to spend money on.
+    </p>
+  </section>
+
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="muted" style="margin:0 0 10px">
+      <a href="genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="faq.html">FAQ</a> ·
+      <a href="projects.html">Hands-on projects</a> ·
+      <a href="pricing.html">Pricing</a> ·
+      <a href="verify.html">Verify a certificate</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:12.5px">
+      GenAITesting — online training in GenAI, LLM and AI agent application testing,
+      run from Hyderabad, India, open to learners anywhere.
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>renderTopbar("career");</script>
+</body>
+</html>
