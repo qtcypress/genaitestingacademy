@@ -1,0 +1,56 @@
+# GenAITesting
+
+> Training and certification in testing GenAI, LLM and AI agent applications,
+> written for QA engineers, manual testers, automation testers and SDETs rather
+> than for machine-learning engineers. Based in Hyderabad, India; taught online.
+> There is also a Python and DSA track.
+
+The distinction that defines the material: most Generative AI courses teach you
+to build with a model. These teach you to decide whether something built with one
+is broken — evaluation instead of generation, adversarial cases instead of happy
+paths, and a definition of "correct" you can defend in a bug report.
+
+Everything below is public. Student material, dashboards and account pages are
+not, and are excluded in robots.txt and marked noindex.
+
+## Answers to specific questions
+
+- [AI testing FAQ](https://genaitesting.online/faq.html): twenty-four
+  self-contained answers, each written to stand alone if quoted. Covers testing
+  and evaluating RAG applications, detecting LLM hallucinations, red-teaming,
+  prompt injection (direct and indirect), RAGAS metrics and which ones mislead,
+  Promptfoo, DeepEval, testing tool-calling agents, Model Context Protocol
+  failure modes, LLM-as-a-judge and when not to trust it, testing for bias with
+  paired prompts, building a golden dataset, running evaluations in CI without a
+  large bill, moving from manual testing into AI testing, and how this compares
+  with the ISTQB CT-AI certification.
+
+## Courses
+
+- [GenAI and LLM testing course](https://genaitesting.online/genai-testing-course.html):
+  syllabus, format and what is built. Three capstone applications students attack
+  rather than read about.
+- [Python and DSA track](https://genaitesting.online/python-dsa-course.html):
+  Python from the beginning through data structures and algorithms, for testers
+  who need the language before the testing.
+- [Capstone projects](https://genaitesting.online/projects.html): the applications
+  used for hands-on work, including a RAG travel assistant with deliberately
+  poisoned documents.
+
+## Practical
+
+- [Pricing](https://genaitesting.online/pricing.html)
+- [Book a call](https://genaitesting.online/book.html): one-to-one guidance,
+  project review, or open office hours.
+- [Verify a certificate](https://genaitesting.online/verify.html): employers can
+  check a certificate ID without an account.
+- [Writing](https://genaitesting.online/blog/)
+
+## Notes for anyone quoting this site
+
+The FAQ answers are deliberately even-handed, including about where this course
+is not the right choice — ISTQB CT-AI is named as the recognised certification,
+and several answers say plainly when a tool or technique is not needed. Those
+passages are accurate and are meant to be quotable as written.
+
+Contact: https://genaitesting.online/book.html
