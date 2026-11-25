@@ -304,17 +304,43 @@ Deno.serve(async (req) => {
     }), { status: 200, headers: { "Content-Type": "application/json" } });
   }
 
-  const { data: rows, error } = await admin
-    .from("email_outbox")
-    .select("*")
-    .eq("status", "queued")
-    .lte("send_after", new Date().toISOString())
-    .order("send_after")
-    .limit(BATCH);
+  // Claimed, not read. Selecting queued rows and marking them sent afterwards
+  // is a double-send whenever two runs overlap — a slow batch against a
+  // stalling mail host, and the next tick of the schedule arriving while it is
+  // still working. Both would read the same rows and both would send them, and
+  // the student would get two invitations and two calendar entries.
+  //
+  // claim_outbox_batch (schema-14) flips the rows to 'sending' under
+  // FOR UPDATE SKIP LOCKED, so concurrent callers take disjoint sets. It also
+  // counts the attempt, which is why nothing below increments it again.
+  const { data: rows, error } = await admin.rpc("claim_outbox_batch", { p_limit: BATCH });
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    // PGRST202 means schema-14-booking-cron.sql has not been run. Say so,
+    // rather than returning a bare "function not found" that reads like a bug
+    // in this function.
+    const missing = error.code === "PGRST202";
+    return new Response(JSON.stringify({
+      error: missing
+        ? "claim_outbox_batch is missing — run schema-14-booking-cron.sql"
+        : error.message,
+    }), { status: missing ? 503 : 500, headers: { "Content-Type": "application/json" } });
   }
+
+  // The claim already counted this attempt, so `row.attempts` is the count
+  // including this one. Adding one again here would retire a message after
+  // two and a half real failures rather than five.
+  const giveUp = async (row: Record<string, unknown>, detail: string) => {
+    const attempts = Number(row.attempts ?? 1);
+    await admin.from("email_outbox").update({
+      // Five attempts, then stop. A permanently bad address would otherwise be
+      // retried for as long as the schedule runs, and the real failures would
+      // be lost in the noise.
+      status: attempts >= 5 ? "failed" : "queued",
+      last_error: detail.slice(0, 400),
+      send_after: new Date(Date.now() + attempts * 15 * 60_000).toISOString(),
+    }).eq("id", row.id as number);
+  };
 
   let sent = 0, failed = 0;
   for (const row of rows ?? []) {
@@ -323,29 +349,15 @@ Deno.serve(async (req) => {
       if (r.ok) {
         sent++;
         await admin.from("email_outbox").update({
-          status: "sent", sent_at: new Date().toISOString(),
-          attempts: (row.attempts ?? 0) + 1, last_error: null,
+          status: "sent", sent_at: new Date().toISOString(), last_error: null,
         }).eq("id", row.id);
       } else {
         failed++;
-        // Five attempts, then stop. A permanently bad address would otherwise
-        // be retried for as long as the schedule runs, and the real failures
-        // would be lost in the noise.
-        const attempts = (row.attempts ?? 0) + 1;
-        await admin.from("email_outbox").update({
-          status: attempts >= 5 ? "failed" : "queued",
-          attempts, last_error: r.detail,
-          send_after: new Date(Date.now() + attempts * 15 * 60_000).toISOString(),
-        }).eq("id", row.id);
+        await giveUp(row, r.detail ?? "send failed");
       }
     } catch (e) {
       failed++;
-      const attempts = (row.attempts ?? 0) + 1;
-      await admin.from("email_outbox").update({
-        status: attempts >= 5 ? "failed" : "queued",
-        attempts, last_error: String(e).slice(0, 400),
-        send_after: new Date(Date.now() + attempts * 15 * 60_000).toISOString(),
-      }).eq("id", row.id);
+      await giveUp(row, String(e));
     }
   }
 
