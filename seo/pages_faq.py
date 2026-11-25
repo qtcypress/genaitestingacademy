@@ -108,7 +108,10 @@ QA = [
      existing instinct for where software breaks is the part that takes years and you
      already have it; the AI-specific layer on top is a matter of months, not years.
      Build something you can show — a small evaluation suite against a real
-     application is worth more in an interview than any certificate on its own."""),
+     application is worth more in an interview than any certificate on its own. There
+     is a longer walk-through of what to learn in what order, and how to get that first
+     piece of evidence, on <a href="ai-testing-career-path.html">the career path
+     page</a>."""),
 
     ("Is manual testing still a good career in 2026?",
      """Manual testing as "execute this documented script by hand" has been shrinking
@@ -117,7 +120,8 @@ QA = [
      manual testing — deciding what is worth testing, recognising that an output is
      wrong in a way no specification anticipated, knowing which bug actually matters —
      has become <em>more</em> valuable, not less, precisely because AI systems fail in
-     ways that require a human to notice. The honest answer is that the job title is at
+     ways that require a human to notice (covered at length on
+     <a href="ai-testing-career-path.html">the career path page</a>). The honest answer is that the job title is at
      risk and the skill is not. Testers who add evaluation technique and enough coding
      to automate their own checks are in demand; testers who only run scripts by hand
      are competing with software that does it for free."""),
@@ -132,7 +136,10 @@ QA = [
      work rather than an industry credential, which is why the number on ours is
      publicly checkable — it is worth exactly as much as the work behind it, and no
      more. In practice, most people who get hired have both a recognised certification
-     and something they built that they can talk through."""),
+     and something they built that they can talk through. There is a fuller
+     <a href="istqb-ct-ai-vs-hands-on-course.html">comparison of CT-AI with a hands-on
+     course</a>, including where the certification is the right purchase and this course
+     is not a substitute for it."""),
 
     ("Where can I find an AI testing course in Hyderabad?",
      """Several institutes in Hyderabad run classroom AI testing courses, and it is
