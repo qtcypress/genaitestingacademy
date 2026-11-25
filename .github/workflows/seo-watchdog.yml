@@ -61,9 +61,15 @@ jobs:
           if ! curl -fsS "https://genaitesting.online/$KEY.txt" | grep -q "$KEY"; then
             echo "::error::IndexNow key file is not serving — submissions would be rejected"; exit 1
           fi
-          for u in "" genai-testing-course.html python-dsa-course.html faq.html \
-                   pricing.html projects.html verify.html; do
-            full="https://genaitesting.online/$u"
+          # Read the URLs from the sitemap rather than from a list kept here. The
+          # hard-coded list had already fallen behind: book.html and the one blog
+          # post were in the sitemap and were never submitted, so the pages most
+          # likely to be new were the pages Bing was never told about. The sitemap
+          # is generated from the same place the site is, so it cannot drift.
+          URLS=$(grep -oP '(?<=<loc>)[^<]+' sitemap.xml)
+          if [ -z "$URLS" ]; then echo "::error::sitemap.xml has no <loc> entries"; exit 1; fi
+          echo "$URLS" | while IFS= read -r full; do
+            [ -z "$full" ] && continue
             code=$(curl -s -o /dev/null -w "%{http_code}" \
               "https://api.indexnow.org/indexnow?url=$(printf %s "$full" | jq -sRr @uri)&key=$KEY&keyLocation=https://genaitesting.online/$KEY.txt")
             echo "  $code  $full"
