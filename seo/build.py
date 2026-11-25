@@ -2,6 +2,7 @@
 import json
 import pathlib
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -118,4 +119,10 @@ def main(lastmod):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "2026-08-19")
+    # Default to today, not to a fixed date. The old hard-coded fallback meant
+    # that anyone who ran this without an argument silently rewrote every
+    # <lastmod> in the sitemap back to August — telling Google that nothing had
+    # changed on pages that had just been rewritten, which is precisely the
+    # signal you do not want to send after publishing.
+    main(sys.argv[1] if len(sys.argv) > 1
+         else datetime.now(timezone.utc).strftime("%Y-%m-%d"))
