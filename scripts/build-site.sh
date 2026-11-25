@@ -30,7 +30,7 @@ ASSETS=(
   app.css app.js config.js sw.js manifest.webmanifest
   logo.svg logo-mono.svg logo-on-light.svg favicon.svg favicon.ico
   icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png
-  social-card.png robots.txt sitemap.xml
+  social-card.png robots.txt sitemap.xml llms.txt
 )
 
 for f in "${PAGES[@]}" "${ASSETS[@]}"; do
