@@ -150,7 +150,7 @@ async function embed(text: string): Promise<{ vector: number[] | null; note: str
 }
 
 /* ---------- generation ---------- */
-async function groqChat(messages: unknown[], maxTokens = 1200) {
+async function groqChat(messages: unknown[], model: string, maxTokens = 1200) {
   const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -159,7 +159,7 @@ async function groqChat(messages: unknown[], maxTokens = 1200) {
       Accept: "application/json",
       "User-Agent": UA,
     },
-    body: JSON.stringify({ model: GROQ_MODEL, messages, temperature: 0.2, max_tokens: maxTokens }),
+    body: JSON.stringify({ model, messages, temperature: 0.2, max_tokens: maxTokens }),
   });
   const raw = await res.text();
   if (!res.ok) throw new Error(explainProviderError("Groq", res.status, raw));
@@ -275,8 +275,15 @@ Deno.serve(async (req) => {
 
   if (sErr) return json({ error: `Could not search the knowledge base: ${sErr.message}` }, 500);
 
-  const { data: cfg } = await sb.from("kb_config").select("min_similarity").eq("id", 1).single();
+  const { data: cfg } = await sb.from("kb_config")
+    .select("min_similarity, chat_model").eq("id", 1).maybeSingle();
   const floor = cfg?.min_similarity ?? 0.3;
+  /* The model comes from kb_config so an admin can change it from the settings
+     page without a redeploy. GROQ_MODEL stays as the fallback for a project
+     that has not run schema-12 yet — but when both exist the database wins,
+     because two sources of truth for a model name is how you end up debugging
+     a 404 against the value you are not looking at. */
+  const model = cfg?.chat_model || GROQ_MODEL;
 
   // A chunk earns its place either by being semantically close or by actually
   // containing the words asked about. Requiring both would lose the loosely
@@ -293,7 +300,7 @@ Deno.serve(async (req) => {
         : "The knowledge base is empty — nothing has been ingested yet.");
     await sb.rpc("kb_log_answer", {
       p_mode: mode, p_question: question || `(${mode}: ${module ?? "all"})`, p_module: module,
-      p_answer: answer, p_cited: [], p_grounded: false, p_model: GROQ_MODEL,
+      p_answer: answer, p_cited: [], p_grounded: false, p_model: model,
       p_ms: Date.now() - started, p_error: null,
     });
     return json({
@@ -308,7 +315,7 @@ Deno.serve(async (req) => {
       { role: "system", content: GROUNDING },
       { role: "user", content:
         `Sources:\n\n${buildSources(kept)}\n\n---\n\n${instructionFor(mode, question, count)}` },
-    ], mode === "ask" ? 900 : 1800);
+    ], model, mode === "ask" ? 900 : 1800);
 
     // Only report citations the model actually used. Listing all eight sources
     // under an answer that leant on two is a quiet form of overclaiming.
@@ -326,7 +333,7 @@ Deno.serve(async (req) => {
     await sb.rpc("kb_log_answer", {
       p_mode: mode, p_question: question || `(${mode}: ${module ?? "all"})`, p_module: module,
       p_answer: text, p_cited: citations.map((c) => c.chunk_id),
-      p_grounded: citations.length > 0, p_model: GROQ_MODEL,
+      p_grounded: citations.length > 0, p_model: model,
       p_ms: Date.now() - started, p_error: null,
     });
 
@@ -342,7 +349,7 @@ Deno.serve(async (req) => {
     const msg = String(e instanceof Error ? e.message : e);
     await sb.rpc("kb_log_answer", {
       p_mode: mode, p_question: question || `(${mode}: ${module ?? "all"})`, p_module: module,
-      p_answer: null, p_cited: [], p_grounded: false, p_model: GROQ_MODEL,
+      p_answer: null, p_cited: [], p_grounded: false, p_model: model,
       p_ms: Date.now() - started, p_error: msg.slice(0, 500),
     });
     // 502, not 500: the failure is upstream, and the message is the provider's
