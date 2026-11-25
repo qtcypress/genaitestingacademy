@@ -13,7 +13,7 @@
 // Secrets required (Edge Functions → Secrets):
 //   ZEPTOMAIL_TOKEN     the Send Mail token from ZeptoMail (starts "Zoho-enczapikey ")
 //   ZEPTOMAIL_HOST      api.zeptomail.com   — or api.zeptomail.in on the India DC
-//   MAIL_FROM           no-reply@qualitythought.in   (must be a verified sender)
+//   MAIL_FROM           no-reply@genaitesting.online  (must be a verified sender)
 //   MAIL_FROM_NAME      GenAITesting
 //   WELCOME_HOOK_SECRET a long random string you also paste into the webhook header
 //   SITE_URL            https://genaitesting.online
@@ -26,7 +26,14 @@ const env = (k: string, d = "") => Deno.env.get(k) ?? d;
 
 const SITE = env("SITE_URL", "https://genaitesting.online").replace(/\/+$/, "");
 const ZEPTO_HOST = env("ZEPTOMAIL_HOST", "api.zeptomail.com");
-const FROM = env("MAIL_FROM", "no-reply@qualitythought.in");
+// Defaults to genaitesting.online deliberately. qualitythought.in is served
+// by Hostinger nameservers, carries two conflicting SPF records, and has no
+// DKIM — and it is the company's live Google Workspace domain, so it is not
+// ours to change. genaitesting.online is on Netlify DNS with an empty mail
+// zone, so SPF and DKIM for it can be added without touching anything that
+// already works. A fallback that points at an unverifiable domain would send
+// unsigned mail from a brand we were asked not to touch.
+const FROM = env("MAIL_FROM", "no-reply@genaitesting.online");
 const FROM_NAME = env("MAIL_FROM_NAME", "GenAITesting");
 
 const admin = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
