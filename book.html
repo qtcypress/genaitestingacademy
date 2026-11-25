@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book a session — GenAITesting</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- The menu of session types is public, and a visitor deciding whether to join
+     the course is exactly who should be able to read it. The slots and bookings
+     below it are not, but they load after sign-in, so there is nothing here a
+     crawler could index that is not meant to be read. -->
+<link rel="canonical" href="https://genaitesting.online/book.html">
+<meta name="description" content="Book a one-to-one with your trainer, or take a seat in open office hours. Career guidance, project review, and a free call if you are still deciding.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="Book a session — GenAITesting">
+<meta property="og:description" content="One-to-one career guidance and project review, plus group office hours. Pick a time that works where you are.">
+<meta property="og:url" content="https://genaitesting.online/book.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI Application Testing training and certification">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Book a session — GenAITesting">
+<meta name="twitter:description" content="One-to-one career guidance and project review, plus group office hours.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
+<link rel="stylesheet" href="app.css">
+<style>
+  .types { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  .type { border:1px solid #E5E7EB; border-radius:12px; padding:14px 16px; background:#fff;
+          cursor:pointer; text-align:left; width:100%; font:inherit; transition:border-color .12s, box-shadow .12s; }
+  .type:hover { border-color:#1F3864; }
+  .type[aria-pressed="true"] { border-color:#1F3864; box-shadow:0 0 0 2px rgba(31,56,100,.12); }
+  .type h3 { margin:0 0 4px; font-size:15.5px; color:#1F3864; }
+  .type .meta { font-size:12.5px; color:#6B7280; }
+  .type p { margin:8px 0 0; font-size:13.5px; color:#374151; line-height:1.5; }
+
+  .daygroup { margin:16px 0 0; }
+  .daygroup h4 { margin:0 0 8px; font-size:13px; letter-spacing:.04em; text-transform:uppercase; color:#6B7280; }
+  .slots { display:flex; flex-wrap:wrap; gap:8px; }
+  .slot { border:1px solid #D1D5DB; background:#fff; border-radius:8px; padding:7px 12px;
+          font:600 13.5px/1 system-ui,sans-serif; color:#1F3864; cursor:pointer; }
+  .slot:hover { border-color:#1F3864; background:#F8FAFC; }
+  .slot[aria-pressed="true"] { background:#1F3864; color:#fff; border-color:#1F3864; }
+
+  .bk { border:1px solid #E5E7EB; border-radius:12px; padding:14px 16px; background:#fff; margin-bottom:10px; }
+  .bk-top { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; }
+  .bk-title { font:600 15px/1.3 system-ui,sans-serif; color:#1F3864; margin:0; }
+  .bk-when { font-size:13.5px; color:#374151; }
+  .bk-acts { margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; }
+  .tzline { font-size:12.5px; color:#6B7280; margin:4px 0 0; }
+  .ai { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-top:1px solid #F3F4F6; }
+  .ai:first-child { border-top:0; }
+  .ai-body { flex:1 1 auto; }
+  .ai-title { font:600 14px/1.4 system-ui,sans-serif; color:#111827; }
+  .ai-detail { font-size:13px; color:#6B7280; margin-top:2px; }
+  .ai select { font:inherit; padding:5px 8px; border:1px solid #D1D5DB; border-radius:8px; background:#fff; }
+  .done .ai-title { text-decoration:line-through; color:#9CA3AF; }
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:8px">
+    <h1>Talk to someone</h1>
+    <p class="lead">Career guidance, a review of your capstone work, or an hour of open
+      office hours. Pick a time; you will get an invitation that lands in your calendar.</p>
+  </section>
+
+  <div id="status"></div>
+
+  <section class="section">
+    <h2>What do you want to talk about?</h2>
+    <div id="types" class="types"><div class="spin"></div></div>
+  </section>
+
+  <section class="section" id="slotSection" hidden>
+    <h2 id="slotHead">Pick a time</h2>
+    <p class="tzline" id="tzline"></p>
+    <div id="slots"></div>
+    <div id="bookBox" hidden style="margin-top:16px;max-width:540px">
+      <label for="agenda" style="display:block;font-weight:600;margin-bottom:6px">
+        What would you like to cover? <span class="muted" style="font-weight:400">(optional, but it makes the call better)</span>
+      </label>
+      <textarea id="agenda" rows="3" style="width:100%;padding:10px;border:1px solid #D1D5DB;border-radius:8px;font:inherit"
+        placeholder="e.g. I have finished the RAG capstone and I am not sure my defect reports are specific enough."></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="confirmBtn" type="button">Confirm booking</button>
+        <span id="confirmWhen" class="muted"></span>
+      </div>
+    </div>
+    <!-- Outside #bookBox on purpose. Confirming a booking hides that box, and a
+         message written inside it goes with it — so the student saw the slot
+         disappear and nothing else. -->
+    <div id="bookMsg" style="margin-top:12px"></div>
+  </section>
+
+  <section class="section" id="groupSection" hidden>
+    <h2>Open group sessions</h2>
+    <div id="groups"></div>
+  </section>
+
+  <section class="section" id="mineSection" hidden>
+    <h2>Your sessions</h2>
+    <div id="mine"></div>
+  </section>
+
+  <section class="section" id="aiSection" hidden>
+    <h2>Your action items</h2>
+    <p class="muted" style="margin-top:-6px">Agreed on a call. Change the status as you go —
+      your trainer sees it move.</p>
+    <div id="aitems" class="card" style="padding:6px 16px"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("book");
+
+  const $ = (id) => document.getElementById(id);
+  const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "your local time";
+
+  /* Same deadline the projects and pricing pages carry, for the same reason: a
+     query that never settles freezes every await behind it and the page renders
+     nothing, which looks identical to the site being broken. */
+  const withDeadline = (p, ms, fallback) =>
+    Promise.race([p, new Promise(r => setTimeout(() => r(fallback), ms))]);
+
+  const fmtTime = (d) => new Date(d).toLocaleTimeString(undefined,
+    { hour: "numeric", minute: "2-digit" });
+  const fmtDay = (d) => new Date(d).toLocaleDateString(undefined,
+    { weekday: "long", day: "numeric", month: "long" });
+  const fmtFull = (d) => new Date(d).toLocaleString(undefined,
+    { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+  const PROVIDER = {
+    google_meet: "Google Meet", zoom: "Zoom", teams: "Microsoft Teams",
+    phone: "Phone call", in_person: "In person", other: "Online",
+  };
+
+  const session = await withDeadline(getSession(), 8000, null);
+
+  if (!session) {
+    $("status").innerHTML = `<div class="card" style="margin-bottom:18px">
+      <strong>Sign in to book.</strong> The times below are real, but a booking has to be
+      attached to your account so we can send you the invitation and keep the notes afterwards.
+      <div style="margin-top:10px">
+        <a class="btn btn-primary" href="index.html?next=book.html">Sign in</a>
+        <a class="btn btn-ghost" href="pricing.html">See plans</a>
+      </div></div>`;
+  }
+
+  /* ---------- the menu ---------- */
+  const { data: types } = await withDeadline(
+    sb.from("event_types").select("*").eq("active", true).order("sort_order"),
+    4000, { data: null });
+
+  if (!types || !types.length) {
+    $("types").innerHTML = `<div class="card"><strong>No session types are set up yet.</strong>
+      <p class="muted" style="margin:8px 0 0">If you were expecting to book a call, tell your
+      trainer — this list is managed from the admin console.</p></div>`;
+  } else {
+    $("types").innerHTML = types.map(t => `
+      <button class="type" type="button" data-type="${escapeHtml(t.id)}" aria-pressed="false">
+        <h3>${escapeHtml(t.title)}</h3>
+        <div class="meta">${t.duration_min} minutes · ${t.capacity > 1
+          ? `up to ${t.capacity} people` : "one to one"} · ${escapeHtml(PROVIDER[t.provider] || "Online")}</div>
+        ${t.description ? `<p>${escapeHtml(t.description)}</p>` : ""}
+      </button>`).join("");
+
+    $("types").querySelectorAll("[data-type]").forEach(b => {
+      b.onclick = () => selectType(types.find(t => t.id === b.dataset.type), b);
+    });
+  }
+
+  /* ---------- slots for the chosen type ---------- */
+  let CURRENT = null, CHOSEN = null;
+
+  async function selectType(t, btn) {
+    CURRENT = t; CHOSEN = null;
+    $("types").querySelectorAll("[data-type]").forEach(b =>
+      b.setAttribute("aria-pressed", String(b === btn)));
+    $("bookBox").hidden = true;
+    $("bookMsg").innerHTML = "";
+    $("slotSection").hidden = false;
+    $("slotHead").textContent = `Pick a time — ${t.title}`;
+    $("tzline").textContent = `Times are shown in ${TZ}.`;
+    $("slots").innerHTML = `<div class="spin"></div>`;
+
+    /* A group session is not booked by picking a time: the admin publishes it
+       and students take a seat, so the slot grid would be the wrong question. */
+    if (t.capacity > 1) {
+      $("slots").innerHTML = `<p class="muted">This one runs as a scheduled group session.
+        Open ones are listed below.</p>`;
+      $("groupSection").hidden = false;
+      document.getElementById("groupSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    const { data: slots, error } = await withDeadline(
+      sb.rpc("open_slots", { p_event_type: t.id }), 8000, { data: null, error: null });
+
+    if (!slots) {
+      $("slots").innerHTML = `<div class="card"><strong>Couldn't load times just now.</strong>
+        <p class="muted" style="margin:8px 0 0">
+          <button class="linkish" type="button" onclick="location.reload()">Try again</button></p></div>`;
+      return;
+    }
+    if (!slots.length) {
+      $("slots").innerHTML = `<div class="card"><strong>Nothing open in the next few weeks.</strong>
+        <p class="muted" style="margin:8px 0 0">Every slot is taken or outside the hours your
+        trainer works. Check back in a day or two.</p></div>`;
+      return;
+    }
+
+    /* Grouped by the student's own day, not the host's — a 1am slot in a
+       different country belongs under that country's date. */
+    const byDay = new Map();
+    slots.forEach(s => {
+      const k = new Date(s.slot_start).toDateString();
+      if (!byDay.has(k)) byDay.set(k, []);
+      byDay.get(k).push(s);
+    });
+
+    $("slots").innerHTML = [...byDay.entries()].slice(0, 14).map(([, list]) => `
+      <div class="daygroup">
+        <h4>${escapeHtml(fmtDay(list[0].slot_start))}</h4>
+        <div class="slots">${list.map(s =>
+          `<button class="slot" type="button" data-start="${escapeHtml(s.slot_start)}"
+             aria-pressed="false">${escapeHtml(fmtTime(s.slot_start))}</button>`).join("")}</div>
+      </div>`).join("");
+
+    $("slots").querySelectorAll("[data-start]").forEach(b => {
+      b.onclick = () => {
+        CHOSEN = b.dataset.start;
+        $("slots").querySelectorAll("[data-start]").forEach(x =>
+          x.setAttribute("aria-pressed", String(x === b)));
+        $("bookBox").hidden = false;
+        $("confirmWhen").textContent = fmtFull(CHOSEN) + ` · ${t.duration_min} min`;
+        $("bookBox").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+    });
+  }
+
+  $("confirmBtn").onclick = async () => {
+    if (!CURRENT || !CHOSEN) return;
+    if (!session) { location.href = "index.html?next=book.html"; return; }
+    const btn = $("confirmBtn");
+    btn.disabled = true; btn.textContent = "Booking…";
+    const { data, error } = await sb.rpc("book_slot", {
+      p_event_type: CURRENT.id, p_starts_at: CHOSEN, p_agenda: $("agenda").value.trim() || null,
+    });
+    btn.disabled = false; btn.textContent = "Confirm booking";
+    const r = (data || [])[0];
+    if (error || !r) {
+      $("bookMsg").innerHTML = `<span style="color:#9b1c1c">${escapeHtml(
+        friendlyFnError(error) || "Something went wrong. Please try again.")}</span>`;
+      return;
+    }
+    if (!r.ok) {
+      /* Almost always "someone just took it", so refresh the grid — but after
+         that, not before: selectType clears this message on its way in, which
+         is right when the student picks a new slot and wrong here. */
+      const when = CHOSEN;
+      await selectType(CURRENT, $("types").querySelector(`[data-type="${CURRENT.id}"]`));
+      $("bookMsg").innerHTML = `<span style="color:#9b1c1c">${escapeHtml(r.message)}</span>`;
+      return;
+    }
+    const booked = CHOSEN;
+    $("agenda").value = "";
+    $("bookBox").hidden = true;
+    await Promise.all([loadMine(), selectType(CURRENT,
+      $("types").querySelector(`[data-type="${CURRENT.id}"]`))]);
+    $("bookMsg").innerHTML = `<span style="color:#1d6b34"><strong>Booked.</strong>
+      ${escapeHtml(fmtFull(booked))}. The invitation is on its way.</span>`;
+    $("mineSection").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  /* ---------- group sessions ---------- */
+  async function loadGroups() {
+    const { data } = await withDeadline(sb.rpc("open_group_sessions"), 6000, { data: null });
+    if (!data || !data.length) { $("groupSection").hidden = true; return; }
+    $("groupSection").hidden = false;
+    $("groups").innerHTML = data.map(g => `
+      <div class="bk">
+        <div class="bk-top">
+          <p class="bk-title">${escapeHtml(g.title)}</p>
+          <span class="bk-when">${escapeHtml(fmtFull(g.starts_at))}</span>
+        </div>
+        ${g.description ? `<p class="muted" style="margin:6px 0 0">${escapeHtml(g.description)}</p>` : ""}
+        <div class="bk-acts">
+          ${g.already_booked
+            ? `<span class="pill pill-done">You have a seat</span>`
+            : g.seats_left > 0
+              ? `<button class="btn btn-primary btn-sm" data-join="${escapeHtml(g.session_id)}">Take a seat</button>
+                 <span class="muted">${g.seats_left} of ${g.capacity} left</span>`
+              : `<span class="muted">Full</span>`}
+        </div>
+      </div>`).join("");
+
+    $("groups").querySelectorAll("[data-join]").forEach(b => {
+      b.onclick = async () => {
+        if (!session) { location.href = "index.html?next=book.html"; return; }
+        b.disabled = true; b.textContent = "Joining…";
+        const { data } = await sb.rpc("join_session", { p_session: b.dataset.join });
+        const r = (data || [])[0];
+        if (!r || !r.ok) {
+          b.disabled = false; b.textContent = "Take a seat";
+          alert((r && r.message) || "Could not join that session.");
+          return;
+        }
+        await Promise.all([loadGroups(), loadMine()]);
+      };
+    });
+  }
+
+  /* ---------- the student's own sessions ---------- */
+  async function loadMine() {
+    if (!session) return;
+    const { data } = await withDeadline(
+      sb.rpc("my_bookings", { p_include_past: true }), 6000, { data: null });
+    if (!data || !data.length) { $("mineSection").hidden = true; return; }
+
+    $("mineSection").hidden = false;
+    const now = Date.now();
+    $("mine").innerHTML = data.map(b => {
+      const past = new Date(b.ends_at).getTime() < now;
+      const live = b.status === "booked" && !past;
+      return `<div class="bk">
+        <div class="bk-top">
+          <p class="bk-title">${escapeHtml(b.title)}</p>
+          <span class="bk-when">${escapeHtml(fmtFull(b.starts_at))}</span>
+          ${b.status === "cancelled" ? `<span class="pill">Cancelled</span>` : ""}
+          ${b.status === "attended" ? `<span class="pill pill-done">Attended</span>` : ""}
+          ${b.capacity > 1 ? `<span class="muted">group · ${b.seats_taken} attending</span>` : ""}
+        </div>
+        ${b.agenda ? `<p class="muted" style="margin:6px 0 0">You asked about: ${escapeHtml(b.agenda)}</p>` : ""}
+        ${b.outcome_summary ? `<p style="margin:8px 0 0;font-size:13.5px"><strong>Afterwards:</strong>
+          ${escapeHtml(b.outcome_summary)}</p>` : ""}
+        <div class="bk-acts">
+          ${b.meeting_url
+            ? `<a class="btn btn-primary btn-sm" href="${escapeHtml(b.meeting_url)}"
+                 target="_blank" rel="noopener">Join ${escapeHtml(PROVIDER[b.provider] || "the call")} &#8599;</a>`
+            : live ? `<span class="muted">The join link appears an hour before.</span>` : ""}
+          ${live && b.capacity === 1
+            ? `<button class="btn btn-ghost btn-sm" data-move="${escapeHtml(b.booking_id)}">Reschedule</button>` : ""}
+          ${live ? `<button class="btn btn-ghost btn-sm" data-cancel="${escapeHtml(b.booking_id)}">Cancel</button>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+
+    $("mine").querySelectorAll("[data-cancel]").forEach(b => {
+      b.onclick = async () => {
+        if (!confirm("Cancel this session? Your trainer will be told.")) return;
+        b.disabled = true;
+        const { data } = await sb.rpc("cancel_booking",
+          { p_booking: b.dataset.cancel, p_reason: null });
+        const r = (data || [])[0];
+        if (!r || !r.ok) { b.disabled = false; alert((r && r.message) || "Could not cancel."); return; }
+        await Promise.all([loadMine(), loadGroups()]);
+        if (CURRENT) selectType(CURRENT, $("types").querySelector(`[data-type="${CURRENT.id}"]`));
+      };
+    });
+
+    /* Rescheduling reuses the grid rather than inventing a second picker: the
+       student is answering the same question they answered when they booked. */
+    $("mine").querySelectorAll("[data-move]").forEach(b => {
+      b.onclick = () => {
+        const row = data.find(x => x.booking_id === b.dataset.move);
+        /* By id, not by title. Two session types can share a name, and one can
+           be renamed after a booking was made — either would send the student
+           to the wrong slot grid, and the reschedule would then be refused by
+           open_slots for a reason the page could not explain. */
+        const t = (types || []).find(x => x.id === row.event_type_id);
+        if (!t) { alert("That session type is no longer available."); return; }
+        MOVING = b.dataset.move;
+        selectType(t, $("types").querySelector(`[data-type="${t.id}"]`));
+        $("confirmBtn").textContent = "Move to this time";
+        $("status").innerHTML = `<div class="card" style="margin-bottom:18px">
+          <strong>Moving your ${escapeHtml(row.title)}.</strong>
+          Pick a new time below — your calendar invitation will update itself.
+          <button class="linkish" type="button" id="cancelMove" style="margin-left:8px">Keep the original</button>
+        </div>`;
+        $("cancelMove").onclick = () => { MOVING = null; $("status").innerHTML = "";
+          $("confirmBtn").textContent = "Confirm booking"; };
+        $("slotSection").scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+    });
+  }
+
+  let MOVING = null;
+  const originalConfirm = $("confirmBtn").onclick;
+  $("confirmBtn").onclick = async () => {
+    if (!MOVING) return originalConfirm();
+    if (!CHOSEN) return;
+    const btn = $("confirmBtn");
+    btn.disabled = true; btn.textContent = "Moving…";
+    const { data } = await sb.rpc("reschedule_booking",
+      { p_booking: MOVING, p_new_start: CHOSEN });
+    btn.disabled = false; btn.textContent = "Move to this time";
+    const r = (data || [])[0];
+    if (!r || !r.ok) {
+      $("bookMsg").innerHTML = `<span style="color:#9b1c1c">${escapeHtml(
+        (r && r.message) || "Could not move it.")}</span>`;
+      return;
+    }
+    const moved = CHOSEN;
+    MOVING = null;
+    $("status").innerHTML = "";
+    $("confirmBtn").textContent = "Confirm booking";
+    $("bookBox").hidden = true;
+    await loadMine();
+    $("bookMsg").innerHTML = `<span style="color:#1d6b34"><strong>Moved.</strong>
+      Now ${escapeHtml(fmtFull(moved))}. Your calendar invitation will update itself.</span>`;
+    $("mineSection").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  /* ---------- action items ---------- */
+  async function loadActionItems() {
+    if (!session) return;
+    const { data } = await withDeadline(sb.rpc("my_action_items"), 6000, { data: null });
+    if (!data || !data.length) { $("aiSection").hidden = true; return; }
+    $("aiSection").hidden = false;
+    const opts = [["open", "Not started"], ["in_progress", "In progress"],
+                  ["done", "Done"], ["dropped", "Dropped"]];
+    $("aitems").innerHTML = data.map(a => `
+      <div class="ai ${a.status === "done" || a.status === "dropped" ? "done" : ""}">
+        <div class="ai-body">
+          <div class="ai-title">${escapeHtml(a.title)}</div>
+          ${a.detail ? `<div class="ai-detail">${escapeHtml(a.detail)}</div>` : ""}
+          ${a.due_on ? `<div class="ai-detail">Due ${escapeHtml(fmtDate(a.due_on))}</div>` : ""}
+        </div>
+        <select data-item="${escapeHtml(a.id)}" aria-label="Status">
+          ${opts.map(([v, l]) => `<option value="${v}"${a.status === v ? " selected" : ""}>${l}</option>`).join("")}
+        </select>
+      </div>`).join("");
+
+    $("aitems").querySelectorAll("[data-item]").forEach(sel => {
+      sel.onchange = async () => {
+        sel.disabled = true;
+        const { data } = await sb.rpc("set_action_item_status",
+          { p_id: sel.dataset.item, p_status: sel.value });
+        sel.disabled = false;
+        const r = (data || [])[0];
+        if (!r || !r.ok) { alert((r && r.message) || "Could not update that."); return; }
+        loadActionItems();
+      };
+    });
+  }
+
+  await Promise.all([loadGroups(), loadMine(), loadActionItems()]);
+})();
+</script>
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="muted" style="margin:0 0 10px">
+      <a href="genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="faq.html">FAQ</a> ·
+      <a href="projects.html">Hands-on projects</a> ·
+      <a href="pricing.html">Pricing</a> ·
+      <a href="verify.html">Verify a certificate</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:12.5px">
+      GenAITesting — online training in GenAI, LLM and AI agent application testing,
+      run from Hyderabad, India, open to learners anywhere.
+    </p>
+  </div>
+</footer>
+</body>
+</html>

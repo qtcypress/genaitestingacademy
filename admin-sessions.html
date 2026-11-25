@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sessions — Admin — GenAITesting</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="app.css">
+<style>
+  .tabs { display:flex; gap:4px; border-bottom:1px solid #E5E7EB; margin:0 0 18px; flex-wrap:wrap; }
+  .tab { border:0; background:none; padding:10px 14px; font:600 14px/1 system-ui,sans-serif;
+         color:#6B7280; cursor:pointer; border-bottom:2px solid transparent; }
+  .tab[aria-selected="true"] { color:#1F3864; border-bottom-color:#1F3864; }
+  .row { border:1px solid #E5E7EB; border-radius:12px; padding:14px 16px; background:#fff; margin-bottom:10px; }
+  .row h3 { margin:0 0 4px; font-size:15px; color:#1F3864; }
+  .row .meta { font-size:13px; color:#6B7280; }
+  .fields { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin-top:10px; }
+  .fields label { display:block; font:600 12.5px/1.4 system-ui,sans-serif; color:#374151; margin-bottom:4px; }
+  .fields input, .fields select, .fields textarea {
+    width:100%; padding:8px 10px; border:1px solid #D1D5DB; border-radius:8px; font:inherit; background:#fff; }
+  .att { font-size:13.5px; padding:6px 0; border-top:1px solid #F3F4F6; }
+  .att:first-child { border-top:0; }
+  .msg { margin-top:8px; font-size:13.5px; }
+  .ok { color:#1d6b34; } .bad { color:#9b1c1c; }
+  .items-grid { display:grid; gap:6px; grid-template-columns:2fr 2fr 130px auto; align-items:center; margin-bottom:6px; }
+  @media (max-width:640px) { .items-grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:4px">
+    <h1>Sessions</h1>
+    <p class="lead">One-to-ones and group sessions, what students asked to cover,
+      and what you agreed afterwards.</p>
+  </section>
+
+  <div id="gate"></div>
+
+  <div id="console" hidden>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-pane="queue" aria-selected="true">Upcoming</button>
+      <button class="tab" role="tab" data-pane="types" aria-selected="false">Session types</button>
+      <button class="tab" role="tab" data-pane="hours" aria-selected="false">Your hours</button>
+      <button class="tab" role="tab" data-pane="history" aria-selected="false">Student history</button>
+    </div>
+
+    <section id="pane-queue">
+      <p class="muted" id="queueNote"></p>
+      <div id="queue"><div class="spin"></div></div>
+    </section>
+
+    <section id="pane-types" hidden>
+      <div class="card" style="margin-bottom:16px">
+        <strong>Each type needs a meeting link before students can join a call.</strong>
+        <p class="muted" style="margin:6px 0 0">Paste your Google Meet room, a Zoom personal
+          meeting link, or a Teams link. Every session of that type uses it, and the link is
+          only shown to a student an hour before their session starts.</p>
+      </div>
+      <div id="types"><div class="spin"></div></div>
+    </section>
+
+    <section id="pane-hours" hidden>
+      <p class="muted">Weekly windows, in your own timezone. Students see them converted
+        to wherever they are.</p>
+      <div id="hours"><div class="spin"></div></div>
+      <div class="row" style="margin-top:14px">
+        <h3>Add a window</h3>
+        <div class="fields">
+          <div><label for="nwDay">Day</label>
+            <select id="nwDay">
+              <option value="1">Monday</option><option value="2">Tuesday</option>
+              <option value="3">Wednesday</option><option value="4">Thursday</option>
+              <option value="5">Friday</option><option value="6">Saturday</option>
+              <option value="7">Sunday</option>
+            </select></div>
+          <div><label for="nwFrom">From</label><input id="nwFrom" type="time" value="18:00"></div>
+          <div><label for="nwTo">To</label><input id="nwTo" type="time" value="21:00"></div>
+          <div><label for="nwTz">Timezone</label><input id="nwTz" value="Asia/Kolkata"></div>
+        </div>
+        <div style="margin-top:10px"><button class="btn btn-primary btn-sm" id="addWindow">Add</button>
+          <span class="msg" id="hoursMsg"></span></div>
+      </div>
+    </section>
+
+    <section id="pane-history" hidden>
+      <div class="fields" style="max-width:460px">
+        <div><label for="hEmail">Student email</label><input id="hEmail" type="email"
+          placeholder="student@example.com"></div>
+      </div>
+      <div style="margin:10px 0 16px"><button class="btn btn-primary btn-sm" id="lookup">Look up</button></div>
+      <div id="history"></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("admin");
+  const $ = (id) => document.getElementById(id);
+  const withDeadline = (p, ms, fb) =>
+    Promise.race([p, new Promise(r => setTimeout(() => r(fb), ms))]);
+
+  const fmt = (d) => new Date(d).toLocaleString(undefined,
+    { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const DAYS = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const PROVIDERS = ["google_meet", "zoom", "teams", "phone", "in_person", "other"];
+  const PROVIDER_LABEL = { google_meet:"Google Meet", zoom:"Zoom", teams:"Microsoft Teams",
+                           phone:"Phone call", in_person:"In person", other:"Other" };
+
+  const session = await withDeadline(getSession(), 8000, null);
+  if (!session) { location.href = "index.html?next=admin-sessions.html"; return; }
+
+  const { data: prof } = await withDeadline(
+    sb.from("profiles").select("role").eq("id", session.user.id).single(), 5000, { data: null });
+
+  if (!prof || prof.role !== "admin") {
+    $("gate").innerHTML = `<div class="card"><strong>This page is for admins.</strong>
+      <p class="muted" style="margin:8px 0 0">If you were looking to book a session,
+      <a href="book.html">the booking page</a> is what you want.</p></div>`;
+    return;
+  }
+  $("console").hidden = false;
+
+  /* ---------- tabs ---------- */
+  document.querySelectorAll(".tab").forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll(".tab").forEach(x =>
+        x.setAttribute("aria-selected", String(x === t)));
+      ["queue", "types", "hours", "history"].forEach(p =>
+        $("pane-" + p).hidden = (p !== t.dataset.pane));
+    };
+  });
+
+  /* ---------- the queue ---------- */
+  async function loadQueue() {
+    const { data } = await withDeadline(
+      sb.rpc("admin_upcoming_sessions", { p_days: 45 }), 8000, { data: null });
+    if (!data) { $("queue").innerHTML = `<div class="card">Couldn't load the queue.</div>`; return; }
+    if (!data.length) {
+      $("queue").innerHTML = `<div class="card"><strong>Nothing booked yet.</strong>
+        <p class="muted" style="margin:8px 0 0">Students book from
+        <a href="book.html">the booking page</a>. If the menu there is empty, add a session
+        type first.</p></div>`;
+      return;
+    }
+    $("queueNote").textContent =
+      `${data.length} session${data.length === 1 ? "" : "s"} from a week ago to 45 days out.`;
+
+    const now = Date.now();
+    $("queue").innerHTML = data.map(s => {
+      const past = new Date(s.ends_at).getTime() < now;
+      const atts = s.attendees || [];
+      return `<div class="row">
+        <h3>${escapeHtml(s.title)}</h3>
+        <div class="meta">${escapeHtml(fmt(s.starts_at))} ·
+          ${atts.length} of ${s.capacity} ${s.capacity > 1 ? "seats" : ""}
+          ${s.status !== "scheduled" ? ` · ${escapeHtml(s.status)}` : ""}</div>
+        <div style="margin-top:8px">
+          ${atts.map(a => `<div class="att"><strong>${escapeHtml(a.name)}</strong>
+            <span class="muted">${escapeHtml(a.email)}</span>
+            ${a.agenda ? `<div class="muted" style="margin-top:2px">“${escapeHtml(a.agenda)}”</div>` : ""}
+          </div>`).join("") || `<div class="muted">No one booked.</div>`}
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          ${s.meeting_url ? `<a class="btn btn-primary btn-sm" href="${escapeHtml(s.meeting_url)}"
+             target="_blank" rel="noopener">Open the call &#8599;</a>` : ""}
+          ${past && atts.length
+            ? `<button class="btn btn-navy btn-sm" data-outcome="${escapeHtml(s.session_id)}">
+                 ${s.has_outcome ? "Edit the outcome" : "Write the outcome"}</button>`
+            : ""}
+          ${!past && s.status === "scheduled"
+            ? `<button class="btn btn-danger btn-sm" data-cancel="${escapeHtml(s.session_id)}">Cancel</button>`
+            : ""}
+        </div>
+        <div id="oc-${escapeHtml(s.session_id)}"></div>
+      </div>`;
+    }).join("");
+
+    $("queue").querySelectorAll("[data-cancel]").forEach(b => {
+      b.onclick = async () => {
+        const why = prompt("Tell the students why (they will see this):", "");
+        if (why === null) return;
+        b.disabled = true;
+        const { data } = await sb.rpc("admin_cancel_session",
+          { p_session: b.dataset.cancel, p_reason: why || null });
+        const r = (data || [])[0];
+        if (!r || !r.ok) { b.disabled = false; alert((r && r.message) || "Could not cancel."); return; }
+        alert(`Cancelled. ${r.notified} student${r.notified === 1 ? "" : "s"} will be emailed.`);
+        loadQueue();
+      };
+    });
+
+    $("queue").querySelectorAll("[data-outcome]").forEach(b => {
+      b.onclick = () => outcomeForm(b.dataset.outcome);
+    });
+  }
+
+  /* The outcome form is the whole point of the admin side: what was agreed
+     becomes the student's own task list, which they then move. Three blank rows
+     because three is about how many actions a useful call produces — more can
+     be added, and empty ones are ignored by the function. */
+  function outcomeForm(sessionId) {
+    const box = $("oc-" + sessionId);
+    if (box.dataset.open === "1") { box.innerHTML = ""; box.dataset.open = "0"; return; }
+    box.dataset.open = "1";
+    const itemRow = (i) => `
+      <div class="items-grid" data-item-row="${i}">
+        <input placeholder="Action ${i + 1} — what they will do" data-k="title">
+        <input placeholder="Detail (optional)" data-k="detail">
+        <input type="date" data-k="due_on" aria-label="Due date">
+        <span></span>
+      </div>`;
+    box.innerHTML = `
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid #E5E7EB">
+        <label for="sum-${sessionId}" style="display:block;font-weight:600;margin-bottom:6px">
+          What happened on the call?</label>
+        <textarea id="sum-${sessionId}" rows="3"
+          style="width:100%;padding:10px;border:1px solid #D1D5DB;border-radius:8px;font:inherit"
+          placeholder="Walked through her retrieval evaluation. The golden set is too small to trust."></textarea>
+        <p class="muted" style="margin:12px 0 6px">Actions — each becomes a task in their profile.</p>
+        ${[0, 1, 2].map(itemRow).join("")}
+        <button class="btn btn-ghost btn-sm" data-more>Add another</button>
+        <div style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" data-save>Save and send to their profile</button>
+          <span class="msg" data-msg></span>
+        </div>
+      </div>`;
+
+    box.querySelector("[data-more]").onclick = () => {
+      const n = box.querySelectorAll("[data-item-row]").length;
+      box.querySelector("[data-more]").insertAdjacentHTML("beforebegin", itemRow(n));
+    };
+
+    box.querySelector("[data-save]").onclick = async () => {
+      const btn = box.querySelector("[data-save]");
+      const msg = box.querySelector("[data-msg]");
+      const summary = $("sum-" + sessionId).value.trim();
+      if (!summary) { msg.className = "msg bad"; msg.textContent = "The summary cannot be empty."; return; }
+      const items = [...box.querySelectorAll("[data-item-row]")].map(r => ({
+        title:  r.querySelector('[data-k="title"]').value.trim(),
+        detail: r.querySelector('[data-k="detail"]').value.trim() || null,
+        due_on: r.querySelector('[data-k="due_on"]').value || null,
+      })).filter(x => x.title);
+
+      btn.disabled = true; msg.className = "msg"; msg.textContent = "Saving…";
+      const { data } = await sb.rpc("admin_record_outcome",
+        { p_session: sessionId, p_summary: summary, p_items: items });
+      btn.disabled = false;
+      const r = (data || [])[0];
+      if (!r || !r.ok) { msg.className = "msg bad"; msg.textContent = (r && r.message) || "Could not save."; return; }
+      msg.className = "msg ok";
+      msg.textContent = `Saved. ${r.items_created} task${r.items_created === 1 ? "" : "s"} created.`;
+      setTimeout(loadQueue, 900);
+    };
+  }
+
+  /* ---------- session types ---------- */
+  async function loadTypes() {
+    const { data } = await withDeadline(
+      sb.from("event_types").select("*").order("sort_order"), 6000, { data: null });
+    if (!data) { $("types").innerHTML = `<div class="card">Couldn't load session types.</div>`; return; }
+
+    $("types").innerHTML = data.map(t => `
+      <div class="row" data-type="${escapeHtml(t.id)}">
+        <h3>${escapeHtml(t.title)} ${t.active ? "" : `<span class="pill">inactive</span>`}</h3>
+        <div class="meta">${t.duration_min} min ·
+          ${t.capacity > 1 ? `group of ${t.capacity}` : "one to one"} ·
+          ${t.audience === "anyone" ? "open to anyone" : "subscribers only"}</div>
+        <div class="fields">
+          <div><label>Meeting provider</label>
+            <select data-k="provider">${PROVIDERS.map(p =>
+              `<option value="${p}"${t.provider === p ? " selected" : ""}>${PROVIDER_LABEL[p]}</option>`).join("")}</select></div>
+          <div style="grid-column:span 2"><label>Meeting link</label>
+            <input data-k="meeting_url" value="${escapeHtml(t.meeting_url || "")}"
+              placeholder="https://meet.google.com/abc-defg-hij"></div>
+          <div><label>Capacity</label><input type="number" min="1" data-k="capacity" value="${t.capacity}"></div>
+          <div><label>Minutes</label><input type="number" min="5" step="5" data-k="duration_min" value="${t.duration_min}"></div>
+          <div><label>Active</label>
+            <select data-k="active"><option value="true"${t.active ? " selected" : ""}>Yes</option>
+              <option value="false"${t.active ? "" : " selected"}>No</option></select></div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-primary btn-sm" data-save-type>Save</button>
+          ${t.capacity > 1
+            ? `<button class="btn btn-ghost btn-sm" data-publish="${escapeHtml(t.id)}">Publish a date</button>` : ""}
+          <span class="msg" data-msg></span>
+        </div>
+      </div>`).join("");
+
+    $("types").querySelectorAll("[data-type]").forEach(row => {
+      row.querySelector("[data-save-type]").onclick = async () => {
+        const msg = row.querySelector("[data-msg]");
+        const get = (k) => row.querySelector(`[data-k="${k}"]`).value;
+        msg.className = "msg"; msg.textContent = "Saving…";
+        const { error } = await sb.from("event_types").update({
+          provider: get("provider"),
+          meeting_url: get("meeting_url").trim() || null,
+          capacity: Math.max(1, parseInt(get("capacity"), 10) || 1),
+          duration_min: Math.max(5, parseInt(get("duration_min"), 10) || 30),
+          active: get("active") === "true",
+        }).eq("id", row.dataset.type);
+        msg.className = "msg " + (error ? "bad" : "ok");
+        msg.textContent = error ? error.message : "Saved.";
+      };
+
+      const pub = row.querySelector("[data-publish]");
+      if (pub) pub.onclick = async () => {
+        const when = prompt(
+          "When? Use your local time, as YYYY-MM-DD HH:MM\n\ne.g. 2026-12-09 18:30");
+        if (!when) return;
+        const d = new Date(when.replace(" ", "T"));
+        if (isNaN(d.getTime())) { alert("I couldn't read that as a date and time."); return; }
+        const { data } = await sb.rpc("admin_create_group_session", {
+          p_event_type: pub.dataset.publish, p_starts_at: d.toISOString(),
+          p_capacity: null, p_title: null, p_meeting_url: null,
+        });
+        const r = (data || [])[0];
+        if (!r || !r.ok) { alert((r && r.message) || "Could not publish that."); return; }
+        alert("Published. Students can take a seat now.");
+        loadQueue();
+      };
+    });
+  }
+
+  /* ---------- availability ---------- */
+  async function loadHours() {
+    const { data } = await withDeadline(
+      sb.from("availability_rules").select("*").order("weekday"), 6000, { data: null });
+    if (!data) { $("hours").innerHTML = `<div class="card">Couldn't load your hours.</div>`; return; }
+    $("hours").innerHTML = data.length ? data.map(r => `
+      <div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div><strong>${DAYS[r.weekday]}</strong>
+          <span class="muted">${r.start_time.slice(0,5)} – ${r.end_time.slice(0,5)} ${escapeHtml(r.timezone)}</span></div>
+        <button class="btn btn-ghost btn-sm" data-del="${escapeHtml(r.id)}">Remove</button>
+      </div>`).join("")
+      : `<div class="card"><strong>No hours set.</strong>
+         <p class="muted" style="margin:8px 0 0">Until you add at least one window, the booking
+         page has no times to offer.</p></div>`;
+
+    $("hours").querySelectorAll("[data-del]").forEach(b => {
+      b.onclick = async () => {
+        b.disabled = true;
+        const { error } = await sb.from("availability_rules").delete().eq("id", b.dataset.del);
+        if (error) { b.disabled = false; alert(error.message); return; }
+        loadHours();
+      };
+    });
+  }
+
+  $("addWindow").onclick = async () => {
+    const msg = $("hoursMsg");
+    const from = $("nwFrom").value, to = $("nwTo").value;
+    if (!from || !to || to <= from) {
+      msg.className = "msg bad"; msg.textContent = "The end time has to be after the start."; return;
+    }
+    msg.className = "msg"; msg.textContent = "Adding…";
+    const { error } = await sb.from("availability_rules").insert({
+      host_id: session.user.id, weekday: parseInt($("nwDay").value, 10),
+      start_time: from, end_time: to, timezone: $("nwTz").value.trim() || "Asia/Kolkata",
+    });
+    msg.className = "msg " + (error ? "bad" : "ok");
+    msg.textContent = error ? error.message : "Added.";
+    if (!error) loadHours();
+  };
+
+  /* ---------- one student's history ---------- */
+  $("lookup").onclick = async () => {
+    const email = $("hEmail").value.trim();
+    if (!email) return;
+    $("history").innerHTML = `<div class="spin"></div>`;
+    const { data } = await withDeadline(
+      sb.rpc("admin_student_history", { p_email: email }), 8000, { data: null });
+    if (!data || !data.length) {
+      $("history").innerHTML = `<div class="card">No sessions found for
+        <strong>${escapeHtml(email)}</strong>.</div>`;
+      return;
+    }
+    $("history").innerHTML = data.map(h => `
+      <div class="row">
+        <h3>${escapeHtml(h.title)}</h3>
+        <div class="meta">${escapeHtml(fmt(h.starts_at))} · ${escapeHtml(h.status)}</div>
+        ${h.summary ? `<p style="margin:8px 0 0;font-size:14px">${escapeHtml(h.summary)}</p>` : ""}
+        ${(h.items || []).length ? `<div style="margin-top:8px">${(h.items || []).map(i => `
+          <div class="att"><strong>${escapeHtml(i.title)}</strong>
+            <span class="pill ${i.status === "done" ? "pill-done" : ""}">${escapeHtml(i.status)}</span>
+            ${i.due_on ? `<span class="muted"> due ${escapeHtml(i.due_on)}</span>` : ""}</div>`).join("")}
+          </div>` : ""}
+      </div>`).join("");
+  };
+
+  await Promise.all([loadQueue(), loadTypes(), loadHours()]);
+})();
+</script>
+</body>
+</html>

@@ -21,7 +21,8 @@ PAGES = [
 # Public pages that already exist and are not generated here, but do belong in
 # the sitemap.
 EXISTING_PUBLIC = [("", "1.0"), ("pricing.html", "0.8"),
-                   ("projects.html", "0.7"), ("verify.html", "0.5")]
+                   ("projects.html", "0.7"), ("book.html", "0.6"),
+                   ("verify.html", "0.5")]
 
 # IndexNow lets Bing (and therefore Copilot) be told about new and changed pages
 # without an account, a login or a verification meta tag — the proof of ownership is

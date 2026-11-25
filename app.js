@@ -284,14 +284,16 @@ async function renderTopbar(active, rel = "") {
     <span class="spacer"></span>
     ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="${rel}app.html">My Course</a>
     ${window.QT_CONFIG.RAG_CONSOLE_URL ? `<a class="navlink ${active === "projects" ? "active" : ""}" href="${rel}projects.html">Projects</a>` : ""}
-    <a class="navlink ${active === "cert" ? "active" : ""}" href="${rel}certificate.html">Certificates</a>`
+    <a class="navlink ${active === "cert" ? "active" : ""}" href="${rel}certificate.html">Certificates</a>
+    <a class="navlink ${active === "book" ? "active" : ""}" href="${rel}book.html">Sessions</a>`
     /* Signed out means either a visitor deciding whether to sign up, or a crawler.
        Both need the course pages to be reachable by a link — a page nobody links to
        is a page search engines treat as unimportant, however good it is. Signed-in
        students get their own course nav instead and do not need the sales pages. */
     : `<a class="navlink ${active === "genai" ? "active" : ""}" href="${rel}genai-testing-course.html">GenAI Testing</a>
     <a class="navlink ${active === "python" ? "active" : ""}" href="${rel}python-dsa-course.html">Python &amp; DSA</a>
-    <a class="navlink ${active === "faq" ? "active" : ""}" href="${rel}faq.html">FAQ</a>`}
+    <a class="navlink ${active === "faq" ? "active" : ""}" href="${rel}faq.html">FAQ</a>
+    <a class="navlink ${active === "book" ? "active" : ""}" href="${rel}book.html">Book a call</a>`}
     <a class="navlink ${active === "pricing" ? "active" : ""}" href="${rel}pricing.html">Pricing</a>
     <a class="navlink ${active === "verify" ? "active" : ""}" href="${rel}verify.html">Verify</a>
     ${adminLink} ${accessHtml} ${userHtml}</div>`;
