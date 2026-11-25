@@ -24,6 +24,7 @@ PAGES=(
   index.html app.html admin.html projects.html viewer.html quiz.html
   certificate.html verify.html pricing.html reset-password.html unsubscribe.html
   genai-testing-course.html python-dsa-course.html faq.html
+  book.html admin-sessions.html
 )
 ASSETS=(
   app.css app.js config.js sw.js manifest.webmanifest
