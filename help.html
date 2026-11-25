@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ask the course — GenAITesting</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Student-facing: the answers come from paid material and the page is empty
+     until sign-in, so an indexed copy would be an empty shell. -->
+<meta name="robots" content="noindex, follow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="Ask the course — GenAITesting">
+<meta property="og:description" content="Ask a question and get an answer drawn from the course material, with links to where it came from.">
+<meta property="og:url" content="https://genaitesting.online/help.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="app.css">
+<style>
+  .askbox { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-start; }
+  .askbox textarea { flex:1 1 320px; min-height:74px; padding:11px 13px; border:1px solid #D1D5DB;
+                     border-radius:10px; font:inherit; resize:vertical; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; }
+  .chip { border:1px solid #D1D5DB; background:#fff; border-radius:999px; padding:6px 12px;
+          font:500 13px/1 system-ui,sans-serif; color:#1F3864; cursor:pointer; }
+  .chip:hover { border-color:#1F3864; background:#F8FAFC; }
+
+  .answer { border:1px solid #E5E7EB; border-radius:12px; padding:16px 18px; background:#fff; margin-top:16px; }
+  .answer p { margin:0 0 12px; line-height:1.65; }
+  .answer p:last-child { margin-bottom:0; }
+  .answer strong { color:#1F3864; }
+  .cite { display:inline-block; min-width:20px; padding:0 5px; margin:0 1px; border-radius:5px;
+          background:#EEF2F7; color:#1F3864; font:600 12px/18px system-ui,sans-serif;
+          text-align:center; vertical-align:baseline; }
+  .sources { margin-top:14px; padding-top:12px; border-top:1px solid #F3F4F6; }
+  .sources h4 { margin:0 0 8px; font:600 12.5px/1 system-ui,sans-serif;
+                letter-spacing:.04em; text-transform:uppercase; color:#6B7280; }
+  .src { font-size:13.5px; color:#374151; padding:4px 0; }
+  .src b { color:#1F3864; }
+  .prov { margin-top:12px; font-size:12.5px; color:#6B7280; }
+  .warn { border-left:3px solid #B45309; padding-left:12px; color:#92400E; font-size:13.5px; margin-top:12px; }
+  .cov { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .cov span { font-size:12.5px; color:#6B7280; background:#F8FAFC; border:1px solid #E5E7EB;
+              border-radius:8px; padding:4px 9px; }
+  .modes { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; }
+  .modes button { border:1px solid #D1D5DB; background:#fff; border-radius:8px; padding:7px 13px;
+                  font:600 13.5px/1 system-ui,sans-serif; color:#6B7280; cursor:pointer; }
+  .modes button[aria-pressed="true"] { background:#1F3864; color:#fff; border-color:#1F3864; }
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:8px">
+    <h1>Ask the course</h1>
+    <p class="lead">Questions answered from the material you have access to — the handouts,
+      the course pages, the capstone documents and the lesson recordings. Every answer
+      shows you where it came from, and says so plainly when the material does not cover it.</p>
+  </section>
+
+  <div id="gate"></div>
+
+  <div id="panel" hidden>
+    <section class="section" style="padding-top:8px">
+      <div class="askbox">
+        <textarea id="q" placeholder="e.g. What does Hit@k actually measure, and when is it misleading?"></textarea>
+        <button class="btn btn-primary" id="askBtn" type="button">Ask</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div id="out"></div>
+    </section>
+
+    <section class="section" id="adminSection" hidden>
+      <h2>Generate from a module</h2>
+      <p class="muted" style="margin-top:-6px">A polished summary, or interview questions with
+        model answers, drawn from one module's material.</p>
+      <div class="modes">
+        <button type="button" data-gen="summary" aria-pressed="true">Summary</button>
+        <button type="button" data-gen="interview" aria-pressed="false">Interview Q&amp;A</button>
+      </div>
+      <div class="askbox">
+        <select id="genModule" style="flex:0 1 240px;padding:10px;border:1px solid #D1D5DB;border-radius:10px;font:inherit">
+          <option value="">Every module</option>
+        </select>
+        <input id="genAngle" placeholder="Optional angle, e.g. focus on retrieval metrics"
+          style="flex:1 1 240px;padding:10px 12px;border:1px solid #D1D5DB;border-radius:10px;font:inherit">
+        <input id="genCount" type="number" min="1" max="15" value="8" title="How many questions"
+          style="flex:0 0 72px;padding:10px;border:1px solid #D1D5DB;border-radius:10px;font:inherit">
+        <button class="btn btn-navy" id="genBtn" type="button">Generate</button>
+      </div>
+      <div id="genOut"></div>
+    </section>
+
+    <section class="section">
+      <h2>What the agent has read</h2>
+      <div class="cov" id="cov"></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("help");
+  const $ = (id) => document.getElementById(id);
+  const withDeadline = (p, ms, fb) =>
+    Promise.race([p, new Promise(r => setTimeout(() => r(fb), ms))]);
+
+  const session = await withDeadline(getSession(), 8000, null);
+  if (!session) {
+    $("gate").innerHTML = `<div class="card">
+      <strong>Sign in to ask.</strong> The answers are drawn from the course material, so the
+      agent needs to know which of it you have access to.
+      <div style="margin-top:10px">
+        <a class="btn btn-primary" href="index.html?next=help.html">Sign in</a>
+        <a class="btn btn-ghost" href="faq.html">Read the public FAQ instead</a>
+      </div></div>`;
+    return;
+  }
+  $("panel").hidden = false;
+
+  /* Render the model's prose. Markdown is deliberately not parsed wholesale —
+     only the few things the prompt actually asks for — because running a full
+     parser over model output is how a stray HTML tag in a source document ends
+     up executing. Everything is escaped first; the formatting is added after. */
+  function render(text) {
+    const esc = escapeHtml(text);
+    return esc.split(/\n{2,}/).map(block => {
+      let html = block
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\[(\d{1,2})\]/g, '<span class="cite">$1</span>')
+        .replace(/\n/g, "<br>");
+      return `<p>${html}</p>`;
+    }).join("");
+  }
+
+  function sourceList(citations) {
+    if (!citations || !citations.length) return "";
+    return `<div class="sources"><h4>Where this came from</h4>` +
+      citations.map(c => {
+        const label = `<b>${escapeHtml(c.title)}</b>` +
+          (c.heading ? ` — ${escapeHtml(c.heading)}` : "") +
+          (c.module ? ` <span class="muted">(${escapeHtml(c.module)})</span>` : "");
+        /* Only http(s) and site-relative URIs become links. A citation's uri
+           comes from an ingested document, and an ingested document is text
+           somebody else wrote — so `javascript:` in that field would be a
+           stored cross-site script that fires when a student clicks their own
+           source link. Escaping the value is not enough; the scheme is the
+           thing that has to be checked. */
+        const safeUri = (u) => {
+          if (!u) return null;
+          if (/^(https?:)?\/\//i.test(u)) return u;
+          if (/^[a-z0-9._~\-/]+(\.[a-z0-9]+)?(#|\?|$)/i.test(u) && !/^[a-z]+:/i.test(u)) return u;
+          return null;
+        };
+        // A video citation is only useful if it starts playing at the moment
+        // the answer came from.
+        const base = safeUri(c.uri);
+        const href = base
+          ? (c.start_sec != null ? `${base}#t=${c.start_sec}` : base)
+          : null;
+        return `<div class="src"><span class="cite">${c.n}</span> ` +
+          (href ? `<a href="${escapeHtml(href)}" target="_blank" rel="noopener">${label}</a>` : label) +
+          `</div>`;
+      }).join("") + `</div>`;
+  }
+
+  function provenance(r) {
+    const bits = [];
+    if (r.retrieval) bits.push(`Retrieval: ${escapeHtml(r.retrieval)}`);
+    if (r.considered) bits.push(`${r.considered} passages considered`);
+    if (r.ms) bits.push(`${(r.ms / 1000).toFixed(1)} s`);
+    let html = bits.length ? `<div class="prov">${bits.join(" · ")}</div>` : "";
+    /* A note means something was degraded — usually that the embedding
+       provider was unreachable and this answer came from word matching alone.
+       Saying so is the difference between a worse answer and a silently worse
+       answer. */
+    if (r.note) html += `<div class="warn">${escapeHtml(r.note)}</div>`;
+    return html;
+  }
+
+  function showAnswer(target, r) {
+    if (r.error) {
+      target.innerHTML = `<div class="answer"><p><strong>That did not work.</strong></p>
+        <p>${escapeHtml(r.error)}</p></div>`;
+      return;
+    }
+    const body = render(r.answer || "");
+    const cov = (!r.grounded && r.coverage && r.coverage.length)
+      ? `<div class="cov">` + r.coverage.map(c =>
+          `<span>${escapeHtml(c.module)} · ${c.documents} docs</span>`).join("") + `</div>`
+      : "";
+    target.innerHTML = `<div class="answer">${body}${cov}${sourceList(r.citations)}${provenance(r)}</div>`;
+  }
+
+  async function call(payload, target, busyLabel, btn) {
+    const label = btn.textContent;
+    btn.disabled = true; btn.textContent = busyLabel;
+    target.innerHTML = `<div class="answer"><div class="spin"></div></div>`;
+    const { data, error } = await invokeFn("kb-agent", { body: payload });
+    btn.disabled = false; btn.textContent = label;
+    if (error) {
+      showAnswer(target, { error: friendlyFnError(error) ||
+        "The agent could not be reached. It may not be deployed yet." });
+      return;
+    }
+    showAnswer(target, data || {});
+  }
+
+  $("askBtn").onclick = () => {
+    const q = $("q").value.trim();
+    if (!q) { $("q").focus(); return; }
+    call({ mode: "ask", question: q }, $("out"), "Reading…", $("askBtn"));
+  };
+  $("q").addEventListener("keydown", (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") $("askBtn").click();
+  });
+
+  /* ---------- coverage, and starter questions drawn from it ---------- */
+  const { data: cov } = await withDeadline(sb.rpc("kb_coverage"), 6000, { data: null });
+
+  if (!cov || !cov.length) {
+    $("cov").innerHTML = `<span>Nothing ingested yet — run <code>kb/ingest.py</code>.</span>`;
+  } else {
+    $("cov").innerHTML = cov.map(c =>
+      `<span>${escapeHtml(c.module)} · ${c.documents} documents · ${c.chunks} passages` +
+      (c.embedded < c.chunks ? ` · ${c.chunks - c.embedded} not embedded` : "") +
+      `</span>`).join("");
+    const sel = $("genModule");
+    cov.forEach(c => {
+      const o = document.createElement("option");
+      o.value = c.module; o.textContent = `${c.module} (${c.documents})`;
+      sel.appendChild(o);
+    });
+  }
+
+  const STARTERS = [
+    "What does Hit@k actually measure?",
+    "How do I test an AI agent that calls tools?",
+    "What is indirect prompt injection?",
+    "Which RAGAS metrics actually matter?",
+    "How do I build a golden dataset?",
+  ];
+  $("chips").innerHTML = STARTERS.map(s =>
+    `<button class="chip" type="button" data-q="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join("");
+  $("chips").querySelectorAll("[data-q]").forEach(b => {
+    b.onclick = () => { $("q").value = b.dataset.q; $("askBtn").click(); };
+  });
+
+  /* ---------- admin: generate ---------- */
+  const { data: prof } = await withDeadline(
+    sb.from("profiles").select("role").eq("id", session.user.id).single(), 5000, { data: null });
+
+  if (prof && prof.role === "admin") {
+    $("adminSection").hidden = false;
+    let GEN = "summary";
+    $("adminSection").querySelectorAll("[data-gen]").forEach(b => {
+      b.onclick = () => {
+        GEN = b.dataset.gen;
+        $("adminSection").querySelectorAll("[data-gen]").forEach(x =>
+          x.setAttribute("aria-pressed", String(x === b)));
+        $("genCount").style.visibility = GEN === "interview" ? "visible" : "hidden";
+      };
+    });
+    $("genCount").style.visibility = "hidden";
+    $("genBtn").onclick = () => call({
+      mode: GEN, module: $("genModule").value || null,
+      question: $("genAngle").value.trim() || null,
+      count: parseInt($("genCount").value, 10) || 8,
+    }, $("genOut"), "Writing…", $("genBtn"));
+  }
+})();
+</script>
+</body>
+</html>

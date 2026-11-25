@@ -285,7 +285,8 @@ async function renderTopbar(active, rel = "") {
     ${session ? `<a class="navlink ${active === "app" ? "active" : ""}" href="${rel}app.html">My Course</a>
     ${window.QT_CONFIG.RAG_CONSOLE_URL ? `<a class="navlink ${active === "projects" ? "active" : ""}" href="${rel}projects.html">Projects</a>` : ""}
     <a class="navlink ${active === "cert" ? "active" : ""}" href="${rel}certificate.html">Certificates</a>
-    <a class="navlink ${active === "book" ? "active" : ""}" href="${rel}book.html">Sessions</a>`
+    <a class="navlink ${active === "book" ? "active" : ""}" href="${rel}book.html">Sessions</a>
+    <a class="navlink ${active === "help" ? "active" : ""}" href="${rel}help.html">Ask</a>`
     /* Signed out means either a visitor deciding whether to sign up, or a crawler.
        Both need the course pages to be reachable by a link — a page nobody links to
        is a page search engines treat as unimportant, however good it is. Signed-in
