@@ -263,7 +263,8 @@ async function renderTopbar(active, rel = "") {
     try {
       const { data: p } = await sb.from("profiles").select("role").eq("id", session.user.id).single();
       if (p && p.role === "admin")
-        adminLink = `<a class="navlink ${active === "admin" ? "active" : ""}" href="${rel}admin.html">Admin</a>`;
+        adminLink = `<a class="navlink ${active === "admin" ? "active" : ""}" href="${rel}admin.html">Admin</a>` +
+          `<a class="navlink ${active === "settings" ? "active" : ""}" href="${rel}admin-settings.html">Settings</a>`;
     } catch (e) { /* ignore */ }
   }
   /* access badge: days left, or a prompt to subscribe */

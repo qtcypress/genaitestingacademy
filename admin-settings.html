@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings — Admin — GenAITesting</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="app.css">
+<style>
+  .secret { border:1px solid #E5E7EB; border-radius:12px; padding:14px 16px; background:#fff; margin-bottom:10px; }
+  .secret.missing { border-color:#FCA5A5; background:#FEF2F2; }
+  .secret.optional { opacity:.78; }
+  .secret-top { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; justify-content:space-between; }
+  .secret code { font:600 13.5px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; color:#1F3864; }
+  .badge { font:700 11px/1 system-ui,sans-serif; letter-spacing:.05em; text-transform:uppercase;
+           padding:4px 8px; border-radius:999px; }
+  .badge.ok { background:#DCFCE7; color:#166534; }
+  .badge.no { background:#FEE2E2; color:#991B1B; }
+  .badge.warn { background:#FEF3C7; color:#92400E; }
+  .shape { font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; color:#6B7280; margin-top:6px; }
+  .breaks { font-size:13.5px; color:#374151; margin:8px 0 0; }
+  .where { font-size:13px; color:#6B7280; margin:4px 0 0; }
+  .stat { display:inline-block; min-width:112px; border:1px solid #E5E7EB; border-radius:12px;
+          padding:12px 14px; background:#fff; margin:0 8px 8px 0; }
+  .stat b { display:block; font:700 22px/1.2 system-ui,sans-serif; color:#1F3864; }
+  .stat.bad b { color:#9b1c1c; }
+  .stat span { font-size:12.5px; color:#6B7280; }
+  .test { border:1px solid #E5E7EB; border-radius:12px; padding:12px 14px; background:#F8FAFC;
+          margin-top:10px; font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+          white-space:pre-wrap; word-break:break-word; }
+  .test.ok { border-color:#86EFAC; background:#F0FDF4; }
+  .test.bad { border-color:#FCA5A5; background:#FEF2F2; }
+  table.od { width:100%; border-collapse:collapse; font-size:13.5px; }
+  table.od th { text-align:left; font:600 12px/1 system-ui,sans-serif; letter-spacing:.04em;
+                text-transform:uppercase; color:#6B7280; padding:6px 8px; border-bottom:1px solid #E5E7EB; }
+  table.od td { padding:7px 8px; border-bottom:1px solid #F3F4F6; }
+  .fields { display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); }
+  .fields label { display:block; font:600 12.5px/1.4 system-ui,sans-serif; color:#374151; margin-bottom:4px; }
+  .fields input, .fields select { width:100%; padding:8px 10px; border:1px solid #D1D5DB;
+                                  border-radius:8px; font:inherit; background:#fff; }
+</style>
+</head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<main class="wrap">
+  <section class="hero" style="padding-bottom:4px">
+    <h1>Settings</h1>
+    <p class="lead">What is configured, what is missing, and exactly what each
+      missing thing breaks.</p>
+  </section>
+
+  <div id="gate"></div>
+
+  <div id="panel" hidden>
+    <div class="card" style="margin-bottom:18px">
+      <strong>Keys are not stored or shown here, and cannot be set here.</strong>
+      <p class="muted" style="margin:6px 0 0">They live in <b>Supabase → Edge Functions →
+        Secrets</b>, where a database backup cannot contain them and this page cannot read them.
+        What you see below is each key's <em>shape</em> — set or not, length, first four
+        characters, whether the prefix matches what that provider issues, and whether a stray
+        newline came along with the paste. That is enough to diagnose every configuration fault
+        this project has hit, without a credential ever reaching a browser.</p>
+    </div>
+
+    <section class="section" style="padding-top:0">
+      <h2>Keys</h2>
+      <div id="secrets"><div class="spin"></div></div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-primary btn-sm" id="testBtn" type="button">Test the providers now</button>
+        <span class="muted" style="font-size:13px">Makes one real call to each. Costs a few tokens.</span>
+      </div>
+      <div id="tests"></div>
+    </section>
+
+    <section class="section">
+      <h2>Models</h2>
+      <p class="muted" style="margin-top:-6px">Model names are not secrets, so these live in the
+        database and change here without a redeploy.</p>
+      <div id="models"></div>
+    </section>
+
+    <section class="section">
+      <h2>Email</h2>
+      <div id="mail"></div>
+    </section>
+
+    <section class="section">
+      <h2>Is the follow-up loop turning?</h2>
+      <p class="muted" style="margin-top:-6px">Deliberately the uncomfortable numbers. Counting
+        only the comfortable ones makes a dashboard that is always green.</p>
+      <div id="ops"><div class="spin"></div></div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>
+(async function () {
+  renderTopbar("admin");
+  const $ = (id) => document.getElementById(id);
+  const withDeadline = (p, ms, fb) =>
+    Promise.race([p, new Promise(r => setTimeout(() => r(fb), ms))]);
+
+  const session = await withDeadline(getSession(), 8000, null);
+  if (!session) { location.href = "index.html?next=admin-settings.html"; return; }
+
+  const { data: prof } = await withDeadline(
+    sb.from("profiles").select("role").eq("id", session.user.id).single(), 5000, { data: null });
+  if (!prof || prof.role !== "admin") {
+    $("gate").innerHTML = `<div class="card"><strong>This page is for admins.</strong></div>`;
+    return;
+  }
+  $("panel").hidden = false;
+
+  /* ---------- the configuration report ---------- */
+  let REPORT = null;
+
+  function renderSecrets(secrets) {
+    $("secrets").innerHTML = secrets.map(s => {
+      const bad = !s.set && !s.optional;
+      const warn = s.set && (s.has_stray_whitespace || s.prefix_looks_right === false);
+      const badge = !s.set
+        ? `<span class="badge ${s.optional ? "warn" : "no"}">${s.optional ? "using default" : "not set"}</span>`
+        : warn ? `<span class="badge warn">check this</span>`
+               : `<span class="badge ok">set</span>`;
+
+      const shape = s.set ? [
+        `length ${s.length}`,
+        `starts "${escapeHtml(s.starts || "")}"`,
+        s.prefix_expected
+          ? (s.prefix_looks_right
+              ? `prefix ok`
+              : `prefix should be "${escapeHtml(s.prefix_expected)}" — this looks like a key for a different service`)
+          : null,
+        s.has_stray_whitespace
+          ? `has stray whitespace — a trailing newline makes a perfectly good key fail with "invalid key"`
+          : `no stray whitespace`,
+      ].filter(Boolean).join("  ·  ") : "";
+
+      return `<div class="secret ${bad ? "missing" : ""} ${s.optional ? "optional" : ""}">
+        <div class="secret-top"><code>${escapeHtml(s.name)}</code>${badge}</div>
+        ${shape ? `<div class="shape">${escapeHtml(shape).replace(/·/g, "·")}</div>` : ""}
+        <p class="breaks"><b>${escapeHtml(s.feature)}.</b> ${escapeHtml(s.breaks)}</p>
+        ${!s.set ? `<p class="where">${escapeHtml(s.where)}</p>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  function renderModels(m) {
+    const known = m.known_chat_models || [];
+    $("models").innerHTML = `
+      ${!m.schema_12_applied ? `<div class="card" style="margin-bottom:12px">
+        <strong>schema-12-knowledge.sql has not been run yet.</strong>
+        <p class="muted" style="margin:6px 0 0">Until it has, the model comes from the
+        <code>GROQ_MODEL</code> environment variable and cannot be changed here.</p></div>` : ""}
+      ${m.chat_warning ? `<div class="card" style="margin-bottom:12px;border-color:#FCA5A5;background:#FEF2F2">
+        <strong>That model name looks spliced.</strong>
+        <p style="margin:6px 0 0;font-size:13.5px">${escapeHtml(m.chat_warning)}</p></div>` : ""}
+      <div class="secret">
+        <div class="fields">
+          <div><label for="chatModel">Answer model (Groq)</label>
+            <select id="chatModel" ${m.schema_12_applied ? "" : "disabled"}>
+              ${known.map(k => `<option value="${escapeHtml(k)}"${k === m.chat ? " selected" : ""}>${escapeHtml(k)}</option>`).join("")}
+              ${known.includes(m.chat) ? "" : `<option value="${escapeHtml(m.chat)}" selected>${escapeHtml(m.chat)} (not a known Groq model)</option>`}
+            </select></div>
+          <div><label for="minSim">Refusal threshold</label>
+            <input id="minSim" type="number" step="0.01" min="0" max="1"
+              value="${m.min_similarity ?? 0.3}" ${m.schema_12_applied ? "" : "disabled"}></div>
+          <div><label>Embedding provider</label>
+            <input value="${escapeHtml(m.embed_provider || "")}" disabled
+              title="Set by the EMBED_PROVIDER secret"></div>
+          <div><label>Embedding model</label>
+            <input value="${escapeHtml(m.embed || "")} · ${m.embed_dim} dims" disabled
+              title="Changing this means re-embedding the whole corpus"></div>
+        </div>
+        <p class="where" style="margin-top:10px">Source of the answer model:
+          ${escapeHtml(m.chat_source)}. The refusal threshold is the cosine similarity below
+          which the agent declines rather than answering from the least-bad passages —
+          raise it if answers wander, lower it if it refuses things it should know.</p>
+        ${m.schema_12_applied ? `<div style="margin-top:10px">
+          <button class="btn btn-primary btn-sm" id="saveModels" type="button">Save</button>
+          <span class="muted" id="modelMsg" style="margin-left:8px;font-size:13px"></span>
+        </div>` : ""}
+      </div>`;
+
+    const save = $("saveModels");
+    if (save) save.onclick = async () => {
+      const msg = $("modelMsg");
+      save.disabled = true; msg.textContent = "Saving…";
+      const { error } = await sb.from("kb_config").update({
+        chat_model: $("chatModel").value,
+        min_similarity: parseFloat($("minSim").value) || 0.3,
+        updated_at: new Date().toISOString(),
+      }).eq("id", 1);
+      save.disabled = false;
+      msg.textContent = error ? error.message : "Saved. The next question uses it — no redeploy.";
+      msg.style.color = error ? "#9b1c1c" : "#1d6b34";
+    };
+  }
+
+  function renderMail(mail) {
+    const o = mail.outbox || {};
+    $("mail").innerHTML = `<div class="secret">
+      <div class="shape">host ${escapeHtml(mail.host)} · from ${escapeHtml(mail.from)}</div>
+      <p class="breaks" style="margin-top:10px">${escapeHtml(mail.verdict)}</p>
+      <div style="margin-top:10px">
+        ${["queued", "sent", "failed"].map(k =>
+          `<span class="stat ${k === "failed" && o[k] ? "bad" : ""}"><b>${o[k] ?? 0}</b><span>${k}</span></span>`).join("")}
+      </div>
+    </div>`;
+  }
+
+  async function load(withTests) {
+    const { data, error } = await invokeFn("config-probe",
+      { body: withTests ? { test: true } : {} });
+    if (error) {
+      $("secrets").innerHTML = `<div class="card"><strong>Could not read the configuration.</strong>
+        <p class="muted" style="margin:8px 0 0">${escapeHtml(friendlyFnError(error) ||
+        "The config-probe function may not be deployed yet.")}</p></div>`;
+      return null;
+    }
+    REPORT = data;
+    renderSecrets(data.secrets || []);
+    renderModels(data.models || {});
+    renderMail(data.mail || {});
+    if (data.tests) renderTests(data.tests);
+    return data;
+  }
+
+  function renderTests(t) {
+    const block = (name, r) => {
+      const cls = r.ok ? "ok" : "bad";
+      const lines = [
+        `${name}: ${r.ok ? "working" : "not working"}`,
+        r.model ? `model: ${r.model}` : null,
+        r.provider ? `provider: ${r.provider}` : null,
+        r.dimensions != null ? `dimensions: ${r.dimensions}` : null,
+        r.ms != null ? `took: ${r.ms} ms` : null,
+        r.cause ? `likely cause: ${r.cause}` : null,
+        r.detail ? `the provider's own words: ${r.detail}` : null,
+      ].filter(Boolean).join("\n");
+      return `<div class="test ${cls}">${escapeHtml(lines)}</div>`;
+    };
+    $("tests").innerHTML = block("Groq", t.groq || {}) + block("Embeddings", t.embedding || {});
+  }
+
+  $("testBtn").onclick = async () => {
+    const b = $("testBtn");
+    b.disabled = true; b.textContent = "Testing…";
+    $("tests").innerHTML = `<div class="test">Calling each provider once…</div>`;
+    await load(true);
+    b.disabled = false; b.textContent = "Test the providers now";
+  };
+
+  /* ---------- the operations numbers ---------- */
+  const { data: ops, error: oErr } = await withDeadline(
+    sb.rpc("admin_ops_dashboard"), 8000, { data: null, error: null });
+
+  if (!ops) {
+    $("ops").innerHTML = `<div class="card">
+      <strong>The dashboard is not available.</strong>
+      <p class="muted" style="margin:8px 0 0">${oErr ? escapeHtml(oErr.message)
+        : "schema-13-admin-ops.sql has probably not been run yet."}</p></div>`;
+  } else {
+    const b = ops.bookings || {}, a = ops.attendance || {},
+          u = ops.unwritten || {}, ai = ops.action_items || {}, cap = ops.capacity || {};
+    const stat = (v, label, bad) =>
+      `<span class="stat ${bad ? "bad" : ""}"><b>${v}</b><span>${label}</span></span>`;
+
+    $("ops").innerHTML = `
+      <div>
+        ${stat(b.next_7_days ?? 0, "booked, next 7 days")}
+        ${stat(b.booked_this_week ?? 0, "booked this week")}
+        ${stat(a.rate != null ? a.rate + "%" : "—", "attendance")}
+        ${stat(a.no_show ?? 0, "no-shows", (a.no_show ?? 0) > 0)}
+        ${stat(u.count ?? 0, "unwritten calls", (u.count ?? 0) > 0)}
+        ${stat(ai.overdue ?? 0, "overdue tasks", (ai.overdue ?? 0) > 0)}
+        ${stat(ai.stale ?? 0, "untouched 3 weeks", (ai.stale ?? 0) > 0)}
+      </div>
+      ${cap.without_meeting_link > 0 ? `<div class="card" style="margin-top:12px;border-color:#FCA5A5;background:#FEF2F2">
+        <strong>${cap.without_meeting_link} active session type${cap.without_meeting_link === 1 ? " has" : "s have"} no meeting link.</strong>
+        <p style="margin:6px 0 0;font-size:13.5px">Students can book them, and then have nowhere to
+        join. Paste a link on each in <a href="admin-sessions.html">Sessions → Session types</a>.</p></div>` : ""}
+      ${cap.availability_windows === 0 ? `<div class="card" style="margin-top:12px">
+        <strong>No availability windows are set</strong>, so the booking page has no times to offer.</div>` : ""}
+      ${(u.count ?? 0) > 0 ? `<div class="card" style="margin-top:12px">
+        <strong>${u.count} finished call${u.count === 1 ? "" : "s"} with no outcome written</strong>
+        ${u.oldest_days ? `, the oldest ${u.oldest_days} day${u.oldest_days === 1 ? "" : "s"} ago` : ""}.
+        <p class="muted" style="margin:6px 0 0">A call with no outcome produced no action items,
+        so nothing from it outlives the hour.</p>
+        <div style="margin-top:8px">${(u.sessions || []).slice(0, 8).map(s =>
+          `<div class="src" style="font-size:13.5px">${escapeHtml(s.title)} — ${escapeHtml(fmtDate(s.ended))}
+           · ${s.attendees} attendee${s.attendees === 1 ? "" : "s"}</div>`).join("")}</div>
+        <div style="margin-top:8px"><a class="btn btn-navy btn-sm" href="admin-sessions.html">Write them up</a></div>
+        </div>` : ""}
+      ${(ops.overdue_detail || []).length ? `<div style="margin-top:16px">
+        <h3 style="font-size:15px;color:#1F3864;margin:0 0 8px">Overdue action items</h3>
+        <div class="table-wrap"><table class="od">
+          <tr><th>Task</th><th>Student</th><th>Due</th><th>Over by</th></tr>
+          ${ops.overdue_detail.slice(0, 15).map(d => `<tr>
+            <td>${escapeHtml(d.title)}</td>
+            <td>${escapeHtml(d.student)}</td>
+            <td>${escapeHtml(d.due_on)}</td>
+            <td>${d.days_over} day${d.days_over === 1 ? "" : "s"}</td></tr>`).join("")}
+        </table></div></div>` : ""}`;
+  }
+
+  await load(false);
+})();
+</script>
+</body>
+</html>
