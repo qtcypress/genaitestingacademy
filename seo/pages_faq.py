@@ -252,7 +252,9 @@ QA = [
      The point most teams miss is about refusals. When an agent declines to call a
      destructive tool on a vague instruction, that is a control working correctly, and
      logging it as a bug trains the system towards the behaviour you least want.
-     Decide in advance which refusals are correct, and assert on them."""),
+     Decide in advance which refusals are correct, and assert on them. There is a
+     fuller treatment of all of this, including trajectory testing and multi-agent
+     hand-offs, on <a href="agentic-ai-testing.html">the agentic AI testing page</a>."""),
 
     ("DeepEval or Promptfoo — which should I use?",
      """They solve overlapping problems from different directions.
@@ -284,7 +286,9 @@ QA = [
      tool work" but "what can it reach when the model is confused or steered". And
      because servers are updated independently, a tool that behaved one way when you
      tested it can behave differently tomorrow with no change on your side. Test with a
-     deliberately hostile server; it is the only way to see these."""),
+     deliberately hostile server; it is the only way to see these. More on MCP and
+     <a href="agentic-ai-testing.html">testing agentic systems</a>, including agentic
+     RAG, where retrieval becomes a decision rather than a step."""),
 
     ("How do I write test cases for an LLM feature?",
      """The move is from "expected result" to "acceptance criteria you can defend",

@@ -8,7 +8,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 from build_pages import SITE, OUT          # noqa: E402
 import pages_genai, pages_python, pages_faq  # noqa: E402
-import pages_career, pages_istqb, pages_git  # noqa: E402
+import pages_career, pages_istqb, pages_git, pages_agentic  # noqa: E402
 import blog  # noqa: E402
 
 # (filename, builder, sitemap priority). Only pages that should be indexed appear
@@ -21,6 +21,7 @@ PAGES = [
     ("ai-testing-career-path.html", pages_career.build, "0.8"),
     ("istqb-ct-ai-vs-hands-on-course.html", pages_istqb.build, "0.8"),
     ("git-github-course.html", pages_git.build, "0.8"),
+    ("agentic-ai-testing.html", pages_agentic.build, "0.9"),
 ]
 
 # Public pages that already exist and are not generated here, but do belong in
