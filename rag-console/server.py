@@ -843,7 +843,7 @@ const PROJECTS = [
   ["rag",    "RAG project",       "answers questions from documents"],
   ["agents", "MCP agent project", "plans a trip and spends money"],
 ];
-const PROJ_KEY = "qt-console-project";
+const PROJ_KEY = "genai-console-project";
 
 /* Which project to open, in priority order:
      1. ?p= in the URL — the student just clicked a specific project on the LMS
