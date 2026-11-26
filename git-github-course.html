@@ -1,0 +1,1013 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git and GitHub: Zero to Mastery, Hands-On | GenAITesting</title>
+<meta name="description" content="Learn Git and GitHub from your first commit to rebase, stash and conflict resolution. Animated diagrams, a replayable terminal and self-paced practice.">
+<link rel="canonical" href="https://genaitesting.online/git-github-course.html">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F3864">
+<link rel="icon" href="favicon.ico" sizes="32x32">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GenAITesting">
+<meta property="og:title" content="Git and GitHub, zero to mastery — a free self-paced module">
+<meta property="og:description" content="Learn Git and GitHub from your first commit to rebase, stash and conflict resolution. Animated diagrams, a replayable terminal and self-paced practice.">
+<meta property="og:url" content="https://genaitesting.online/git-github-course.html">
+<meta property="og:image" content="https://genaitesting.online/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GenAITesting — GenAI application testing training and certification">
+<meta property="og:locale" content="en_IN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Git and GitHub, zero to mastery — a free self-paced module">
+<meta name="twitter:description" content="Learn Git and GitHub from your first commit to rebase, stash and conflict resolution. Animated diagrams, a replayable terminal and self-paced practice.">
+<meta name="twitter:image" content="https://genaitesting.online/social-card.png">
+<link rel="stylesheet" href="app.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "EducationalOrganization",
+   "@id": "https://genaitesting.online/#org",
+   "name": "GenAITesting",
+   "alternateName": "GenAI Testing Academy",
+   "url": "https://genaitesting.online/",
+   "logo": {
+    "@type": "ImageObject",
+    "url": "https://genaitesting.online/icon-512.png",
+    "width": 512,
+    "height": 512
+   },
+   "image": "https://genaitesting.online/social-card.png",
+   "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Hyderabad",
+    "addressRegion": "Telangana",
+    "addressCountry": "IN"
+   },
+   "areaServed": {
+    "@type": "Place",
+    "name": "Worldwide"
+   },
+   "sameAs": [
+    "https://github.com/qtcypress/genaitestingacademy"
+   ]
+  },
+  {
+   "@type": "WebSite",
+   "@id": "https://genaitesting.online/#website",
+   "url": "https://genaitesting.online/",
+   "name": "GenAITesting",
+   "publisher": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "inLanguage": "en"
+  },
+  {
+   "@type": "Course",
+   "@id": "https://genaitesting.online/git-github-course.html#course",
+   "name": "Git and GitHub: Zero to Mastery",
+   "description": "A self-paced, hands-on module covering version control concepts, Git's object model, branching and merging, GitHub, GitHub Desktop, conflict resolution and recovery.",
+   "url": "https://genaitesting.online/git-github-course.html",
+   "provider": {
+    "@id": "https://genaitesting.online/#org"
+   },
+   "inLanguage": "en",
+   "educationalLevel": "Beginner to Advanced",
+   "isAccessibleForFree": true,
+   "teaches": [
+    "Version control concepts",
+    "Git object model and commits",
+    "Working directory, staging area, local and remote repositories",
+    "Branching and merging",
+    "GitHub and pull requests",
+    "GitHub Desktop",
+    "Merge conflict resolution",
+    "Rebase and cherry-pick",
+    "Stashing",
+    "Undoing changes and recovering lost commits"
+   ],
+   "audience": {
+    "@type": "EducationalAudience",
+    "educationalRole": "student",
+    "audienceType": "Testers, developers and students new to version control"
+   },
+   "hasCourseInstance": {
+    "@type": "CourseInstance",
+    "courseMode": [
+     "online",
+     "asynchronous"
+    ],
+    "courseWorkload": "PT3H",
+    "location": {
+     "@type": "VirtualLocation",
+     "url": "https://genaitesting.online/git-github-course.html"
+    }
+   }
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Home",
+     "item": "https://genaitesting.online/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Git and GitHub",
+     "item": "https://genaitesting.online/git-github-course.html"
+    }
+   ]
+  }
+ ]
+}
+</script>
+<style>
+.gt-prog{position:sticky;top:0;z-index:40;height:5px;background:rgba(0,0,0,.08)}
+.gt-prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,#1F3864,#2f6fb5);transition:width .35s}
+.gt-steps{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 0;padding:0;list-style:none}
+.gt-steps a{display:inline-block;padding:7px 12px;border:1px solid var(--line,#d8dee9);border-radius:999px;
+  text-decoration:none;font-size:14px;color:inherit;background:var(--panel,#fff)}
+.gt-steps a:hover,.gt-steps a:focus-visible{border-color:#2f6fb5;outline:none}
+.gt-act{border-top:1px solid var(--line,#e3e8ef);margin-top:34px;padding-top:26px}
+.gt-act>h2{display:flex;gap:12px;align-items:baseline}
+.gt-n{flex:none;display:inline-grid;place-items:center;width:34px;height:34px;border-radius:10px;
+  background:#1F3864;color:#fff;font-size:15px;font-weight:700}
+.gt-stage{position:relative;background:var(--panel,#fff);border:1px solid var(--line,#e3e8ef);
+  border-radius:14px;padding:16px;margin:16px 0}
+.gt-places{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.gt-place{border:2px dashed var(--line,#d8dee9);border-radius:12px;min-height:116px;padding:10px;
+  display:flex;flex-direction:column;gap:6px;transition:border-color .25s,background .25s}
+.gt-place.on{border-style:solid;border-color:#2f6fb5;background:#2f6fb512}
+.gt-place b{font-size:13.5px}
+.gt-place span{font-size:12px;opacity:.72;line-height:1.35}
+.gt-chip{align-self:flex-start;background:#1F3864;color:#fff;border-radius:8px;padding:4px 9px;
+  font:600 12.5px ui-monospace,SFMono-Regular,Menlo,monospace;transition:transform .45s cubic-bezier(.4,1.3,.5,1)}
+.gt-chip.hop{transform:translateY(-8px) scale(1.06)}
+.gt-ctl{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.gt-ctl button{border:1px solid var(--line,#d8dee9);background:var(--panel,#fff);color:inherit;
+  border-radius:9px;padding:8px 12px;font:600 13.5px ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}
+.gt-ctl button:hover:not(:disabled){border-color:#2f6fb5}
+.gt-ctl button:disabled{opacity:.42;cursor:not-allowed}
+.gt-say{margin-top:12px;font-size:14.5px;min-height:3em;line-height:1.55}
+.gt-term{background:#0d1324;color:#e6ecff;border-radius:12px;padding:14px 16px;overflow-x:auto;
+  font:400 13px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace;min-height:220px;white-space:pre-wrap;
+  word-break:break-word}
+.gt-term .c{color:#8fd3ff}.gt-term .o{color:#9fb0d0}.gt-term .g{color:#7ee0a6}
+.gt-term .caret{display:inline-block;width:8px;height:15px;background:#8fd3ff;vertical-align:-2px;animation:gtbl 1s steps(2) infinite}
+@keyframes gtbl{50%{opacity:0}}
+.gt-graph{width:100%;height:210px;display:block}
+.gt-graph .nd{opacity:0;animation:gtin .45s ease forwards}
+/* The dash length is set per line from its measured length, in JS. A fixed
+   stroke-dasharray drew the shorter edges fully and left the longest one
+   visibly short of its node — the dash ran out and the remainder became gap.
+   On the short edges the shortfall happened to hide under the 16px circle,
+   which is exactly the kind of bug that looks like a rendering glitch. */
+.gt-graph line{transition:stroke-dashoffset .5s ease}
+@keyframes gtin{to{opacity:1}}
+.gt-conf{background:#0d1324;color:#e6ecff;border-radius:12px;padding:14px 16px;overflow-x:auto;
+  font:400 13px/1.8 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}
+.gt-conf .mk{color:#ff9a7a}.gt-conf .ours{color:#7ee0a6}.gt-conf .theirs{color:#8fd3ff}
+.gt-quiz button{display:block;width:100%;text-align:left;margin:6px 0;padding:10px 12px;border-radius:10px;
+  border:1px solid var(--line,#d8dee9);background:var(--panel,#fff);color:inherit;font:inherit;cursor:pointer}
+.gt-quiz button:hover{border-color:#2f6fb5}
+.gt-quiz .yes{border-color:#1f9d6b;background:#1f9d6b1f}
+.gt-quiz .no{border-color:#c0392b;background:#c0392b1a}
+.gt-why{font-size:14px;opacity:.8;margin:.5em 0 0}
+.gt-task{display:flex;gap:10px;align-items:flex-start;margin:8px 0;font-size:15px}
+.gt-task input{width:18px;height:18px;flex:none;margin-top:3px;accent-color:#1F3864}
+.gt-cmds{width:100%;border-collapse:collapse;font-size:14px}
+.gt-cmds th,.gt-cmds td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line,#e3e8ef);vertical-align:top}
+.gt-cmds th{color:#1F3864}
+.gt-filter{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line,#d8dee9);
+  background:var(--panel,#fff);color:inherit;font:inherit;margin:10px 0}
+.gt-scroll{overflow-x:auto}
+.gt-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* Grid and flex children default to min-width:auto, so they refuse to shrink
+   below their content. One long line in a <pre> was therefore widening its
+   column past the viewport and giving the whole document a horizontal scroll
+   on a phone — the element that overflows is never the one that looks wrong. */
+.gt-two>*,.gt-stage,.gt-places>*{min-width:0}
+.gt-act pre{max-width:100%;overflow-x:auto}
+/* Inline code in prose is the other offender: a command with no spaces cannot
+   wrap at a space, so it has to be allowed to break anywhere. */
+.gt-act p>code,.gt-act td code,.gt-act span>code,.gt-act li code{overflow-wrap:anywhere}
+@media(max-width:760px){.gt-places{grid-template-columns:1fr 1fr}.gt-two{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){
+  .gt-chip,.gt-prog i,.gt-place{transition:none}
+  .gt-graph .nd,.gt-graph .ln{animation:none;opacity:1;stroke-dashoffset:0}
+  .gt-term .caret{animation:none}
+}
+</style></head>
+<body>
+<nav class="topbar" id="topbar"></nav>
+
+<div class="gt-prog" role="progressbar" aria-label="Module progress"><i id="gtbar"></i></div>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="hero-eyebrow">Free module</p>
+    <h1>Git and GitHub<br><span class="accent">from zero to actually confident</span></h1>
+    <p>
+      Nine acts, worked at your own pace. The commands are the easy part and this page
+      spends very little time on them. What it spends time on is the thing that makes
+      Git confusing: four different places hold your work, and nothing on screen ever
+      shows you which one a file is in. So here, it moves.
+    </p>
+    <p class="muted" id="gtcount" style="margin-top:14px">0 of 0 checkpoints done — your progress is saved in this browser</p>
+  </div>
+</header>
+
+<main class="wrap section">
+
+  <ul class="gt-steps">
+    <li><a href="#a1">1 · The problem</a></li>
+    <li><a href="#a2">2 · Four places</a></li>
+    <li><a href="#a3">3 · Setup</a></li>
+    <li><a href="#a4">4 · First repository</a></li>
+    <li><a href="#a5">5 · Branching</a></li>
+    <li><a href="#a6">6 · GitHub</a></li>
+    <li><a href="#a7">7 · Desktop</a></li>
+    <li><a href="#a8">8 · Conflicts</a></li>
+    <li><a href="#a9">9 · Mastery</a></li>
+    <li><a href="#ref">Reference</a></li>
+  </ul>
+
+  <!-- ===================== ACT 1 ===================== -->
+  <section class="gt-act" id="a1">
+    <h2><span class="gt-n">1</span>Friday, 6pm, and nobody knows which file is real</h2>
+    <p class="lead">
+      Two testers share a folder. Asha edits <code>suite.xlsx</code>; so does Bala, from
+      the copy he took on Tuesday. He saves last. Her morning disappears — silently, with
+      no error and nothing to point at. By Friday the folder holds
+      <code>suite_final.xlsx</code>, <code>suite_final_v2.xlsx</code> and
+      <code>suite_final_REAL_use_this.xlsx</code>, and the only person who knows which
+      is current has gone home.
+    </p>
+    <p class="lead">
+      Every feature of Git is an answer to some version of that evening. Not an
+      abstraction — an answer. A <strong>version control system</strong> records every
+      change to a set of files: who, what, when, and the ability to return to any earlier
+      state. History, rollback, parallel work that merges instead of overwriting, and a
+      full backup on every machine that has a copy.
+    </p>
+
+    <div class="gt-scroll">
+      <table class="gt-cmds">
+        <tr><th>Kind</th><th>Where history lives</th><th>Examples</th></tr>
+        <tr><td>Local</td><td>One computer</td><td>RCS</td></tr>
+        <tr><td>Centralized</td><td>One server everyone depends on</td><td>SVN, CVS, Perforce</td></tr>
+        <tr><td>Distributed</td><td>Every developer has the whole history</td><td><strong>Git</strong>, Mercurial</td></tr>
+      </table>
+    </div>
+    <p class="muted">
+      Distributed is why Git works on a plane: your laptop holds the entire history, so
+      committing, branching and reading the log need no network at all. Only sharing does.
+      Platforms built around Git — GitHub, GitLab, Bitbucket, Azure Repos — are where that
+      sharing happens.
+    </p>
+
+    <div class="card gt-quiz" data-q="0"></div>
+  </section>
+
+  <!-- ===================== ACT 2 ===================== -->
+  <section class="gt-act" id="a2">
+    <h2><span class="gt-n">2</span>The four places — the whole of Git, really</h2>
+    <p class="lead">
+      Git stores <strong>snapshots</strong>, not differences. Each snapshot is a
+      <strong>commit</strong>, with a unique 40-character ID and a pointer to its parent,
+      which is what makes history a chain. A <strong>branch</strong> is nothing more than
+      a movable label pointing at one commit, and <code>HEAD</code> is the label saying
+      which branch you are on. That is the entire data model.
+    </p>
+    <p class="lead">
+      The part that trips everyone is not the model but the plumbing: your work passes
+      through four places, and three of them are invisible. Move the file yourself and
+      watch <code>git status</code> change.
+    </p>
+
+    <div class="gt-stage">
+      <div class="gt-places">
+        <div class="gt-place" id="p0"><b>Working directory</b><span>the folder you actually edit</span></div>
+        <div class="gt-place" id="p1"><b>Staging area</b><span>changes picked for the next commit</span></div>
+        <div class="gt-place" id="p2"><b>Local repository</b><span>the .git folder — your history</span></div>
+        <div class="gt-place" id="p3"><b>Remote</b><span>GitHub, shared with everyone</span></div>
+      </div>
+      <div class="gt-ctl">
+        <button data-pipe="0">git add</button>
+        <button data-pipe="1">git commit</button>
+        <button data-pipe="2">git push</button>
+        <button data-pipe="r">start over</button>
+      </div>
+      <p class="gt-say" id="pipesay"></p>
+    </div>
+
+    <p class="lead">
+      The staging area is the one beginners skip past and the one worth understanding. It
+      exists so that a commit can be <em>smaller than everything you changed</em>: fix a
+      bug and a typo in the same hour, stage only the bug fix, and the history records one
+      intention per commit. That is what makes <code>git log</code> readable a year later,
+      and it is why <code>git add</code> is a separate step rather than an annoyance.
+    </p>
+    <p class="muted">
+      Coming the other way: <code>git fetch</code> downloads remote work without touching
+      yours, <code>git pull</code> is fetch plus merge, and <code>git switch</code> loads a
+      different branch into your working directory. Inside <code>.git</code> you will find
+      <code>objects/</code> (the snapshots), <code>refs/</code> (the branch labels),
+      <code>index</code> (the staging area) and <code>config</code>.
+    </p>
+
+    <div class="card gt-quiz" data-q="1"></div>
+  </section>
+
+  <!-- ===================== ACT 3 ===================== -->
+  <section class="gt-act" id="a3">
+    <h2><span class="gt-n">3</span>Installing, and telling Git who you are</h2>
+    <div class="gt-two">
+      <div class="card">
+        <h3>Windows</h3>
+        <p class="muted">Download from <strong>git-scm.com/downloads</strong>. Keep the
+        defaults with two exceptions: set the default branch name to
+        <strong>main</strong>, and choose <strong>Git from the command line and
+        3rd-party software</strong> for PATH. You will get <strong>Git Bash</strong>, a
+        proper terminal, on the right-click menu.</p>
+      </div>
+      <div class="card">
+        <h3>macOS and Linux</h3>
+        <pre><code># macOS
+brew install git
+
+# Ubuntu / Debian
+sudo apt update &amp;&amp; sudo apt install git -y</code></pre>
+      </div>
+    </div>
+    <h3>Then tell it who you are — this goes into every commit, permanently</h3>
+    <pre><code>git --version
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+git config --global init.defaultBranch main
+git config --list</code></pre>
+    <p class="muted">
+      Use the email your GitHub account uses, or your commits will not be linked to your
+      profile. It is a two-minute fix now and a tedious one later, because the name and
+      address are baked into every commit you have already made.
+    </p>
+    <div class="card">
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span><code>git --version</code> prints a version number.</span></label>
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Name and email are configured, and the email matches my GitHub account.</span></label>
+    </div>
+  </section>
+
+  <!-- ===================== ACT 4 ===================== -->
+  <section class="gt-act" id="a4">
+    <h2><span class="gt-n">4</span>Your first repository, one line at a time</h2>
+    <p class="lead">
+      Ten commands that take a folder from nothing to a repository with a branch and a
+      merge. Step through them rather than pasting the block: the point is to watch each
+      line change the state, not to reach the end.
+    </p>
+    <div class="gt-stage">
+      <div class="gt-term" id="term" aria-live="polite"></div>
+      <div class="gt-ctl">
+        <button id="tnext">next command</button>
+        <button id="tall">run the rest</button>
+        <button id="treset">start over</button>
+      </div>
+      <p class="gt-say" id="termsay"></p>
+    </div>
+    <div class="card">
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>I ran the ten commands on my own machine and saw the graph in <code>git log</code>.</span></label>
+    </div>
+  </section>
+
+  <!-- ===================== ACT 5 ===================== -->
+  <section class="gt-act" id="a5">
+    <h2><span class="gt-n">5</span>Branching, drawn</h2>
+    <p class="lead">
+      "A branch is a movable label" is true and useless until you see the label move.
+      Build the graph a step at a time and watch where <code>main</code> and
+      <code>feature</code> point after each one.
+    </p>
+    <div class="gt-stage">
+      <svg class="gt-graph" id="graph" viewBox="0 0 640 210" role="img"
+           aria-label="A commit graph that is drawn step by step"></svg>
+      <div class="gt-ctl">
+        <button id="gnext">next step</button>
+        <button id="greset">start over</button>
+      </div>
+      <p class="gt-say" id="graphsay"></p>
+    </div>
+    <p class="lead">
+      Two things worth taking from that. A branch costs nothing — it is a label, not a
+      copy of your files, which is why branching for a two-line change is normal rather
+      than excessive. And a merge commit has <em>two</em> parents, which is how Git
+      remembers that two lines of work came back together.
+    </p>
+    <div class="card gt-quiz" data-q="2"></div>
+  </section>
+
+  <!-- ===================== ACT 6 ===================== -->
+  <section class="gt-act" id="a6">
+    <h2><span class="gt-n">6</span>GitHub, and what it adds</h2>
+    <p class="lead">
+      Git is software on your computer. GitHub is a website that stores Git repositories
+      and adds the things teams need around them. Keeping the two apart in your head
+      saves a great deal of confusion later: Git works perfectly with no GitHub account
+      at all.
+    </p>
+    <div class="gt-scroll">
+      <table class="gt-cmds">
+        <tr><th>Git</th><th>GitHub</th></tr>
+        <tr><td>Installed on your machine</td><td>A website and cloud service</td></tr>
+        <tr><td>Works offline</td><td>Needs a connection</td></tr>
+        <tr><td>Commits, branches, merges</td><td>Pull requests, issues, Actions, teams</td></tr>
+        <tr><td>Linus Torvalds, 2005</td><td>Founded 2008, now owned by Microsoft</td></tr>
+        <tr><td>Alternatives: Mercurial, SVN</td><td>Alternatives: GitLab, Bitbucket</td></tr>
+      </table>
+    </div>
+    <h3>The pull request, which is the part that matters at work</h3>
+    <p class="lead">
+      You push a branch, open a pull request, and somebody reads the change before it
+      reaches <code>main</code>. That is the whole ritual, and nearly every professional
+      team runs on it. The reviewer sees exactly what changed, comments on specific lines,
+      and approves or asks for changes; then the branch merges and is deleted. Small pull
+      requests get reviewed properly; large ones get approved without being read, which is
+      worth knowing before you open one with forty files in it.
+    </p>
+    <div class="card">
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Created a free account at <strong>github.com</strong>.</span></label>
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Made a repository called <code>practice-repo</code> with a README.</span></label>
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Edited the README on the website and committed — that was a real commit.</span></label>
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Pushed a branch from my machine and opened a pull request.</span></label>
+    </div>
+  </section>
+
+  <!-- ===================== ACT 7 ===================== -->
+  <section class="gt-act" id="a7">
+    <h2><span class="gt-n">7</span>GitHub Desktop, for when buttons are faster</h2>
+    <p class="lead">
+      GitHub Desktop does Git with buttons. It is a genuinely good way to work, not a
+      beginner's crutch — reviewing your own diff before committing is easier there than
+      in a terminal. Install it from <strong>desktop.github.com</strong>, sign in, and set
+      the same name and email you configured in act 3. Each task below shows the
+      equivalent command, because the two should sit together in your head.
+    </p>
+    <div id="desk"></div>
+  </section>
+
+  <!-- ===================== ACT 8 ===================== -->
+  <section class="gt-act" id="a8">
+    <h2><span class="gt-n">8</span>The conflict, which is not a disaster</h2>
+    <p class="lead">
+      A conflict means two branches changed the same lines and Git will not guess which
+      one you meant. That is the whole of it. Git stops, marks the spot, and waits — it
+      has not lost anything and nothing is broken. Most of the fear around conflicts comes
+      from only ever meeting one during a crisis, so meet one now instead.
+    </p>
+    <div class="gt-stage">
+      <div class="gt-conf" id="conf"></div>
+      <div class="gt-ctl">
+        <button data-res="ours">keep ours (main)</button>
+        <button data-res="theirs">keep theirs (feature)</button>
+        <button data-res="both">keep both</button>
+        <button data-res="r">start over</button>
+      </div>
+      <p class="gt-say" id="confsay"></p>
+    </div>
+    <p class="lead">
+      Resolving a conflict is nothing more than editing the file until it says what you
+      want and deleting the three marker lines. Then <code>git add</code> the file to tell
+      Git you have dealt with it, and <code>git commit</code> to finish the merge. If it
+      goes wrong at any point, <code>git merge --abort</code> puts everything back exactly
+      as it was.
+    </p>
+    <div class="card gt-quiz" data-q="3"></div>
+  </section>
+
+  <!-- ===================== ACT 9 ===================== -->
+  <section class="gt-act" id="a9">
+    <h2><span class="gt-n">9</span>Mastery — the commands that save an afternoon</h2>
+
+    <h3>Rebase, and when not to</h3>
+    <p class="lead">
+      A merge joins two lines of history and records that it happened. A rebase replays
+      your commits on top of another branch, producing a straight line as though you had
+      started from the latest code. Rebase gives a cleaner log; merge gives an honest one.
+      Either is defensible, and teams usually just pick one.
+    </p>
+    <p class="lead">
+      The rule that matters: <strong>only rebase commits nobody else has</strong>. Rebasing
+      rewrites commits, giving them new IDs, so anyone who already pulled the old ones now
+      has a history that disagrees with yours — and the fix is painful. On your own
+      unpushed branch, rebase freely. On a shared branch, do not.
+    </p>
+
+    <h3>Stash — for the interruption</h3>
+    <p class="lead">
+      You are mid-change and something urgent lands on another branch.
+      <code>git stash</code> shelves the work and leaves you clean; switch, deal with it,
+      come back, <code>git stash pop</code>. Name them with
+      <code>git stash push -m "wip: cart"</code> if you expect more than one, because a
+      list of unlabelled stashes is its own small problem.
+    </p>
+
+    <h3>Cherry-pick — one commit, somewhere else</h3>
+    <p class="lead">
+      <code>git cherry-pick a1b2c3</code> copies a single commit onto your current branch.
+      Useful for a fix that needs to reach a release branch without the five other commits
+      sitting beside it. It makes a copy with a new ID rather than moving anything.
+    </p>
+
+    <h3>Undo — the four different ones</h3>
+    <div class="gt-scroll">
+      <table class="gt-cmds">
+        <tr><th>Situation</th><th>Command</th><th>What happens</th></tr>
+        <tr><td>Edited a file, want the last committed version back</td><td><code>git restore app.js</code></td><td>Your edit is gone for good. Nothing else changes.</td></tr>
+        <tr><td>Staged something by mistake</td><td><code>git restore --staged app.js</code></td><td>Unstaged, edit kept.</td></tr>
+        <tr><td>Committed too early, want to redo it</td><td><code>git reset --soft HEAD~1</code></td><td>Commit undone, changes back in staging. Local only.</td></tr>
+        <tr><td>A bad commit is already pushed</td><td><code>git revert a1b2c3</code></td><td>A <em>new</em> commit that undoes it. Safe on shared branches.</td></tr>
+      </table>
+    </div>
+    <p class="lead">
+      The distinction worth internalising is the last two. <code>reset</code> rewrites
+      history and is fine while the commit is still only yours. <code>revert</code> adds
+      to history and is the correct choice once anyone else could have pulled it. Reaching
+      for <code>reset</code> on a shared branch is how people create the afternoon they
+      then spend fixing.
+    </p>
+
+    <h3>And when you are sure you have lost work</h3>
+    <p class="lead">
+      You almost certainly have not. <code>git reflog</code> lists every position
+      <code>HEAD</code> has held, including commits no branch points at any more — after a
+      bad reset, a botched rebase, a deleted branch. Find the ID, then
+      <code>git switch -c rescue a1b2c3</code>. Git keeps unreachable commits for weeks.
+      This one command has saved more work than any other in this list, and almost nobody
+      learns it until the day they need it.
+    </p>
+    <div class="card">
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>Deliberately broke something, then recovered it with <code>git reflog</code>.</span></label>
+      <label class="gt-task"><input type="checkbox" class="gt-ck"><span>I can say out loud when to use <code>revert</code> rather than <code>reset</code>.</span></label>
+    </div>
+    <div class="card gt-quiz" data-q="4"></div>
+  </section>
+
+  <!-- ===================== REFERENCE ===================== -->
+  <section class="gt-act" id="ref">
+    <h2><span class="gt-n">10</span>Every command, filterable</h2>
+    <input class="gt-filter" id="cfilter" type="search"
+           placeholder="Filter — try: branch, undo, stash, remote" aria-label="Filter commands">
+    <div class="gt-scroll">
+      <table class="gt-cmds">
+        <thead><tr><th>Command</th><th>What it does</th><th>Example</th></tr></thead>
+        <tbody id="cbody"><tr><td><code>git init</code></td><td>Turn the current folder into a repository</td><td><code>git init</code></td></tr>
+<tr><td><code>git clone &lt;url&gt;</code></td><td>Copy a remote repository to your computer</td><td><code>git clone https://github.com/user/app.git</code></td></tr>
+<tr><td><code>git config --global user.name "Name"</code></td><td>Set the identity stamped on every commit</td><td><code>git config --global user.name "Ram"</code></td></tr>
+<tr><td><code>git status</code></td><td>Show what has changed and what is staged</td><td><code>git status -s</code></td></tr>
+<tr><td><code>git add &lt;file&gt;</code></td><td>Stage a file, or <code>.</code> for everything</td><td><code>git add index.html</code></td></tr>
+<tr><td><code>git commit -m "msg"</code></td><td>Save the staged changes as a snapshot</td><td><code>git commit -m "Add login page"</code></td></tr>
+<tr><td><code>git commit -am "msg"</code></td><td>Stage tracked files and commit in one step</td><td><code>git commit -am "Fix typo"</code></td></tr>
+<tr><td><code>git log --oneline</code></td><td>Show the commit history</td><td><code>git log --oneline --graph --all</code></td></tr>
+<tr><td><code>git diff</code></td><td>Show changes you have not staged yet</td><td><code>git diff main..feature</code></td></tr>
+<tr><td><code>git show &lt;sha&gt;</code></td><td>Show one commit in full</td><td><code>git show a1b2c3</code></td></tr>
+<tr><td><code>git branch</code></td><td>List branches; <code>-d</code> deletes one</td><td><code>git branch -d old-feature</code></td></tr>
+<tr><td><code>git switch -c &lt;name&gt;</code></td><td>Create a branch and move onto it</td><td><code>git switch -c feature/cart</code></td></tr>
+<tr><td><code>git switch &lt;name&gt;</code></td><td>Move to an existing branch (older: <code>git checkout</code>)</td><td><code>git switch main</code></td></tr>
+<tr><td><code>git merge &lt;branch&gt;</code></td><td>Merge another branch into this one</td><td><code>git merge feature/cart</code></td></tr>
+<tr><td><code>git rebase &lt;base&gt;</code></td><td>Replay your commits on top of another branch</td><td><code>git rebase main</code></td></tr>
+<tr><td><code>git cherry-pick &lt;sha&gt;</code></td><td>Copy one commit onto the current branch</td><td><code>git cherry-pick a1b2c3</code></td></tr>
+<tr><td><code>git remote add origin &lt;url&gt;</code></td><td>Link this repository to GitHub</td><td><code>git remote add origin https://github.com/u/r.git</code></td></tr>
+<tr><td><code>git fetch</code></td><td>Download remote changes without merging them</td><td><code>git fetch origin</code></td></tr>
+<tr><td><code>git pull</code></td><td>Fetch and merge in one step</td><td><code>git pull origin main</code></td></tr>
+<tr><td><code>git push -u origin &lt;branch&gt;</code></td><td>Upload commits; <code>-u</code> remembers the branch</td><td><code>git push -u origin main</code></td></tr>
+<tr><td><code>git stash</code></td><td>Shelve uncommitted work</td><td><code>git stash push -m "wip"</code></td></tr>
+<tr><td><code>git stash pop</code></td><td>Bring the shelved work back</td><td><code>git stash pop</code></td></tr>
+<tr><td><code>git restore &lt;file&gt;</code></td><td>Throw away unstaged edits to a file</td><td><code>git restore app.js</code></td></tr>
+<tr><td><code>git restore --staged &lt;file&gt;</code></td><td>Unstage a file, keeping the edit</td><td><code>git restore --staged app.js</code></td></tr>
+<tr><td><code>git revert &lt;sha&gt;</code></td><td>Add a new commit that undoes an old one</td><td><code>git revert a1b2c3</code></td></tr>
+<tr><td><code>git reset --soft HEAD~1</code></td><td>Undo the last commit, keep the changes staged</td><td><code>git reset --soft HEAD~1</code></td></tr>
+<tr><td><code>git reflog</code></td><td>Find commits you think you lost</td><td><code>git reflog</code></td></tr>
+<tr><td><code>git tag v1.0</code></td><td>Label a release</td><td><code>git tag -a v1.0 -m "First release"</code></td></tr>
+<tr><td><code>git mv / git rm</code></td><td>Rename or delete a tracked file</td><td><code>git mv old.txt new.txt</code></td></tr>
+<tr><td><code>echo "x" &gt;&gt; .gitignore</code></td><td>Stop tracking files you never want committed</td><td><code>echo ".env" &gt;&gt; .gitignore</code></td></tr></tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3 style="margin-top:0">The loop you will actually use every day</h3>
+      <p style="margin:0"><code>git pull</code> → edit → <code>git status</code> →
+      <code>git add .</code> → <code>git commit -m "message"</code> → <code>git push</code>.
+      Nine commands out of ten you will ever type are in that line. The rest of this page
+      is for the days when something goes sideways.</p>
+    </div>
+  </section>
+
+  <section class="gt-act">
+    <h2><span class="gt-n">→</span>Where this goes next</h2>
+    <p class="lead">
+      Version control is the floor the rest of the work stands on. Once you are committing
+      without thinking about it, the two tracks here build upwards from there:
+      <a href="python-dsa-course.html">Python and DSA</a> if you need the language, and
+      <a href="genai-testing-course.html">GenAI and LLM testing</a> if you are heading
+      towards testing AI applications — where every evaluation suite you write lives in a
+      repository exactly like the one you just built. The
+      <a href="ai-testing-career-path.html">career path page</a> covers the order to do
+      things in.
+    </p>
+  </section>
+
+</main>
+
+<script>
+(function(){
+  "use strict";
+  var slow = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function(s){ return document.querySelector(s); };
+
+  /* ---------------- 1. the pipeline ---------------- */
+  var PIPE = [
+    {to:1, cmd:"git add notes.txt",
+     say:"Staged. The file has not been saved into history yet — you have only told Git that this change belongs in the next commit. <code>git status</code> now lists it under \u201cChanges to be committed\u201d."},
+    {to:2, cmd:"git commit -m \"Add notes\"",
+     say:"Committed. A snapshot now exists in your local repository with an ID and your name on it. This worked with no internet, and nobody else can see it yet."},
+    {to:3, cmd:"git push",
+     say:"Pushed. Only now does the commit exist anywhere but your machine. Everything before this point was local, which is why losing a laptop before a push loses work."}
+  ];
+  var pipeAt = 0, chip;
+  function placeChip(i){
+    var box = document.getElementById("p" + i);
+    if(!box || !chip) return;
+    box.appendChild(chip);
+    for(var k=0;k<4;k++){
+      var b = document.getElementById("p"+k);
+      if(b) b.classList.toggle("on", k === i);
+    }
+    if(!slow){ chip.classList.add("hop"); setTimeout(function(){ chip.classList.remove("hop"); }, 260); }
+  }
+  function pipeSync(){
+    var btns = document.querySelectorAll("[data-pipe]");
+    for(var i=0;i<btns.length;i++){
+      var v = btns[i].getAttribute("data-pipe");
+      if(v !== "r") btns[i].disabled = (Number(v) !== pipeAt);
+    }
+  }
+  function pipeInit(){
+    var first = document.getElementById("p0");
+    if(!first) return;
+    chip = document.createElement("span");
+    chip.className = "gt-chip";
+    chip.textContent = "notes.txt";
+    pipeAt = 0;
+    placeChip(0);
+    $("#pipesay").innerHTML = "A file you have edited but not yet staged. <code>git status</code> calls this \u201cChanges not staged for commit\u201d. Press <code>git add</code>.";
+    pipeSync();
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("[data-pipe]") : null;
+    if(!b) return;
+    var v = b.getAttribute("data-pipe");
+    if(v === "r"){ pipeInit(); return; }
+    var step = PIPE[Number(v)];
+    if(!step || Number(v) !== pipeAt) return;
+    pipeAt = step.to;
+    placeChip(step.to);
+    $("#pipesay").innerHTML = step.say;
+    pipeSync();
+  });
+
+  /* ---------------- 2. the terminal ---------------- */
+  var LAB = [
+    ["mkdir git-lab && cd git-lab", "", "An ordinary folder. Git is not involved yet."],
+    ["git init", "Initialized empty Git repository in ~/git-lab/.git/", "That hidden .git folder is the repository. Delete it and you have a plain folder again."],
+    ["echo \"Hello Git\" > notes.txt", "", "A file in the working directory. Git can see it but is not tracking it."],
+    ["git status", "Untracked files:\n  notes.txt", "Untracked means Git has never been told to care about this file."],
+    ["git add notes.txt", "", "Staged. Nothing is in history yet."],
+    ["git commit -m \"Add notes file\"", "[main (root-commit) 8f3a1c9] Add notes file\n 1 file changed, 1 insertion(+)", "Your first commit. 8f3a1c9 is the short form of its 40-character ID."],
+    ["git switch -c feature/greeting", "Switched to a new branch 'feature/greeting'", "A new label pointing at the same commit. Nothing was copied."],
+    ["echo \"Hello from branch\" >> notes.txt", "", "Changed on the branch. main still has the old version."],
+    ["git commit -am \"Update notes on branch\"", "[feature/greeting 2b7d4e1] Update notes on branch", "-am stages tracked files and commits in one step. It will not pick up brand new files."],
+    ["git switch main && git merge feature/greeting", "Updating 8f3a1c9..2b7d4e1\nFast-forward", "Fast-forward: main had no commits of its own, so Git just moved the label. No merge commit needed."],
+    ["git log --oneline --graph", "* 2b7d4e1 Update notes on branch\n* 8f3a1c9 Add notes file", "Two commits, one chain. You have built a repository."]
+  ];
+  var tAt = 0, typing = false;
+  function termEl(){ return $("#term"); }
+  function termReset(){
+    tAt = 0; typing = false;
+    var t = termEl(); if(!t) return;
+    t.innerHTML = '<span class="o">~/projects $</span> <span class="caret"></span>';
+    $("#termsay").textContent = "Eleven lines, from an empty folder to a merged branch. Press \u201cnext command\u201d.";
+    $("#tnext").disabled = false; $("#tall").disabled = false;
+  }
+  function writeLine(i, instant, done){
+    var t = termEl(); if(!t) return;
+    var step = LAB[i];
+    var caret = t.querySelector(".caret");
+    if(caret) caret.remove();
+    var line = document.createElement("div");
+    line.innerHTML = '<span class="o">$</span> <span class="c"></span>';
+    t.appendChild(line);
+    var target = line.querySelector(".c");
+    function finish(){
+      if(step[1]){
+        var out = document.createElement("div");
+        out.className = "g";
+        out.textContent = step[1];
+        t.appendChild(out);
+      }
+      var c = document.createElement("span");
+      c.className = "caret";
+      t.appendChild(c);
+      t.scrollTop = t.scrollHeight;
+      $("#termsay").textContent = step[2];
+      if(done) done();
+    }
+    if(instant || slow){ target.textContent = step[0]; finish(); return; }
+    var n = 0;
+    typing = true;
+    var iv = setInterval(function(){
+      target.textContent = step[0].slice(0, ++n);
+      t.scrollTop = t.scrollHeight;
+      if(n >= step[0].length){ clearInterval(iv); typing = false; finish(); }
+    }, 18);
+  }
+  function termNext(instant, done){
+    if(typing || tAt >= LAB.length) return;
+    var i = tAt++;
+    writeLine(i, instant, function(){
+      if(tAt >= LAB.length){ $("#tnext").disabled = true; $("#tall").disabled = true; }
+      if(done) done();
+    });
+  }
+
+  /* ---------------- 3. the commit graph ---------------- */
+  var NS = "http://www.w3.org/2000/svg";
+  var GSTEP = [
+    {n:{x:70,y:140,id:"A",lab:"A"}, say:"One commit on main. HEAD and main both point at A."},
+    {n:{x:170,y:140,id:"B",lab:"B"}, e:["A","B"], say:"A second commit. B's parent is A — that pointer is the history."},
+    {br:{x:170,y:60,name:"feature"}, say:"git switch -c feature. A new label at the same commit. Nothing was copied, no files changed."},
+    {n:{x:280,y:60,id:"C",lab:"C"}, e:["B","C"], say:"A commit on feature. The feature label moved to C; main is still at B."},
+    {n:{x:280,y:140,id:"D",lab:"D"}, e:["B","D"], say:"Meanwhile a commit on main. Now the two lines genuinely diverge — this is the moment a merge becomes necessary."},
+    {n:{x:400,y:140,id:"M",lab:"M",merge:true}, e:["D","M","C","M"], say:"git merge feature. M has two parents, C and D, which is how Git records that two lines of work rejoined."}
+  ];
+  var gAt = 0, gPos = {};
+  function gsvg(){ return $("#graph"); }
+  function gReset(){
+    var s = gsvg(); if(!s) return;
+    while(s.firstChild) s.removeChild(s.firstChild);
+    gAt = 0; gPos = {};
+    var base = document.createElementNS(NS, "text");
+    base.setAttribute("x", 12); base.setAttribute("y", 180);
+    base.setAttribute("fill", "currentColor"); base.setAttribute("font-size", "13");
+    base.setAttribute("opacity", ".65");
+    base.textContent = "main";
+    s.appendChild(base);
+    $("#graphsay").textContent = "An empty repository. Press \u201cnext step\u201d.";
+    $("#gnext").disabled = false;
+  }
+  function gAdd(step){
+    var s = gsvg(); if(!s) return;
+    // Record where this step's node sits BEFORE drawing its edges. Doing it the
+    // other way round meant every edge whose second end was the new node looked
+    // up an unknown id, hit the `continue`, and silently drew nothing — a graph
+    // of five circles and no lines, which still looks plausible at a glance.
+    if(step.n) gPos[step.n.id] = {x: step.n.x, y: step.n.y};
+    if(step.e){
+      for(var i=0;i<step.e.length;i+=2){
+        var a = gPos[step.e[i]], b = gPos[step.e[i+1]];
+        if(!a || !b) continue;
+        var ln = document.createElementNS(NS, "line");
+        ln.setAttribute("x1", a.x); ln.setAttribute("y1", a.y);
+        ln.setAttribute("x2", b.x); ln.setAttribute("y2", b.y);
+        ln.setAttribute("stroke", "#2f6fb5"); ln.setAttribute("stroke-width", "3");
+        s.insertBefore(ln, s.firstChild);
+        var len = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+        if(slow){
+          ln.style.strokeDasharray = "none";
+        } else {
+          ln.style.strokeDasharray = len;
+          ln.style.strokeDashoffset = len;
+          // Read back a layout value so the browser commits the starting state;
+          // without it the offset change coalesces and nothing animates.
+          void ln.getBoundingClientRect();
+          ln.style.strokeDashoffset = "0";
+        }
+      }
+    }
+    if(step.n){
+      var g = document.createElementNS(NS, "g");
+      g.setAttribute("class", "nd");
+      var c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", step.n.x); c.setAttribute("cy", step.n.y); c.setAttribute("r", 16);
+      c.setAttribute("fill", step.n.merge ? "#ED5B1F" : "#1F3864");
+      var tx = document.createElementNS(NS, "text");
+      tx.setAttribute("x", step.n.x); tx.setAttribute("y", step.n.y + 5);
+      tx.setAttribute("text-anchor", "middle"); tx.setAttribute("fill", "#fff");
+      tx.setAttribute("font-size", "13"); tx.setAttribute("font-weight", "700");
+      tx.textContent = step.n.lab;
+      g.appendChild(c); g.appendChild(tx); s.appendChild(g);
+    }
+    if(step.br){
+      var t2 = document.createElementNS(NS, "text");
+      t2.setAttribute("x", 12); t2.setAttribute("y", 64);
+      t2.setAttribute("fill", "currentColor"); t2.setAttribute("font-size", "13");
+      t2.setAttribute("opacity", ".65"); t2.setAttribute("class", "nd");
+      t2.textContent = step.br.name;
+      s.appendChild(t2);
+    }
+  }
+
+  /* ---------------- 4. the conflict ---------------- */
+  var CONF = '<span class="mk">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</span>\n' +
+             '<span class="ours">Title: Home</span>\n' +
+             '<span class="mk">=======</span>\n' +
+             '<span class="theirs">Title: Welcome</span>\n' +
+             '<span class="mk">&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/login</span>';
+  var RES = {
+    ours:   ['<span class="ours">Title: Home</span>', "Kept your side. The markers are gone and the file is valid again — that is all \u201cresolving\u201d means."],
+    theirs: ['<span class="theirs">Title: Welcome</span>', "Kept the incoming side. Note that nothing was lost: the other version is still in its own commit on the other branch."],
+    both:   ['<span class="ours">Title: Home</span>\n<span class="theirs">Subtitle: Welcome</span>', "Kept both, edited into something sensible. This is usually the right answer in real code, and it is why Git refuses to choose for you."]
+  };
+  function confReset(){
+    var c = $("#conf"); if(!c) return;
+    c.innerHTML = CONF;
+    $("#confsay").innerHTML = "Git wrote this into the file. Above <code>=======</code> is your branch; below it is the one coming in. Choose.";
+  }
+  document.addEventListener("click", function(e){
+    var b = e.target.closest ? e.target.closest("[data-res]") : null;
+    if(!b) return;
+    var k = b.getAttribute("data-res");
+    if(k === "r"){ confReset(); return; }
+    var r = RES[k]; if(!r) return;
+    $("#conf").innerHTML = r[0];
+    $("#confsay").innerHTML = r[1] + " Then <code>git add app.txt</code> and <code>git commit</code> to finish the merge.";
+  });
+
+  /* ---------------- 5. GitHub Desktop walkthroughs ---------------- */
+  var DESK = [
+    ["Create a repository", "File \u25b8 New repository, name it, tick \u201cInitialize with a README\u201d, then Publish repository to put it on GitHub.", "git init practice-repo"],
+    ["Clone an existing one", "Current repository \u25b8 Add \u25b8 Clone repository. Pick it from the GitHub.com tab or paste a URL.", "git clone https://github.com/user/practice-repo.git"],
+    ["Create a branch", "Current branch \u25b8 New branch. Name it feature/login, based on main.", "git switch -c feature/login"],
+    ["Commit", "Edit a file, return to Desktop, tick the files in Changes, write a summary, Commit to feature/login.", "git add .\ngit commit -m \"Add login form\""],
+    ["Publish and push", "First time on a branch it says Publish branch. After that it says Push origin.", "git push -u origin feature/login"],
+    ["Fetch and pull", "Fetch origin checks for new remote commits. If it becomes Pull origin, click it.", "git fetch origin\ngit pull origin main"],
+    ["Switch branches", "Current branch, then pick another. Uncommitted work: choose Leave my changes or Bring my changes.", "git switch main"],
+    ["Resolve a conflict", "Desktop says Resolve conflicts before merging. Open in editor, fix the lines, delete the markers, save, Continue merge.", "git status\ngit add app.txt\ngit commit"],
+    ["Merge a branch", "Switch to the branch that should receive the work, then Branch \u25b8 Merge into current branch.", "git switch main\ngit merge feature/login"],
+    ["Rebase", "Branch \u25b8 Rebase current branch, pick main as the base. Pushing afterwards needs Force push \u2014 only on branches you own.", "git switch feature/login\ngit rebase main"],
+    ["Stash", "Branch \u25b8 Stash All Changes. Switch away, come back, select Stashed Changes and Restore.", "git stash\ngit stash pop"],
+    ["Cherry-pick", "Open History, drag a commit onto another branch, or right-click it and choose Cherry-pick commit.", "git switch main\ngit cherry-pick a1b2c3"],
+    ["Open a pull request", "Push the branch, then Branch \u25b8 Create pull request. Add a title and reviewers on GitHub.", "git log --oneline\ngit diff main..feature/login"]
+  ];
+  var d = $("#desk");
+  if(d){
+    var html = "";
+    for(var i=0;i<DESK.length;i++){
+      html += '<details class="card"><summary style="cursor:pointer;font-weight:700">' +
+        (i+1) + ". " + DESK[i][0] + "</summary>" +
+        '<p class="muted" style="margin:.7em 0">' + DESK[i][1] + "</p>" +
+        '<p class="muted" style="margin:.2em 0 .4em;font-size:13.5px">The same thing in a terminal:</p>' +
+        "<pre><code>" + DESK[i][2] + "</code></pre>" +
+        '<label class="gt-task"><input type="checkbox" class="gt-ck"><span>Done on my own machine.</span></label>' +
+        "</details>";
+    }
+    d.innerHTML = html;
+  }
+
+  /* ---------------- 6. checkpoints ---------------- */
+  var QZ = [
+    {q:"Which kind of version control gives every developer the whole history?",
+     o:["Local","Centralized","Distributed"], a:2,
+     w:"Distributed. It is why you can commit, branch and read the log with no network — only sharing needs one."},
+    {q:"You ran git add but not git commit. Where is your change?",
+     o:["In the local repository","In the staging area","On GitHub"], a:1,
+     w:"The staging area. Nothing is in history until you commit, and nothing leaves your machine until you push."},
+    {q:"What is a branch, really?",
+     o:["A copy of all your files","A movable label pointing at one commit","A folder inside .git"], a:1,
+     w:"A label. That is why creating one is instant and costs nothing, however large the project."},
+    {q:"A merge conflict means:",
+     o:["Git lost some of your work","Two branches changed the same lines and Git will not guess","The repository is corrupted"], a:1,
+     w:"Nothing is lost. Git stops and asks, and git merge --abort puts everything back if you would rather start again."},
+    {q:"A bad commit is already pushed and your colleague has pulled it. Which do you use?",
+     o:["git reset --hard","git revert","git restore"], a:1,
+     w:"revert, because it adds a new commit rather than rewriting history others already have."}
+  ];
+  var qs = document.querySelectorAll(".gt-quiz");
+  for(var qi=0; qi<qs.length; qi++){
+    (function(el){
+      var dd = QZ[Number(el.getAttribute("data-q"))];
+      if(!dd) return;
+      var h = "<p><strong>Checkpoint:</strong> " + dd.q + "</p>";
+      for(var j=0;j<dd.o.length;j++) h += '<button data-i="' + j + '">' + dd.o[j] + "</button>";
+      h += '<p class="gt-why"></p>';
+      el.innerHTML = h;
+      el.addEventListener("click", function(ev){
+        var b = ev.target.closest ? ev.target.closest("button") : null;
+        if(!b) return;
+        var right = Number(b.getAttribute("data-i")) === dd.a;
+        b.className = right ? "yes" : "no";
+        el.querySelector(".gt-why").textContent = right ? dd.w : "Not quite — have another go.";
+      });
+    })(qs[qi]);
+  }
+
+  /* ---------------- 7. filter ---------------- */
+  var cf = $("#cfilter"), cb = $("#cbody");
+  if(cf && cb){
+    var rows = [].slice.call(cb.querySelectorAll("tr"));
+    cf.addEventListener("input", function(){
+      var v = cf.value.toLowerCase().trim();
+      var shown = 0;
+      for(var i=0;i<rows.length;i++){
+        var hit = !v || rows[i].textContent.toLowerCase().indexOf(v) > -1;
+        rows[i].style.display = hit ? "" : "none";
+        if(hit) shown++;
+      }
+      var none = $("#cnone");
+      if(!none){
+        none = document.createElement("tr");
+        none.id = "cnone";
+        none.innerHTML = '<td colspan="3">No command matches that. Try a shorter word.</td>';
+        cb.appendChild(none);
+      }
+      none.style.display = shown ? "none" : "";
+    });
+  }
+
+  /* ---------------- 8. progress ---------------- */
+  var KEY = "qt-git-module";
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(err) { saved = {}; }
+  var cks = [].slice.call(document.querySelectorAll(".gt-ck"));
+  function paint(){
+    var done = 0;
+    for(var i=0;i<cks.length;i++) if(cks[i].checked) done++;
+    var bar = $("#gtbar"), lab = $("#gtcount");
+    if(bar) bar.style.width = (cks.length ? (done / cks.length * 100) : 0) + "%";
+    if(lab) lab.textContent = done + " of " + cks.length +
+      " checkpoints done — your progress is saved in this browser";
+  }
+  for(var ci=0; ci<cks.length; ci++){
+    (function(box, idx){
+      box.checked = !!saved[idx];
+      box.addEventListener("change", function(){
+        saved[idx] = box.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(err) {}
+        paint();
+      });
+    })(cks[ci], ci);
+  }
+
+  /* ---------------- wire up ---------------- */
+  var tn = $("#tnext"), ta = $("#tall"), tr = $("#treset");
+  if(tn) tn.addEventListener("click", function(){ termNext(false); });
+  if(ta) ta.addEventListener("click", function(){
+    (function run(){ if(tAt < LAB.length){ termNext(true, run); } })();
+  });
+  if(tr) tr.addEventListener("click", termReset);
+  var gn = $("#gnext"), gr = $("#greset");
+  if(gn) gn.addEventListener("click", function(){
+    if(gAt >= GSTEP.length) return;
+    var st = GSTEP[gAt++];
+    gAdd(st);
+    $("#graphsay").textContent = st.say;
+    if(gAt >= GSTEP.length) gn.disabled = true;
+  });
+  if(gr) gr.addEventListener("click", gReset);
+
+  pipeInit();
+  termReset();
+  gReset();
+  confReset();
+  paint();
+})();
+</script>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <p class="muted" style="margin:0 0 10px">
+      <a href="genai-testing-course.html">GenAI Testing course</a> ·
+      <a href="python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="faq.html">FAQ</a> ·
+      <a href="projects.html">Hands-on projects</a> ·
+      <a href="pricing.html">Pricing</a> ·
+      <a href="verify.html">Verify a certificate</a>
+    </p>
+    <p class="muted" style="margin:0;font-size:12.5px">
+      GenAITesting — online training in GenAI, LLM and AI agent application testing,
+      run from Hyderabad, India, open to learners anywhere.
+    </p>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+<script>renderTopbar("git");</script>
+</body>
+</html>
