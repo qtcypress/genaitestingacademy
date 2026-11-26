@@ -18,15 +18,31 @@ img{max-width:100%}
 
 /* ---- top bar ---- */
 .topbar{position:sticky;top:0;z-index:40;background:var(--navy);color:#fff;box-shadow:var(--shadow)}
-.topbar-inner{display:flex;align-items:center;gap:12px;padding:10px 16px;max-width:1080px;margin:0 auto}
+/* flex-wrap, because without it the nav links ran past the right edge of a
+   phone and gave EVERY page a horizontal scroll — measured at 587px of document
+   against a 390px screen on an iPhone 13. The three links past the edge were
+   simply unreachable, and Google counts the sideways scroll against mobile
+   usability. Desktop and tablet are untouched: they have room for one row. */
+.topbar-inner{display:flex;align-items:center;gap:12px;padding:10px 16px;max-width:1080px;margin:0 auto;flex-wrap:wrap;row-gap:2px}
 .topbar .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#fff;text-decoration:none;letter-spacing:.02em}
 .logo-dot{width:10px;height:10px;background:var(--orange);border-radius:2px;flex-shrink:0}
 .logo-mark{width:26px;height:26px;border-radius:7px;flex-shrink:0;display:block}
 .topbar .spacer{flex:1}
 .topbar .user{display:flex;align-items:center;gap:8px;font-size:13px}
 .topbar .user img{width:28px;height:28px;border-radius:50%;border:2px solid var(--amber)}
-.topbar a.navlink{color:#CFD5E4;text-decoration:none;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px}
+/* nowrap, because the links were breaking mid-label — "GenAI / Testing" stacked
+   inside its own pill, which is what made the bar 92px tall on a phone before
+   it even overflowed. Single-line labels wrap as whole links instead. */
+.topbar a.navlink{color:#CFD5E4;text-decoration:none;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;white-space:nowrap}
 .topbar a.navlink:hover,.topbar a.navlink.active{background:rgba(255,255,255,.12);color:#fff}
+/* On a phone the spacer would push one lonely link to the far right and then
+   force everything else onto later rows. Dropping it lets the links flow. The
+   result is 77px and two tidy rows — shorter than the 92px it replaced. */
+@media(max-width:720px){
+  .topbar .spacer{display:none}
+  .topbar-inner{padding:6px 12px;gap:6px}
+  .topbar a.navlink{padding:5px 8px;font-size:12.5px}
+}
 
 /* ---- buttons ---- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;
