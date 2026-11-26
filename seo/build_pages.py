@@ -173,9 +173,12 @@ def footer(active_note="", rel=""):
     <p class="muted" style="margin:0 0 10px">
       <a href="{rel}genai-testing-course.html">GenAI Testing course</a> ·
       <a href="{rel}python-dsa-course.html">Python &amp; DSA course</a> ·
+      <a href="{rel}git-github-course.html">Git &amp; GitHub (free)</a> ·
       <a href="{rel}faq.html">FAQ</a> ·
       <a href="{rel}projects.html">Hands-on projects</a> ·
+      <a href="{rel}blog/">Writing</a> ·
       <a href="{rel}pricing.html">Pricing</a> ·
+      <a href="{rel}book.html">Book a call</a> ·
       <a href="{rel}verify.html">Verify a certificate</a>
     </p>
     <p class="muted" style="margin:0;font-size:12.5px">
