@@ -204,7 +204,7 @@
      "name": "How do you test an AI agent that calls tools?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "An agent adds failure modes a single prompt does not have, so test the decisions rather than the prose. Four areas carry most of the risk. Tool selection: given an ambiguous request, does it pick the right tool, and does it pick none when none applies? Arguments: are the parameters it constructs well-formed and within bounds, including when the user's phrasing is vague? Loops and budgets: does it stop, or will it retry a failing tool until something external cuts it off — test this by making a tool fail deliberately. Hand-offs: when one agent passes to another, what travels with it, and does anything sensitive travel that should not? The point most teams miss is about refusals. When an agent declines to call a destructive tool on a vague instruction, that is a control working correctly, and logging it as a bug trains the system towards the behaviour you least want. Decide in advance which refusals are correct, and assert on them."
+      "text": "An agent adds failure modes a single prompt does not have, so test the decisions rather than the prose. Four areas carry most of the risk. Tool selection: given an ambiguous request, does it pick the right tool, and does it pick none when none applies? Arguments: are the parameters it constructs well-formed and within bounds, including when the user's phrasing is vague? Loops and budgets: does it stop, or will it retry a failing tool until something external cuts it off — test this by making a tool fail deliberately. Hand-offs: when one agent passes to another, what travels with it, and does anything sensitive travel that should not? The point most teams miss is about refusals. When an agent declines to call a destructive tool on a vague instruction, that is a control working correctly, and logging it as a bug trains the system towards the behaviour you least want. Decide in advance which refusals are correct, and assert on them. There is a fuller treatment of all of this, including trajectory testing and multi-agent hand-offs, on the agentic AI testing page."
      }
     },
     {
@@ -220,7 +220,7 @@
      "name": "What is Model Context Protocol (MCP), and what breaks in it?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "MCP is an open standard for connecting a model to tools and data: a server advertises what it can do, and any client that speaks the protocol can use it without a bespoke integration. The standardisation is real and useful. The testing interest is in what it changes about trust. Tool descriptions are prompt — the text describing a tool reaches the model, so a malicious or compromised server can put instructions there, which is tool poisoning. Tool results are untrusted input, and an application that treats whatever a server returns as fact has handed its behaviour to that server. Grants are usually too broad: a connection added for one task stays available for every later one, so the question to test is not \"does this tool work\" but \"what can it reach when the model is confused or steered\". And because servers are updated independently, a tool that behaved one way when you tested it can behave differently tomorrow with no change on your side. Test with a deliberately hostile server; it is the only way to see these."
+      "text": "MCP is an open standard for connecting a model to tools and data: a server advertises what it can do, and any client that speaks the protocol can use it without a bespoke integration. The standardisation is real and useful. The testing interest is in what it changes about trust. Tool descriptions are prompt — the text describing a tool reaches the model, so a malicious or compromised server can put instructions there, which is tool poisoning. Tool results are untrusted input, and an application that treats whatever a server returns as fact has handed its behaviour to that server. Grants are usually too broad: a connection added for one task stays available for every later one, so the question to test is not \"does this tool work\" but \"what can it reach when the model is confused or steered\". And because servers are updated independently, a tool that behaved one way when you tested it can behave differently tomorrow with no change on your side. Test with a deliberately hostile server; it is the only way to see these. More on MCP and testing agentic systems, including agentic RAG, where retrieval becomes a decision rather than a step."
      }
     },
     {
@@ -544,7 +544,9 @@
      The point most teams miss is about refusals. When an agent declines to call a
      destructive tool on a vague instruction, that is a control working correctly, and
      logging it as a bug trains the system towards the behaviour you least want.
-     Decide in advance which refusals are correct, and assert on them.</div>
+     Decide in advance which refusals are correct, and assert on them. There is a
+     fuller treatment of all of this, including trajectory testing and multi-agent
+     hand-offs, on <a href="agentic-ai-testing.html">the agentic AI testing page</a>.</div>
     </section>
     <section class="faq-item">
       <h2>DeepEval or Promptfoo — which should I use?</h2>
@@ -578,7 +580,9 @@
      tool work" but "what can it reach when the model is confused or steered". And
      because servers are updated independently, a tool that behaved one way when you
      tested it can behave differently tomorrow with no change on your side. Test with a
-     deliberately hostile server; it is the only way to see these.</div>
+     deliberately hostile server; it is the only way to see these. More on MCP and
+     <a href="agentic-ai-testing.html">testing agentic systems</a>, including agentic
+     RAG, where retrieval becomes a decision rather than a step.</div>
     </section>
     <section class="faq-item">
       <h2>How do I write test cases for an LLM feature?</h2>
