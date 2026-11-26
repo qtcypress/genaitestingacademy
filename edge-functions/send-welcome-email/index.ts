@@ -26,7 +26,7 @@ const env = (k: string, d = "") => Deno.env.get(k) ?? d;
 
 const SITE = env("SITE_URL", "https://genaitesting.online").replace(/\/+$/, "");
 const ZEPTO_HOST = env("ZEPTOMAIL_HOST", "api.zeptomail.com");
-// Defaults to genaitesting.online deliberately. qualitythought.in is served
+// Defaults to genaitesting.online deliberately. the company's other domain is served
 // by Hostinger nameservers, carries two conflicting SPF records, and has no
 // DKIM — and it is the company's live Google Workspace domain, so it is not
 // ours to change. genaitesting.online is on Netlify DNS with an empty mail
