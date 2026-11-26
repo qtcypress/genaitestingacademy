@@ -1,4 +1,4 @@
-Welcome to Quality Thought's Gen AI testing Workshop - Day #2 !!!!!
+Welcome to GenAITesting's Gen AI testing Workshop - Day #2 !!!!!
 
 Thanks for joining the session 
 
