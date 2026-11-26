@@ -25,7 +25,7 @@ PAGES=(
   certificate.html verify.html pricing.html reset-password.html unsubscribe.html
   genai-testing-course.html python-dsa-course.html faq.html
   ai-testing-career-path.html istqb-ct-ai-vs-hands-on-course.html
-  git-github-course.html
+  git-github-course.html agentic-ai-testing.html
   book.html admin-sessions.html help.html admin-settings.html
 )
 ASSETS=(
