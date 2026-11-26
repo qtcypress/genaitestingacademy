@@ -252,7 +252,7 @@
           return `<div class="table-wrap sheet-pane" id="pane${i}" style="${i ? "display:none" : ""}">${tbl}</div>`;
         }).join("");
         stage.innerHTML = html;
-        stage.querySelectorAll("table").forEach(t => t.classList.add("qt"));
+        stage.querySelectorAll("table").forEach(t => t.classList.add("data"));
         stage.querySelectorAll(".sheet-tabs button").forEach(b => b.onclick = () => {
           stage.querySelectorAll(".sheet-pane").forEach(p => (p.style.display = "none"));
           stage.querySelectorAll(".sheet-tabs button").forEach(x => x.className = "btn btn-sm btn-ghost");

@@ -7,12 +7,12 @@ without it — bookings are taken and held, invitations queue in
 a token exists. But until this is done, a student who books a call gets no
 confirmation, no reminder and no calendar entry.
 
-## Send from `genaitesting.online`, not `qualitythought.in`
+## Send from `genaitesting.online`, not the company's other domain
 
 This is a decision, not a default, and the reasoning is worth keeping because
 the obvious choice is the wrong one.
 
-`qualitythought.in` is the company's live mail domain — its MX records point at
+The company's other domain is its live mail domain — the MX records point at
 Google Workspace, so real business email flows through it. Three things make it
 a bad place to bolt on a transactional sender:
 

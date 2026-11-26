@@ -1,6 +1,6 @@
-# QT GenAI Testing Academy — Setup & Deployment Guide
+# GenAI Testing Academy — Setup & Deployment Guide
 
-A lightweight training portal for Quality Thought's GenAI Application Testing program.
+A lightweight training portal for GenAITesting's GenAI Application Testing program.
 Static HTML/JS frontend (no build step) + Supabase (free tier) for GitHub login, database, and file storage.
 Installable as a mobile app (PWA) — no Play Store needed.
 
@@ -29,7 +29,7 @@ Installable as a mobile app (PWA) — no Play Store needed.
 ## Step 1 — Create the Supabase project (5 min)
 
 1. Go to <https://supabase.com> → sign in (GitHub works) → **New project**.
-   Pick any name (e.g. `qt-academy`), a strong DB password, region **Mumbai (ap-south-1)**.
+   Pick any name (e.g. `genai-academy`), a strong DB password, region **Mumbai (ap-south-1)**.
 2. When it finishes provisioning, open **SQL Editor → New query**.
 3. Copy the ENTIRE contents of `supabase/schema.sql`, paste, **Run**.
    You should see "Success. No rows returned". This creates all tables, security rules,
@@ -46,15 +46,15 @@ Installable as a mobile app (PWA) — no Play Store needed.
 ## Step 2 — GitHub login (5 min)
 
 1. On GitHub: **Settings → Developer settings → OAuth Apps → New OAuth App**
-   - Application name: `QT GenAI Testing Academy`
+   - Application name: `GenAI Testing Academy`
    - Homepage URL: your site URL (you can start with `http://localhost` and change later)
    - **Authorization callback URL**: `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`
      (find YOUR-PROJECT-REF in Supabase → Project Settings → API → Project URL)
 2. Copy the **Client ID**, generate a **Client Secret**.
 3. In Supabase: **Authentication → Sign In / Up → Providers→ GitHub** → enable, paste Client ID + Secret, **Save**.
 4. In Supabase: **Authentication → URL Configuration**
-   - **Site URL**: your final site address (e.g. `https://qt-academy.netlify.app`)
-   - **Redirect URLs**: add the same address with `/**` (e.g. `https://qt-academy.netlify.app/**`).
+   - **Site URL**: your final site address (e.g. `https://genai-academy.netlify.app`)
+   - **Redirect URLs**: add the same address with `/**` (e.g. `https://genai-academy.netlify.app/**`).
      While testing locally also add `http://localhost:8000/**`.
 
 ## Step 3 — Point the frontend at your project (1 min)
@@ -75,7 +75,7 @@ Any static host works. Easiest two:
 
 **Netlify (recommended)**
 1. <https://app.netlify.com/drop> — drag this whole folder onto the page. Done.
-2. Note your URL (e.g. `https://qt-academy.netlify.app`), then go back and update
+2. Note your URL (e.g. `https://genai-academy.netlify.app`), then go back and update
    the GitHub OAuth app Homepage URL and Supabase Site URL / Redirect URLs to match.
 
 **GitHub Pages**
@@ -90,7 +90,7 @@ Any static host works. Easiest two:
 1. Open your deployed site → **Sign in with GitHub** (this creates your profile row).
 2. Supabase → **SQL Editor**:
    ```sql
-   update public.profiles set role='admin' where email='ramprasad@qualitythought.in';
+   update public.profiles set role='admin' where email='you@example.com';
    ```
    (use whatever email your GitHub account exposes — check `select * from public.profiles;`)
 3. Refresh the site — an **Admin** link appears in the top bar.
@@ -101,13 +101,13 @@ Any static host works. Easiest two:
    suggested modules: *GenAI Basics* (what_is_ai.html, both infographic PNGs,
    LLMs_FineTuning_RAG_Agents_AgenticAI.html, aitestinglab.html),
    *Manual Testing* (Manual_Test_Cases.docx, Drugs_com_AI_Search_RedTeam_TestCases.docx),
-   *RAGAS / Evaluation* (QualityThought_RAGAS_Metrics_Demo.pptx).
+   *RAGAS / Evaluation* (RAGAS_Metrics_Demo.pptx).
 2. **Admin → Assessments**: create the **🎓 FINAL (grants certificate)** exam, add questions
    (one per line options, mark the correct number), then **▶ Publish**.
    Practice quizzes work the same but don't grant certificates.
 
 That's it. Students sign in with GitHub, learn, take the final, and get a certificate
-numbered like `QT-2026-A1B2C3D4`, verifiable by anyone at `verify.html`.
+numbered like `GAT-2026-A1B2C3D4`, verifiable by anyone at `verify.html`.
 
 ---
 

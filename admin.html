@@ -806,7 +806,7 @@
     (mods || []).forEach(m => modName[m.id] = m.number + ". " + m.title);
     const el = document.getElementById("matList");
     if (error) { el.innerHTML = "<div class='card'>" + escapeHtml(error.message) + "</div>"; return; }
-    el.innerHTML = `<div class="table-wrap"><table class="qt"><thead>
+    el.innerHTML = `<div class="table-wrap"><table class="data"><thead>
       <tr><th>Title</th><th>Module</th><th>Type</th><th>Format</th><th>Size</th><th>Status</th><th></th></tr>
       </thead><tbody>` +
       (data || []).map(m => `<tr>
@@ -950,7 +950,7 @@
           <strong>${paying.length}</strong> student(s) with active access \u00b7
           <strong>${(rows || []).length}</strong> registered</p>
       </div>
-      <div class="table-wrap"><table class="qt"><thead>
+      <div class="table-wrap"><table class="data"><thead>
       <tr><th>Student</th><th>Plan</th><th>Days left</th><th>Expires</th><th>Source</th><th>Paid</th></tr>
       </thead><tbody>` +
       (rows || []).map(r => `<tr>
@@ -966,7 +966,7 @@
       .select("created_at,status,amount_paise,plan_id,razorpay_order_id,razorpay_payment_id")
       .order("created_at", { ascending: false }).limit(50);
     document.getElementById("paymentsList").innerHTML =
-      `<h3>Recent payment attempts</h3><div class="table-wrap"><table class="qt"><thead>
+      `<h3>Recent payment attempts</h3><div class="table-wrap"><table class="data"><thead>
        <tr><th>When</th><th>Plan</th><th>Amount</th><th>Status</th><th>Razorpay order</th></tr></thead><tbody>` +
       ((pays || []).map(x => `<tr>
         <td class="muted">${fmtDate(x.created_at)}</td>
@@ -1029,7 +1029,7 @@
       (s.email || "").toLowerCase().includes(q) ||
       (s.github_user || "").toLowerCase().includes(q));
     const pc = v => v == null ? "—" : v + "%";
-    document.getElementById("stuList").innerHTML = `<div class="table-wrap"><table class="qt"><thead>
+    document.getElementById("stuList").innerHTML = `<div class="table-wrap"><table class="data"><thead>
       <tr><th>Student</th><th>GitHub</th><th>Materials</th><th>Basic</th><th>Advanced</th><th>Expert</th><th>Certs</th><th>Last active</th></tr>
       </thead><tbody>` +
       rows.map(s => {

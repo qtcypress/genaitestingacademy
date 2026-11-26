@@ -32,7 +32,7 @@
 <header class="hero" style="padding:36px 0">
   <div class="wrap">
     <h1>Verify a <span class="accent">Certificate</span></h1>
-    <p>Enter a certificate number (e.g. <strong style="color:#fff">QT-2026-A1B2C3D4</strong>) or the
+    <p>Enter a certificate number (e.g. <strong style="color:#fff">GAT-2026-A1B2C3D4</strong>) or the
        GitHub email of the certificate holder. No login needed.</p>
   </div>
 </header>
@@ -41,7 +41,7 @@
   <form class="card" id="vform">
     <label class="f" for="q">Certificate number or email</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input class="f" id="q" style="flex:1;min-width:200px" placeholder="QT-2026-XXXXXXXX or student@example.com" required>
+      <input class="f" id="q" style="flex:1;min-width:200px" placeholder="GAT-2026-XXXXXXXX or student@example.com" required>
       <button class="btn btn-primary" type="submit">Verify</button>
     </div>
   </form>
@@ -85,7 +85,7 @@ async function verify(q) {
   out.innerHTML = data.map(c => `
     <div class="card" style="border-color:var(--mint)">
       <h3 style="color:var(--mint)">✓ Valid certificate</h3>
-      <div class="table-wrap" style="margin-top:10px"><table class="qt" style="min-width:0">
+      <div class="table-wrap" style="margin-top:10px"><table class="data" style="min-width:0">
         <tbody>
           <tr><td><strong>Certificate No.</strong></td><td style="font-family:monospace">${escapeHtml(c.cert_number)}</td></tr>
           <tr><td><strong>Name</strong></td><td>${escapeHtml(c.full_name)}</td></tr>
@@ -104,7 +104,7 @@ document.getElementById("vform").addEventListener("submit", e => {
   verify(document.getElementById("q").value.trim());
 });
 
-/* support verify.html?q=QT-2026-XXXX deep links (used on the certificate page) */
+/* support verify.html?q=GAT-2026-XXXX deep links (used on the certificate page) */
 const pre = new URLSearchParams(location.search).get("q");
 if (pre) { document.getElementById("q").value = pre; verify(pre); }
 </script>

@@ -149,7 +149,7 @@ begin
   -- module 12: RAGAS
   update public.materials m set module_id = (select id from public.modules where course_id=c and number=12),
     material_type='slides', module='Module 12 — RAGAS Metrics for RAG'
-   where m.storage_path = 'QualityThought_RAGAS_Metrics_Demo.pptx';
+   where m.storage_path = 'RAGAS_Metrics_Demo.pptx';
 end $$;
 
 -- Point the legacy final exam at the new course and retire it in favour of the

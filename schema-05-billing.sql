@@ -210,7 +210,7 @@ begin
              || case when v_quiz.level is null then ''
                      else ' — ' || initcap(v_quiz.level) || ' Level' end;
 
-    v_cert := 'QT-' || to_char(now(),'YYYY') || '-'
+    v_cert := 'GAT-' || to_char(now(),'YYYY') || '-'
            || case when v_quiz.level is null then 'F' else upper(left(v_quiz.level,1)) end
            || '-' || upper(substr(md5(v_uid::text || p_quiz_id::text || clock_timestamp()::text), 1, 8));
 

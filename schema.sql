@@ -279,7 +279,7 @@ begin
   -- issue certificate on passing the FINAL quiz (once per user/course)
   if v_passed and v_quiz.is_final then
     select * into v_profile from public.profiles where id = v_uid;
-    v_cert := 'QT-' || to_char(now(),'YYYY') || '-' ||
+    v_cert := 'GAT-' || to_char(now(),'YYYY') || '-' ||
               upper(substr(md5(v_uid::text || p_quiz_id::text || now()::text), 1, 8));
     insert into public.certificates (cert_number, user_id, email, full_name, quiz_id, percent)
     values (v_cert, v_uid, coalesce(v_profile.email,''), coalesce(v_profile.full_name, v_profile.email, 'Student'), p_quiz_id, v_pct)
@@ -302,7 +302,7 @@ returns table (cert_number text, full_name text, email text, course text, percen
 language sql stable security definer set search_path = public
 as $$
   select c.cert_number, c.full_name,
-         -- mask the email for privacy: ra*****@qualitythought.in
+         -- mask the email for privacy: ra*****@example.com
          regexp_replace(c.email, '^(..)[^@]*@', '\1*****@') as email,
          c.course, c.percent, c.issued_at
   from public.certificates c

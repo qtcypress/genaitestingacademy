@@ -116,7 +116,7 @@
      reload rather than a re-render, because the whole page below depends on it. */
   const { data: courses } = await sb.from("courses").select("*")
     .eq("published", true).order("sort_order");
-  const picked = sessionStorage.getItem("qt-course");
+  const picked = sessionStorage.getItem("genai-course");
   const course = (courses || []).find(c => c.id === picked) || (courses || [])[0];
 
   if ((courses || []).length > 1) {
@@ -124,7 +124,7 @@
       `<button class="${c.id === course.id ? "on" : ""}" data-course="${c.id}">${
         escapeHtml(c.title)}</button>`).join("");
     document.querySelectorAll("#courseTabs button").forEach(b => b.onclick = () => {
-      sessionStorage.setItem("qt-course", b.dataset.course);
+      sessionStorage.setItem("genai-course", b.dataset.course);
       location.reload();
     });
   }

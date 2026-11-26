@@ -213,7 +213,7 @@
   /* Which project is showing. Persisted so a reload — or coming back from the
      console — puts you where you were, and reflected into the Open link so the
      console opens the same project you picked here. */
-  const PROJ_KEY = "qt-projects-tab";
+  const PROJ_KEY = "genai-projects-tab";
 
   const projTabs = (cat, cur, unlocked) =>
     cat.length < 2 ? "" : `<div class="projtabs">${cat.map((p, i) => {
@@ -297,7 +297,7 @@
           access code, enter it here. Some codes open a project immediately; others are checked by
           an administrator first, and you will see it appear on this page once approved.</p>
         <div class="stack">
-          <input class="f" id="cpn" placeholder="e.g. QT-AUG-RAG" style="max-width:260px;
+          <input class="f" id="cpn" placeholder="e.g. GAT-AUG-RAG" style="max-width:260px;
             padding:9px 12px;border:1px solid #d9d9d9;border-radius:8px;font:inherit">
           <button class="btn btn-primary" id="cpnGo">Redeem</button>
         </div>
