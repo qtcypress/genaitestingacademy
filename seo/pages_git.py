@@ -1,6 +1,6 @@
 """Git and GitHub, zero to mastery — the self-paced module.
 
-Built from Quality Thought's hands-on handout, which supplied the command set,
+Built from the in-house hands-on handout, which supplied the command set,
 the GitHub Desktop walkthroughs and the structure. What is added here is the
 thing a handout cannot do: the model, moving.
 
@@ -897,7 +897,7 @@ git config --list</code></pre>
   }
 
   /* ---------------- 8. progress ---------------- */
-  var KEY = "qt-git-module";
+  var KEY = "genai-git-module";
   var saved = {};
   try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(err) { saved = {}; }
   var cks = [].slice.call(document.querySelectorAll(".gt-ck"));

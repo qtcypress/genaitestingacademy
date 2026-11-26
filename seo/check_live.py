@@ -49,7 +49,14 @@ TITLE_MAX = 60
 DESC_MAX = 155
 DESC_MIN = 80
 
-DEAD_BRAND = re.compile(r"quality\s*thought|QT GenAI|QT Academy", re.I)
+# The site carries one brand. This fails the build the next morning if the old
+# one reappears anywhere on a public page — in body text, a certificate example,
+# a class name or a leftover storage key. A rebrand that is not enforced is a
+# rebrand that quietly comes undone, one generated page at a time.
+DEAD_BRAND = re.compile(
+    r"quality\s*thought|QT\s*GenAI|QT\s*Academy|\bQT-\d|\bqt-(?:academy|course|git|projects|console)"
+    r"|class=\"qt\"|table\.qt\b",
+    re.I)
 
 problems = []
 notes = []
