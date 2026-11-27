@@ -60,6 +60,19 @@
    ]
   },
   {
+   "@type": "VideoObject",
+   "@id": "https://genaitesting.online/#rag-red-teaming-video",
+   "name": "Making a RAG assistant leak its instructions, and stopping it",
+   "description": "A retrieval-augmented assistant is made to repeat instructions it was told to keep, using one ordinary sentence. The same system is then hardened until the attack stops working.",
+   "thumbnailUrl": "https://genaitesting.online/rag-red-teaming-poster.jpg",
+   "contentUrl": "https://genaitesting.online/rag-red-teaming.mp4",
+   "uploadDate": "2026-11-26",
+   "duration": "PT4M50S",
+   "publisher": { "@id": "https://genaitesting.online/#org" },
+   "inLanguage": "en",
+   "isFamilyFriendly": true
+  },
+  {
    "@type": "WebSite",
    "@id": "https://genaitesting.online/#website",
    "url": "https://genaitesting.online/",
@@ -235,6 +248,38 @@
       </div>
 
     </div>
+  </section>
+
+  <!-- A permanent feature rather than a dated promo. The source was a workshop
+       recording; its title card, closing call-to-action and per-slide branding were
+       removed, because a homepage feature that advertises a past date is worse than
+       no video at all. preload="none" means the 8MB only moves when someone presses
+       play — a video that downloads itself on every page view is the single easiest
+       way to ruin a Core Web Vitals score. -->
+  <section class="section" id="watch">
+    <h2>Watch a RAG assistant give up its instructions</h2>
+    <p class="lead" style="max-width:74ch">
+      No setup, nothing to install. One ordinary-looking sentence makes a retrieval
+      assistant repeat the rules it was told to keep — and then the same system is
+      hardened, step by step, until the attack stops working. This is what the course
+      is: applications that are running, attacked on purpose, rather than slides about
+      the idea of attacking them.
+    </p>
+    <video
+      style="width:100%;height:auto;display:block;border-radius:14px;margin-top:18px;background:#0d1024"
+      controls playsinline preload="none"
+      poster="rag-red-teaming-poster.jpg"
+      width="1280" height="626">
+      <source src="rag-red-teaming.mp4" type="video/mp4">
+      <p class="muted">Your browser cannot play this video.</p>
+    </video>
+    <p class="muted" style="margin-top:12px;max-width:74ch">
+      Prompt injection, indirect injection through a retrieved document, and the four
+      defences that actually hold. Covered in full on the
+      <a href="agentic-ai-testing.html">agentic AI testing page</a> and taught against
+      three <a href="projects.html">live applications</a> on the
+      <a href="genai-testing-course.html">course</a>.
+    </p>
   </section>
 
   <section class="section">
