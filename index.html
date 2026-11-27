@@ -115,9 +115,12 @@
   /* A finished tab keeps its fill so you can see how far round the set you are,
      but at half strength — otherwise three full bars shout louder than the one
      that is actually playing. */
+  /* No width transition: the fill is advanced every frame from JS, so it creeps
+     continuously instead of jumping once a step and then sitting still — which
+     is the single thing that made this read as a slideshow rather than a film. */
   .reel-fill{position:absolute;left:0;bottom:0;height:3px;width:0;opacity:.4;
     background:linear-gradient(90deg,var(--orange),var(--amber));
-    transition:width .22s linear,opacity .18s}
+    transition:opacity .18s}
   .reel-tab[aria-selected="true"] .reel-fill{opacity:1}
   /* Four across stops being readable well before the diagram does, so they go
      two-up first and lose their sub-lines only when even that is tight. */
@@ -132,8 +135,11 @@
     .reel-tab u{display:none}
   }
   .reel-stage{position:relative;width:100%;aspect-ratio:760/300;min-height:210px}
-  .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .2s}
-  .reel-svg.live{opacity:1}
+  /* Scenes dissolve across each other with a little drift rather than cutting,
+     so the hand-off between topics is motion too, not a blink. */
+  .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;
+    transform:translateX(14px);transition:opacity .5s ease,transform .5s ease}
+  .reel-svg.live{opacity:1;transform:none}
   .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .18s,stroke .18s,opacity .18s}
   .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .18s}
   .reel-svg .n text.sm{font-weight:500;font-size:11.5px;fill:#8FA1C4}
@@ -146,12 +152,28 @@
   .reel-svg .n.warn.on rect{stroke:var(--orange);fill:#4A241C99}
   .reel-svg .n.good.on rect{stroke:var(--mint);fill:#12402E99}
   .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .18s,stroke .18s}
-  .reel-svg .ar.on{opacity:1;stroke:var(--amber)}
+  /* A live connector carries a travelling dash, so something is always moving
+     along the pipeline even in the middle of a step. A fixed dasharray is right
+     here — it is a repeating pattern, not a line being drawn, which is the case
+     that needs each line's own measured length. */
+  .reel-svg .ar.on{opacity:1;stroke:var(--amber);stroke-dasharray:5 7;
+    animation:reelFlow .5s linear infinite}
+  @keyframes reelFlow{to{stroke-dashoffset:-12}}
+  /* And a lit box breathes, so no frame of this is completely still. */
+  .reel-svg .n.on rect{animation:reelBreathe 1.9s ease-in-out infinite}
+  @keyframes reelBreathe{0%,100%{opacity:1}50%{opacity:.82}}
   .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .18s,fill .18s}
   .reel-svg .chunk.on{opacity:1;fill:#3E5E9E}
-  .reel-svg .chunk.poison.on{fill:var(--orange)}
+  /* The poisoned chunk only turns orange on the step that reveals it. Keyed off
+     the step rather than off the chunk, because at "three chunks come back" it
+     was already showing orange and giving the reveal away a step early. */
+  .reel-svg.reveal .chunk.poison.on{fill:var(--orange)}
   .reel-cap{margin:12px 0 0;min-height:3em;font-size:15px;line-height:1.5;color:#DCE4F4}
   .reel-cap b{color:#fff}
+  /* The caption is the one hard swap left, so it rises into place — that covers
+     the step boundary with movement instead of a snap. */
+  .reel-cap.in{animation:reelCapIn .32s ease-out}
+  @keyframes reelCapIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   /* On a phone the SVG scales to about 0.42, so an 11.5px label renders at
      5.5px — unreadable. Bumping the font is the obvious fix and the wrong one:
      the box around it does not grow, so the text runs straight out of it. The
@@ -168,6 +190,9 @@
   }
   @media (prefers-reduced-motion:reduce){
     .reel-svg,.reel-fill,.reel-svg .n,.reel-svg .ar,.reel-svg .chunk{transition:none}
+    .reel-svg{transform:none}
+    .reel-svg .ar.on,.reel-svg .n.on rect,.reel-cap.in{animation:none}
+    .reel-svg .ar.on{stroke-dasharray:none}
   }
 </style>
 <style>
@@ -844,7 +869,7 @@
   var STEPS = [
     {s:"rag", e:"RAG", on:["ask"], cap:"<b>Ask.</b> A question arrives. Before the model sees it, something has to go and find the material that answers it."},
     {s:"rag", e:"RAG", on:["ask","store"], ch:["1","2","3"], cap:"<b>Retrieve.</b> Three chunks come back from the vector store. Whether they are the <em>right</em> three is measurable, and it is where most RAG failures actually start."},
-    {s:"rag", e:"RAG · red teaming", on:["store"], ch:["3"], cap:"<b>Red team.</b> One of those chunks was written by someone else. Hidden in it: <em>ignore your instructions</em>. It never passed through input validation, because the user never typed it."},
+    {s:"rag", e:"RAG · red teaming", on:["store"], ch:["3"], po:1, cap:"<b>Red team.</b> One of those chunks was written by someone else. Hidden in it: <em>ignore your instructions</em>. It never passed through input validation, because the user never typed it."},
     {s:"rag", e:"RAG", on:["model","answer"], cap:"<b>Answer.</b> Fluent, confident, well formatted — and possibly built on a claim that appears in none of the retrieved text. That gap has a name: faithfulness."},
     {s:"rag", e:"RAG · evidence", on:["logs"], cap:"<b>Logs.</b> Scores, token counts, and which claim went unsupported. Without this you are left arguing about whether an answer <em>felt</em> wrong."},
 
@@ -874,7 +899,7 @@
   var tabs = document.getElementById("rlTabs");
   var hold = document.getElementById("rlHold");
   var holdLabel = document.getElementById("rlHoldLabel");
-  var i = 0, timer = null;
+  var i = 0, raf = null, lastT = 0, elapsed = 0, here = 0, within = 0;
 
   // Two ways to stop it, and they must not argue. `hover` is the automatic one:
   // the reel waits while the pointer or the keyboard is inside it. `choice` is
@@ -925,12 +950,17 @@
       for (var j=0;j<ns.length;j++){
         ns[j].classList.toggle("on", (st.on||[]).indexOf(ns[j].getAttribute("data-k")) > -1);
       }
+      svgs[k].classList.toggle("reveal", !!st.po);
       var cs = svgs[k].querySelectorAll(".chunk");
       for (var c=0;c<cs.length;c++){
         cs[c].classList.toggle("on", (st.ch||[]).indexOf(cs[c].getAttribute("data-c")) > -1);
       }
     }
     cap.innerHTML = st.cap;
+    // Restart the caption's entrance. Removing the class is not enough on its
+    // own — without forcing a reflow between, the browser never sees it absent
+    // and the animation does not replay.
+    cap.classList.remove("in"); void cap.offsetWidth; cap.classList.add("in");
     eyebrow.textContent = st.e;
 
     // Count and fill are both relative to the topic, not to the whole reel: a
@@ -938,20 +968,48 @@
     // thing you are actually looking at. Tabs already played stay full, tabs not
     // yet reached sit empty, so one pass round the four reads as a progress bar
     // that resets.
-    var here = 0;
+    here = 0;
     for (var d=0; d<scenes.length; d++){ if (scenes[d].s === st.s) here = d; }
-    var within = i - scenes[here].at;
+    within = i - scenes[here].at;
     count.textContent = (within+1) + " / " + scenes[here].len;
     for (var e=0; e<scenes.length; e++){
-      var on = e === here;
-      scenes[e].el.setAttribute("aria-selected", on ? "true" : "false");
+      scenes[e].el.setAttribute("aria-selected", e === here ? "true" : "false");
+    }
+    drawFill();
+  }
+
+  // Called every frame while the reel runs, so the active tab's bar moves the
+  // whole time rather than ticking once per step. `elapsed/HOLD` is the fraction
+  // of the current step already played, which is what turns four discrete
+  // positions into one continuous sweep across the tab.
+  function drawFill(){
+    var frac = still ? (within+1) : (within + Math.min(elapsed/HOLD, 1));
+    for (var e=0; e<scenes.length; e++){
       scenes[e].fill.style.width =
-        on ? ((within+1)/scenes[e].len*100) + "%" : (e < here ? "100%" : "0%");
+        e === here ? (frac/scenes[e].len*100) + "%" : (e < here ? "100%" : "0%");
     }
   }
-  function go(n){ i = (n + STEPS.length) % STEPS.length; paint(); }
-  function tick(){ if (playing()) go(i+1); }
-  function restart(){ if (still) return; clearInterval(timer); timer = setInterval(tick, HOLD); }
+  function go(n){ i = (n + STEPS.length) % STEPS.length; elapsed = 0; paint(); }
+
+  // A frame loop rather than setInterval, because the bar has to move between
+  // steps and not only at them. requestAnimationFrame also stops by itself in a
+  // background tab, which is the behaviour we were asking visibilitychange for.
+  function frame(now){
+    raf = requestAnimationFrame(frame);
+    var dt = lastT ? now - lastT : 0;
+    lastT = now;
+    if (dt > 250) dt = 250;            // a tab that was hidden must not fast-forward
+    if (!playing()) return;            // held: time does not accumulate
+    elapsed += dt;
+    if (elapsed >= HOLD) go(i+1);      // go() zeroes elapsed for the next step
+    else drawFill();
+  }
+  function restart(){
+    if (still) return;
+    elapsed = 0; lastT = 0;
+    if (!raf) raf = requestAnimationFrame(frame);
+    drawFill();
+  }
 
   // Nothing is moving under reduced motion, so a pause button would be a lie.
   if (still) { hold.hidden = true; }
@@ -972,10 +1030,10 @@
   // being focused — it is how you un-pause.
   root.addEventListener("focusin",  function(e){ if (e.target !== hold) hover = true; });
   root.addEventListener("focusout", function(e){ if (e.target !== hold) hover = false; });
-  // nothing should animate in a background tab
-  document.addEventListener("visibilitychange", function(){
-    if (document.hidden) { clearInterval(timer); } else { restart(); }
-  });
+  // Coming back from a hidden tab, the first frame's timestamp is long after the
+  // last one. Dropping lastT makes that gap count as nothing, so the reel picks
+  // up where it stopped instead of jumping several steps at once.
+  document.addEventListener("visibilitychange", function(){ lastT = 0; });
 
   paint();
   if (!still) restart();
