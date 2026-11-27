@@ -60,19 +60,6 @@
    ]
   },
   {
-   "@type": "VideoObject",
-   "@id": "https://genaitesting.online/#rag-red-teaming-video",
-   "name": "Making a RAG assistant leak its instructions, and stopping it",
-   "description": "A retrieval-augmented assistant is made to repeat instructions it was told to keep, using one ordinary sentence. The same system is then hardened until the attack stops working.",
-   "thumbnailUrl": "https://genaitesting.online/rag-red-teaming-poster.jpg",
-   "contentUrl": "https://genaitesting.online/rag-red-teaming.mp4",
-   "uploadDate": "2026-11-26",
-   "duration": "PT4M50S",
-   "publisher": { "@id": "https://genaitesting.online/#org" },
-   "inLanguage": "en",
-   "isFamilyFriendly": true
-  },
-  {
    "@type": "WebSite",
    "@id": "https://genaitesting.online/#website",
    "url": "https://genaitesting.online/",
@@ -85,6 +72,89 @@
  ]
 }
 </script>
+<style>
+  /* ---- homepage reel ---- */
+  .reel{background:var(--navy-2);border-radius:var(--radius);padding:18px 18px 14px;margin-top:20px;
+        color:#E7ECF7;overflow:hidden}
+  .reel-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 12px}
+  .reel-eyebrow{font:700 12px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+  .reel-step{font:600 12px var(--f-body);color:#94A3C4}
+
+  /* The four topics are the navigation, so they are the first thing in the
+     component rather than a row of pills underneath it. Each one carries its own
+     progress fill: it advances while that topic is playing and the next tab takes
+     over when it is done, which is what makes the hand-off legible instead of the
+     diagram simply changing underneath you. */
+  .reel-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 16px}
+  .reel-tab{position:relative;overflow:hidden;text-align:left;cursor:pointer;
+    border:1px solid rgba(255,255,255,.16);background:rgba(30,47,84,.5);border-radius:12px;
+    padding:12px 14px 15px;font-family:var(--f-body);
+    transition:border-color .25s,background .25s}
+  .reel-tab b{display:block;font:700 16px/1.2 var(--f-body);color:#C9D4EA;transition:color .25s}
+  .reel-tab u{display:block;text-decoration:none;font:500 12px/1.35 var(--f-body);
+    color:#8294BA;margin-top:3px;transition:color .25s}
+  .reel-tab:hover{border-color:var(--amber)}
+  .reel-tab[aria-selected="true"]{background:rgba(44,67,115,.6);border-color:var(--amber)}
+  .reel-tab[aria-selected="true"] b{color:#fff}
+  .reel-tab[aria-selected="true"] u{color:#C2CEE6}
+  /* A finished tab keeps its fill so you can see how far round the set you are,
+     but at half strength — otherwise three full bars shout louder than the one
+     that is actually playing. */
+  .reel-fill{position:absolute;left:0;bottom:0;height:3px;width:0;opacity:.4;
+    background:linear-gradient(90deg,var(--orange),var(--amber));
+    transition:width .45s linear,opacity .25s}
+  .reel-tab[aria-selected="true"] .reel-fill{opacity:1}
+  /* Four across stops being readable well before the diagram does, so they go
+     two-up first and lose their sub-lines only when even that is tight. */
+  @media (max-width:760px){
+    .reel-tabs{grid-template-columns:repeat(2,1fr);gap:7px}
+    .reel-tab{padding:10px 12px 13px}
+    .reel-tab b{font-size:15px}
+  }
+  @media (max-width:430px){
+    .reel-tab{padding:9px 10px 12px}
+    .reel-tab b{font-size:13.5px}
+    .reel-tab u{display:none}
+  }
+  .reel-stage{position:relative;width:100%;aspect-ratio:760/300;min-height:210px}
+  .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .4s}
+  .reel-svg.live{opacity:1}
+  .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .35s,stroke .35s,opacity .35s}
+  .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .35s}
+  .reel-svg .n text.sm{font-weight:500;font-size:11.5px;fill:#8FA1C4}
+  .reel-svg .n text.mono{font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#8FA1C4}
+  .reel-svg text.start{text-anchor:start}
+  .reel-svg .n{opacity:.32;transition:opacity .35s}
+  .reel-svg .n.on{opacity:1}
+  .reel-svg .n.on rect{fill:#2C437399;stroke:var(--amber)}
+  .reel-svg .n.on text{fill:#FFFFFF}
+  .reel-svg .n.warn.on rect{stroke:var(--orange);fill:#4A241C99}
+  .reel-svg .n.good.on rect{stroke:var(--mint);fill:#12402E99}
+  .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .35s,stroke .35s}
+  .reel-svg .ar.on{opacity:1;stroke:var(--amber)}
+  .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .35s,fill .35s}
+  .reel-svg .chunk.on{opacity:1;fill:#3E5E9E}
+  .reel-svg .chunk.poison.on{fill:var(--orange)}
+  .reel-cap{margin:12px 0 0;min-height:3em;font-size:15px;line-height:1.5;color:#DCE4F4}
+  .reel-cap b{color:#fff}
+  /* On a phone the SVG scales to about 0.42, so an 11.5px label renders at
+     5.5px — unreadable. Bumping the font is the obvious fix and the wrong one:
+     the box around it does not grow, so the text runs straight out of it. The
+     sub-labels are dropped instead (the caption below carries that detail) and
+     only the main labels are enlarged, to sizes checked against their boxes.
+     min-height is removed because it letterboxed the diagram inside a taller
+     stage, leaving a dead band above and below. */
+  @media (max-width:640px){
+    .reel-stage{min-height:0}
+    .reel-svg .n text{font-size:20px}
+    .reel-svg .n text.sm{display:none}
+    .reel-svg .n text.mono{font-size:15px}
+    .reel-cap{font-size:14.5px;min-height:4.5em}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .reel-svg,.reel-fill,.reel-svg .n,.reel-svg .ar,.reel-svg .chunk{transition:none}
+  }
+</style>
 <style>
   .hero-split{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;align-items:center}
   @media (max-width:860px){.hero-split{grid-template-columns:1fr;gap:30px}}
@@ -250,34 +320,164 @@
     </div>
   </section>
 
-  <!-- A permanent feature rather than a dated promo. The source was a workshop
-       recording; its title card, closing call-to-action and per-slide branding were
-       removed, because a homepage feature that advertises a past date is worse than
-       no video at all. preload="none" means the 8MB only moves when someone presses
-       play — a video that downloads itself on every page view is the single easiest
-       way to ruin a Core Web Vitals score. -->
-  <section class="section" id="watch">
-    <h2>Watch a RAG assistant give up its instructions</h2>
+  <!-- The homepage reel.
+       Built as HTML/SVG rather than an MP4 on purpose, and the reason is the one
+       thing a video cannot do: the words in here are real text, so Google and the
+       answer engines read "agentic RAG", "MCP", "red teaming" and "vector store".
+       The content of a video file is invisible to both. It is also ~14KB instead
+       of 8MB, needs no play button, and can be edited without re-rendering.
+       Auto-advances, pauses on hover or focus, and stops dead under
+       prefers-reduced-motion with every caption left on screen. -->
+  <section class="section" id="reel">
+    <h2>Four things you learn to break</h2>
     <p class="lead" style="max-width:74ch">
-      No setup, nothing to install. One ordinary-looking sentence makes a retrieval
-      assistant repeat the rules it was told to keep — and then the same system is
-      hardened, step by step, until the attack stops working. This is what the course
-      is: applications that are running, attacked on purpose, rather than slides about
-      the idea of attacking them.
+      Retrieval, agents, the tool protocol underneath them, and the version where the
+      model decides for itself what to look up. Each one fails in its own way. It moves
+      through all four on its own — or press a tab.
     </p>
-    <video
-      style="width:100%;height:auto;display:block;border-radius:14px;margin-top:18px;background:#0d1024"
-      controls playsinline preload="none"
-      poster="rag-red-teaming-poster.jpg"
-      width="1280" height="626">
-      <source src="rag-red-teaming.mp4" type="video/mp4">
-      <p class="muted">Your browser cannot play this video.</p>
-    </video>
-    <p class="muted" style="margin-top:12px;max-width:74ch">
-      Prompt injection, indirect injection through a retrieved document, and the four
-      defences that actually hold. Covered in full on the
-      <a href="agentic-ai-testing.html">agentic AI testing page</a> and taught against
-      three <a href="projects.html">live applications</a> on the
+
+    <div class="reel" id="rl">
+      <div class="reel-tabs" id="rlTabs" role="tablist" aria-label="Topics"></div>
+      <div class="reel-top">
+        <span class="reel-eyebrow" id="rlEyebrow">RAG</span>
+        <span class="reel-step" id="rlCount">1 / 5</span>
+      </div>
+
+      <div class="reel-stage">
+
+        <!-- ============ RAG ============ -->
+        <svg class="reel-svg" data-scene="rag" viewBox="0 0 760 300" aria-hidden="true">
+          <g class="n" data-k="ask">
+            <rect x="12" y="104" width="150" height="56" rx="10"/>
+            <text x="87" y="128">A question</text>
+            <text x="87" y="147" class="sm">"what is the refund rule?"</text>
+          </g>
+          <path class="ar" data-k="ask" d="M166 132 H214"/>
+          <g class="n" data-k="store">
+            <rect x="218" y="60" width="170" height="144" rx="10"/>
+            <text x="303" y="84">Vector store</text>
+            <rect class="chunk" data-c="1" x="236" y="98"  width="134" height="22" rx="5"/>
+            <rect class="chunk" data-c="2" x="236" y="128" width="134" height="22" rx="5"/>
+            <rect class="chunk poison" data-c="3" x="236" y="158" width="134" height="22" rx="5"/>
+            <text x="303" y="196" class="sm">three chunks come back</text>
+          </g>
+          <path class="ar" data-k="model" d="M392 132 H440"/>
+          <g class="n" data-k="model">
+            <rect x="444" y="104" width="140" height="56" rx="10"/>
+            <text x="514" y="138">The model</text>
+          </g>
+          <path class="ar" data-k="answer" d="M588 132 H622"/>
+          <g class="n" data-k="answer">
+            <rect x="626" y="104" width="122" height="56" rx="10"/>
+            <text x="687" y="138">An answer</text>
+          </g>
+          <g class="n logs" data-k="logs">
+            <rect x="12" y="226" width="736" height="60" rx="10"/>
+            <text x="28" y="248" class="mono start">retrieved 3 · top score 0.81 · tokens 1,402</text>
+            <text x="28" y="270" class="mono start">claim 2 unsupported by any retrieved chunk</text>
+          </g>
+        </svg>
+
+        <!-- ============ AGENTS ============ -->
+        <svg class="reel-svg" data-scene="agents" viewBox="0 0 760 300" aria-hidden="true">
+          <g class="n" data-k="plan">
+            <rect x="286" y="20" width="188" height="56" rx="10"/>
+            <text x="380" y="44">Orchestrator</text>
+            <text x="380" y="63" class="sm">plans, then delegates</text>
+          </g>
+          <path class="ar" data-k="delegate" d="M380 80 V110 H120 V140"/>
+          <path class="ar" data-k="delegate" d="M380 80 V140"/>
+          <path class="ar" data-k="delegate" d="M380 80 V110 H640 V140"/>
+          <g class="n" data-k="delegate">
+            <rect x="40" y="144" width="160" height="52" rx="10"/><text x="120" y="175">Search agent</text>
+          </g>
+          <g class="n" data-k="delegate">
+            <rect x="300" y="144" width="160" height="52" rx="10"/><text x="380" y="175">Booking agent</text>
+          </g>
+          <g class="n" data-k="delegate">
+            <rect x="560" y="144" width="160" height="52" rx="10"/><text x="640" y="175">Payment agent</text>
+          </g>
+          <g class="n warn" data-k="loop">
+            <rect x="40" y="226" width="340" height="56" rx="10"/>
+            <text x="210" y="249">Tool fails. It tries again.</text>
+            <text x="210" y="268" class="sm">and again, and again</text>
+          </g>
+          <g class="n good" data-k="stop">
+            <rect x="400" y="226" width="320" height="56" rx="10"/>
+            <text x="560" y="249">Budget cap holds</text>
+            <text x="560" y="268" class="sm">it stops and reports</text>
+          </g>
+        </svg>
+
+        <!-- ============ MCP ============ -->
+        <svg class="reel-svg" data-scene="mcp" viewBox="0 0 760 300" aria-hidden="true">
+          <g class="n" data-k="connect">
+            <rect x="30" y="110" width="180" height="64" rx="10"/>
+            <text x="120" y="142">Your agent</text>
+            <text x="120" y="161" class="sm">speaks MCP</text>
+          </g>
+          <path class="ar" data-k="connect" d="M214 142 H316"/>
+          <g class="n" data-k="connect">
+            <rect x="320" y="56" width="230" height="172" rx="10"/>
+            <text x="435" y="82">A tool server</text>
+            <rect class="chunk" data-c="t1" x="340" y="98"  width="190" height="26" rx="6"/>
+            <rect class="chunk" data-c="t2" x="340" y="132" width="190" height="26" rx="6"/>
+            <rect class="chunk poison" data-c="t3" x="340" y="166" width="190" height="26" rx="6"/>
+            <text x="435" y="214" class="sm">someone else runs this</text>
+          </g>
+          <g class="n warn" data-k="poison">
+            <rect x="30" y="226" width="690" height="56" rx="10"/>
+            <text x="375" y="249">The tool's own description reaches the model</text>
+            <text x="375" y="268" class="sm">so a description can carry an instruction</text>
+          </g>
+          <path class="ar" data-k="trust" d="M554 142 H664"/>
+          <g class="n" data-k="trust">
+            <rect x="620" y="110" width="110" height="64" rx="10"/>
+            <text x="675" y="136">Result</text>
+            <text x="675" y="156" class="sm">trusted?</text>
+          </g>
+        </svg>
+
+        <!-- ============ AGENTIC RAG ============ -->
+        <svg class="reel-svg" data-scene="arag" viewBox="0 0 760 300" aria-hidden="true">
+          <g class="n" data-k="decide">
+            <rect x="24" y="110" width="170" height="60" rx="10"/>
+            <text x="109" y="134">A question</text>
+            <text x="109" y="154" class="sm">arrives</text>
+          </g>
+          <path class="ar" data-k="decide" d="M198 140 H250"/>
+          <g class="n diamond" data-k="decide">
+            <rect x="256" y="92" width="168" height="96" rx="10"/>
+            <text x="340" y="128">Do I even</text>
+            <text x="340" y="150">need to search?</text>
+            <text x="340" y="172" class="sm">the model decides</text>
+          </g>
+          <path class="ar" data-k="search" d="M428 118 H500"/>
+          <g class="n" data-k="search">
+            <rect x="504" y="90" width="226" height="54" rx="10"/>
+            <text x="617" y="122">Search, read, judge</text>
+          </g>
+          <path class="ar" data-k="retry" d="M617 148 V178 H340 V196"/>
+          <g class="n warn" data-k="retry">
+            <rect x="430" y="214" width="300" height="60" rx="10"/>
+            <text x="580" y="238">Nothing useful came back</text>
+            <text x="580" y="258" class="sm">does it ask again, or guess?</text>
+          </g>
+          <g class="n good" data-k="say">
+            <rect x="24" y="214" width="386" height="60" rx="10"/>
+            <text x="217" y="238">Or it says it does not know</text>
+            <text x="217" y="258" class="sm">which is the hardest case to test</text>
+          </g>
+        </svg>
+      </div>
+
+      <p class="reel-cap" id="rlCap"></p>
+    </div>
+
+    <p class="muted" style="margin-top:14px;max-width:74ch">
+      Each of these is a module, and each has an application you attack rather than read
+      about. The detail lives on the <a href="agentic-ai-testing.html">agentic AI testing
+      page</a> and in the <a href="faq.html">FAQ</a>; the applications are on the
       <a href="genai-testing-course.html">course</a>.
     </p>
   </section>
@@ -609,6 +809,127 @@
     busy("rsBtn", false);
     return false;
   }
+</script>
+<script>
+(function(){
+  "use strict";
+  var root = document.getElementById("rl");
+  if (!root) return;
+  var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // scene, which parts light up, and what the caption says. The caption is the
+  // point of each step — the diagram is only there to give it somewhere to land.
+  var STEPS = [
+    {s:"rag", e:"RAG", on:["ask"], cap:"<b>Ask.</b> A question arrives. Before the model sees it, something has to go and find the material that answers it."},
+    {s:"rag", e:"RAG", on:["ask","store"], ch:["1","2","3"], cap:"<b>Retrieve.</b> Three chunks come back from the vector store. Whether they are the <em>right</em> three is measurable, and it is where most RAG failures actually start."},
+    {s:"rag", e:"RAG · red teaming", on:["store"], ch:["3"], cap:"<b>Red team.</b> One of those chunks was written by someone else. Hidden in it: <em>ignore your instructions</em>. It never passed through input validation, because the user never typed it."},
+    {s:"rag", e:"RAG", on:["model","answer"], cap:"<b>Answer.</b> Fluent, confident, well formatted — and possibly built on a claim that appears in none of the retrieved text. That gap has a name: faithfulness."},
+    {s:"rag", e:"RAG · evidence", on:["logs"], cap:"<b>Logs.</b> Scores, token counts, and which claim went unsupported. Without this you are left arguing about whether an answer <em>felt</em> wrong."},
+
+    {s:"agents", e:"Agents", on:["plan"], cap:"<b>Agents.</b> Now the model does not just answer — it plans, and hands work to other agents."},
+    {s:"agents", e:"Agents", on:["plan","delegate"], cap:"<b>Delegate.</b> Three specialists, each with its own tools. What travels in the hand-off, and what should not have travelled, is a defect you will never see in the final answer."},
+    {s:"agents", e:"Agents · limits", on:["loop"], cap:"<b>Loop.</b> Make a tool fail on purpose. Does it stop, or retry until something external cuts it off? A prompt asking it to be careful is not a control."},
+    {s:"agents", e:"Agents · limits", on:["stop"], cap:"<b>Stop.</b> A hard cap on calls, tokens and money is a control. Test it by setting the budget below the cost of the task and watching what it does."},
+
+    {s:"mcp", e:"MCP", on:["connect"], cap:"<b>MCP.</b> A standard way to plug an agent into tools, so any client can use any server. Useful — and it quietly changes who you are trusting."},
+    {s:"mcp", e:"MCP", on:["connect"], ch:["t1","t2"], cap:"<b>Tools.</b> The server advertises what it can do. Someone else runs that server, and updates it without telling you."},
+    {s:"mcp", e:"MCP · tool poisoning", on:["poison"], ch:["t3"], cap:"<b>Poisoning.</b> A tool's description is prompt — it reaches the model. So a description can carry an instruction, and the model may follow it."},
+    {s:"mcp", e:"MCP · trust", on:["trust"], cap:"<b>Results.</b> Whatever comes back is untrusted input. An agent that treats it as fact has handed its behaviour to whoever wrote it."},
+
+    {s:"arag", e:"Agentic RAG", on:["decide"], cap:"<b>Agentic RAG.</b> Retrieval stops being a step and becomes a decision. The model chooses whether to search at all."},
+    {s:"arag", e:"Agentic RAG", on:["search"], cap:"<b>Search, read, judge.</b> What to look for, which source, and whether what came back is good enough to use."},
+    {s:"arag", e:"Agentic RAG", on:["retry"], cap:"<b>Nothing useful.</b> Does it reformulate and try again, or answer from the noise it already has? This is the case the ordinary metrics score well."},
+    {s:"arag", e:"Agentic RAG", on:["say"], cap:"<b>Or it admits it.</b> Saying “I don't know” when the corpus does not cover the question is the hardest behaviour to get, and the easiest to forget to test."}
+  ];
+
+  var HOLD = 3400;
+  var svgs = root.querySelectorAll(".reel-svg");
+  var cap = document.getElementById("rlCap");
+  var eyebrow = document.getElementById("rlEyebrow");
+  var count = document.getElementById("rlCount");
+  var tabs = document.getElementById("rlTabs");
+  var i = 0, timer = null, paused = false;
+
+  // One tab per topic, not per step — seventeen of anything is noise. Each tab
+  // knows where its scene starts and how many steps it runs for, which is what
+  // lets it fill in step with the diagram and hand over at the end.
+  var scenes = [];
+  STEPS.forEach(function(st, idx){
+    var last = scenes[scenes.length-1];
+    if (!last || last.s !== st.s) scenes.push({s:st.s, at:idx, len:1});
+    else last.len++;
+  });
+  var LABEL = {
+    rag:        ["RAG",         "Retrieval, and where it goes wrong"],
+    agents:     ["Agents",      "Plans, hand-offs, and hard limits"],
+    mcp:        ["MCP",         "Tools somebody else wrote"],
+    arag:       ["Agentic RAG", "The model decides what to look up"]
+  };
+  scenes.forEach(function(sc){
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "reel-tab";
+    b.setAttribute("role", "tab");
+    var meta = LABEL[sc.s] || [sc.s, ""];
+    var name = document.createElement("b"); name.textContent = meta[0];
+    var sub  = document.createElement("u"); sub.textContent  = meta[1];
+    var fill = document.createElement("span"); fill.className = "reel-fill";
+    b.appendChild(name); b.appendChild(sub); b.appendChild(fill);
+    b.addEventListener("click", function(){ go(sc.at); restart(); });
+    tabs.appendChild(b);
+    sc.el = b; sc.fill = fill;
+  });
+
+  function paint(){
+    var st = STEPS[i];
+    for (var k=0;k<svgs.length;k++){
+      var live = svgs[k].getAttribute("data-scene") === st.s;
+      svgs[k].classList.toggle("live", live);
+      if (!live) continue;
+      var ns = svgs[k].querySelectorAll(".n, .ar");
+      for (var j=0;j<ns.length;j++){
+        ns[j].classList.toggle("on", (st.on||[]).indexOf(ns[j].getAttribute("data-k")) > -1);
+      }
+      var cs = svgs[k].querySelectorAll(".chunk");
+      for (var c=0;c<cs.length;c++){
+        cs[c].classList.toggle("on", (st.ch||[]).indexOf(cs[c].getAttribute("data-c")) > -1);
+      }
+    }
+    cap.innerHTML = st.cap;
+    eyebrow.textContent = st.e;
+
+    // Count and fill are both relative to the topic, not to the whole reel: a
+    // tab that reads "3 / 5" and is three-fifths full says where you are in the
+    // thing you are actually looking at. Tabs already played stay full, tabs not
+    // yet reached sit empty, so one pass round the four reads as a progress bar
+    // that resets.
+    var here = 0;
+    for (var d=0; d<scenes.length; d++){ if (scenes[d].s === st.s) here = d; }
+    var within = i - scenes[here].at;
+    count.textContent = (within+1) + " / " + scenes[here].len;
+    for (var e=0; e<scenes.length; e++){
+      var on = e === here;
+      scenes[e].el.setAttribute("aria-selected", on ? "true" : "false");
+      scenes[e].fill.style.width =
+        on ? ((within+1)/scenes[e].len*100) + "%" : (e < here ? "100%" : "0%");
+    }
+  }
+  function go(n){ i = (n + STEPS.length) % STEPS.length; paint(); }
+  function tick(){ if (!paused) go(i+1); }
+  function restart(){ if (still) return; clearInterval(timer); timer = setInterval(tick, HOLD); }
+
+  root.addEventListener("mouseenter", function(){ paused = true; });
+  root.addEventListener("mouseleave", function(){ paused = false; });
+  root.addEventListener("focusin",   function(){ paused = true; });
+  root.addEventListener("focusout",  function(){ paused = false; });
+  // nothing should animate in a background tab
+  document.addEventListener("visibilitychange", function(){
+    if (document.hidden) { clearInterval(timer); } else { restart(); }
+  });
+
+  paint();
+  if (!still) restart();
+})();
 </script>
 </body>
 </html>
