@@ -33,7 +33,6 @@ ASSETS=(
   logo.svg logo-mono.svg logo-on-light.svg favicon.svg favicon.ico
   icon-192.png icon-512.png icon-maskable-512.png apple-touch-icon.png
   social-card.png robots.txt sitemap.xml llms.txt
-  rag-red-teaming.mp4 rag-red-teaming-poster.jpg
 )
 
 for f in "${PAGES[@]}" "${ASSETS[@]}"; do
