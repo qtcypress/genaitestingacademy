@@ -138,31 +138,37 @@
   /* Scenes dissolve across each other with a little drift rather than cutting,
      so the hand-off between topics is motion too, not a blink. */
   .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;
-    transform:translateX(14px);transition:opacity .5s ease,transform .5s ease}
+    transform:translateX(18px);transition:opacity .34s ease,transform .34s ease}
   .reel-svg.live{opacity:1;transform:none}
-  .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .18s,stroke .18s,opacity .18s}
-  .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .18s}
+  .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .13s,stroke .13s,opacity .13s}
+  .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .13s}
   .reel-svg .n text.sm{font-weight:500;font-size:11.5px;fill:#8FA1C4}
   .reel-svg .n text.mono{font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#8FA1C4}
   .reel-svg text.start{text-anchor:start}
-  .reel-svg .n{opacity:.32;transition:opacity .18s}
+  .reel-svg .n{opacity:.32;transition:opacity .13s}
   .reel-svg .n.on{opacity:1}
   .reel-svg .n.on rect{fill:#2C437399;stroke:var(--amber)}
   .reel-svg .n.on text{fill:#FFFFFF}
   .reel-svg .n.warn.on rect{stroke:var(--orange);fill:#4A241C99}
   .reel-svg .n.good.on rect{stroke:var(--mint);fill:#12402E99}
-  .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .18s,stroke .18s}
+  .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .13s,stroke .13s}
   /* A live connector carries a travelling dash, so something is always moving
      along the pipeline even in the middle of a step. A fixed dasharray is right
      here — it is a repeating pattern, not a line being drawn, which is the case
      that needs each line's own measured length. */
   .reel-svg .ar.on{opacity:1;stroke:var(--amber);stroke-dasharray:5 7;
-    animation:reelFlow .5s linear infinite}
+    animation:reelFlow .3s linear infinite}
   @keyframes reelFlow{to{stroke-dashoffset:-12}}
-  /* And a lit box breathes, so no frame of this is completely still. */
-  .reel-svg .n.on rect{animation:reelBreathe 1.9s ease-in-out infinite}
-  @keyframes reelBreathe{0%,100%{opacity:1}50%{opacity:.82}}
-  .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .18s,fill .18s}
+  /* A box that has just lit up snaps to size, then settles into a breath, so
+     the eye is pulled to whatever the caption is about to talk about and no
+     frame of this is ever completely still. transform-box is what makes the
+     scale happen about the rect's own centre rather than the SVG origin, which
+     would fling it across the diagram. */
+  .reel-svg .n.on rect{transform-box:fill-box;transform-origin:center;
+    animation:reelPop .2s cubic-bezier(.2,1.4,.5,1),reelBreathe 1.3s ease-in-out .2s infinite}
+  @keyframes reelPop{from{transform:scale(.94)}to{transform:scale(1)}}
+  @keyframes reelBreathe{0%,100%{opacity:1}50%{opacity:.8}}
+  .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .13s,fill .13s}
   .reel-svg .chunk.on{opacity:1;fill:#3E5E9E}
   /* The poisoned chunk only turns orange on the step that reveals it. Keyed off
      the step rather than off the chunk, because at "three chunks come back" it
@@ -172,7 +178,7 @@
   .reel-cap b{color:#fff}
   /* The caption is the one hard swap left, so it rises into place — that covers
      the step boundary with movement instead of a snap. */
-  .reel-cap.in{animation:reelCapIn .32s ease-out}
+  .reel-cap.in{animation:reelCapIn .24s ease-out}
   @keyframes reelCapIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   /* On a phone the SVG scales to about 0.42, so an 11.5px label renders at
      5.5px — unreadable. Bumping the font is the obvious fix and the wrong one:
@@ -192,6 +198,7 @@
     .reel-svg,.reel-fill,.reel-svg .n,.reel-svg .ar,.reel-svg .chunk{transition:none}
     .reel-svg{transform:none}
     .reel-svg .ar.on,.reel-svg .n.on rect,.reel-cap.in{animation:none}
+    .reel-svg .n.on rect{transform:none}
     .reel-svg .ar.on{stroke-dasharray:none}
   }
 </style>
@@ -889,9 +896,12 @@
     {s:"arag", e:"Agentic RAG", on:["say"], cap:"<b>Or it admits it.</b> Saying “I don't know” when the corpus does not cover the question is the hardest behaviour to get, and the easiest to forget to test."}
   ];
 
-    // Halved from 3400: at this pace it reads as an animation rather than a
-  // slideshow. The pause button exists because of it.
-  var HOLD = 1700;
+    // 3400 was a slideshow, 1700 an animation, 1200 is the pace that actually
+  // catches the eye from across a page. It is faster than anyone can read a
+  // caption at, which is what the pause button is for — and the captions are
+  // in the page source regardless, where the crawlers read them at their own
+  // speed.
+  var HOLD = 1200;
   var svgs = root.querySelectorAll(".reel-svg");
   var cap = document.getElementById("rlCap");
   var eyebrow = document.getElementById("rlEyebrow");
