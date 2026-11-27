@@ -76,9 +76,24 @@
   /* ---- homepage reel ---- */
   .reel{background:var(--navy-2);border-radius:var(--radius);padding:18px 18px 14px;margin-top:20px;
         color:#E7ECF7;overflow:hidden}
-  .reel-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 12px}
+  .reel-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
   .reel-eyebrow{font:700 12px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--amber)}
+  .reel-right{display:flex;align-items:center;gap:12px}
   .reel-step{font:600 12px var(--f-body);color:#94A3C4}
+  /* At this speed a step can go past before you have finished reading it, so
+     there has to be a way to stop on one. Pressing it also takes over from the
+     pause-on-hover: once you have said what you want, the pointer's position
+     should not argue with you. */
+  .reel-hold{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.22);background:transparent;color:#C9D4EA;
+    border-radius:999px;padding:5px 12px 5px 9px;font:600 12px var(--f-body);
+    transition:border-color .2s,color .2s,background .2s}
+  .reel-hold:hover{border-color:var(--amber);color:#fff}
+  .reel-hold svg{width:11px;height:11px;fill:currentColor;flex:none}
+  .reel-hold .ic-play{display:none}
+  .reel-hold[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff}
+  .reel-hold[aria-pressed="true"] .ic-play{display:block}
+  .reel-hold[aria-pressed="true"] .ic-pause{display:none}
 
   /* The four topics are the navigation, so they are the first thing in the
      component rather than a row of pills underneath it. Each one carries its own
@@ -102,7 +117,7 @@
      that is actually playing. */
   .reel-fill{position:absolute;left:0;bottom:0;height:3px;width:0;opacity:.4;
     background:linear-gradient(90deg,var(--orange),var(--amber));
-    transition:width .45s linear,opacity .25s}
+    transition:width .22s linear,opacity .18s}
   .reel-tab[aria-selected="true"] .reel-fill{opacity:1}
   /* Four across stops being readable well before the diagram does, so they go
      two-up first and lose their sub-lines only when even that is tight. */
@@ -117,22 +132,22 @@
     .reel-tab u{display:none}
   }
   .reel-stage{position:relative;width:100%;aspect-ratio:760/300;min-height:210px}
-  .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .4s}
+  .reel-svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .2s}
   .reel-svg.live{opacity:1}
-  .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .35s,stroke .35s,opacity .35s}
-  .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .35s}
+  .reel-svg .n rect{fill:#24386180;stroke:#44598F;stroke-width:1.5;transition:fill .18s,stroke .18s,opacity .18s}
+  .reel-svg .n text{fill:#C9D4EA;font:600 14px var(--f-body);text-anchor:middle;transition:fill .18s}
   .reel-svg .n text.sm{font-weight:500;font-size:11.5px;fill:#8FA1C4}
   .reel-svg .n text.mono{font:500 12px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#8FA1C4}
   .reel-svg text.start{text-anchor:start}
-  .reel-svg .n{opacity:.32;transition:opacity .35s}
+  .reel-svg .n{opacity:.32;transition:opacity .18s}
   .reel-svg .n.on{opacity:1}
   .reel-svg .n.on rect{fill:#2C437399;stroke:var(--amber)}
   .reel-svg .n.on text{fill:#FFFFFF}
   .reel-svg .n.warn.on rect{stroke:var(--orange);fill:#4A241C99}
   .reel-svg .n.good.on rect{stroke:var(--mint);fill:#12402E99}
-  .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .35s,stroke .35s}
+  .reel-svg .ar{stroke:#44598F;stroke-width:2;fill:none;opacity:.3;transition:opacity .18s,stroke .18s}
   .reel-svg .ar.on{opacity:1;stroke:var(--amber)}
-  .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .35s,fill .35s}
+  .reel-svg .chunk{fill:#32497B;stroke:none;opacity:.5;transition:opacity .18s,fill .18s}
   .reel-svg .chunk.on{opacity:1;fill:#3E5E9E}
   .reel-svg .chunk.poison.on{fill:var(--orange)}
   .reel-cap{margin:12px 0 0;min-height:3em;font-size:15px;line-height:1.5;color:#DCE4F4}
@@ -340,7 +355,14 @@
       <div class="reel-tabs" id="rlTabs" role="tablist" aria-label="Topics"></div>
       <div class="reel-top">
         <span class="reel-eyebrow" id="rlEyebrow">RAG</span>
-        <span class="reel-step" id="rlCount">1 / 5</span>
+        <span class="reel-right">
+          <span class="reel-step" id="rlCount">1 / 5</span>
+          <button class="reel-hold" id="rlHold" type="button" aria-pressed="false">
+            <svg class="ic-pause" viewBox="0 0 10 12" aria-hidden="true"><rect x="0" y="0" width="3.2" height="12" rx="1"/><rect x="6.8" y="0" width="3.2" height="12" rx="1"/></svg>
+            <svg class="ic-play" viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 L10 6 L0 12 Z"/></svg>
+            <span id="rlHoldLabel">Pause</span>
+          </button>
+        </span>
       </div>
 
       <div class="reel-stage">
@@ -842,13 +864,26 @@
     {s:"arag", e:"Agentic RAG", on:["say"], cap:"<b>Or it admits it.</b> Saying “I don't know” when the corpus does not cover the question is the hardest behaviour to get, and the easiest to forget to test."}
   ];
 
-  var HOLD = 3400;
+    // Halved from 3400: at this pace it reads as an animation rather than a
+  // slideshow. The pause button exists because of it.
+  var HOLD = 1700;
   var svgs = root.querySelectorAll(".reel-svg");
   var cap = document.getElementById("rlCap");
   var eyebrow = document.getElementById("rlEyebrow");
   var count = document.getElementById("rlCount");
   var tabs = document.getElementById("rlTabs");
-  var i = 0, timer = null, paused = false;
+  var hold = document.getElementById("rlHold");
+  var holdLabel = document.getElementById("rlHoldLabel");
+  var i = 0, timer = null;
+
+  // Two ways to stop it, and they must not argue. `hover` is the automatic one:
+  // the reel waits while the pointer or the keyboard is inside it. `choice` is
+  // the button, and it is deliberately tri-state — null until the visitor has
+  // pressed it, after which their choice wins and the pointer's position stops
+  // mattering. Without that, pressing Play would do nothing visible, because the
+  // hand that pressed it is still hovering the component.
+  var hover = false, choice = null;
+  function playing(){ return choice === null ? !hover : !choice; }
 
   // One tab per topic, not per step — seventeen of anything is noise. Each tab
   // knows where its scene starts and how many steps it runs for, which is what
@@ -915,13 +950,28 @@
     }
   }
   function go(n){ i = (n + STEPS.length) % STEPS.length; paint(); }
-  function tick(){ if (!paused) go(i+1); }
+  function tick(){ if (playing()) go(i+1); }
   function restart(){ if (still) return; clearInterval(timer); timer = setInterval(tick, HOLD); }
 
-  root.addEventListener("mouseenter", function(){ paused = true; });
-  root.addEventListener("mouseleave", function(){ paused = false; });
-  root.addEventListener("focusin",   function(){ paused = true; });
-  root.addEventListener("focusout",  function(){ paused = false; });
+  // Nothing is moving under reduced motion, so a pause button would be a lie.
+  if (still) { hold.hidden = true; }
+  hold.addEventListener("click", function(){
+    // Toggle against what the button is showing, not against playing(): while
+    // the pointer is inside the reel, playing() is already false, so deriving
+    // the new state from it would make the first press a no-op and leave Play
+    // unable to un-press itself.
+    choice = (choice !== true);                // true = held, false = running
+    hold.setAttribute("aria-pressed", choice ? "true" : "false");
+    holdLabel.textContent = choice ? "Play" : "Pause";
+    if (!choice) restart();                    // full step from here, not a stub
+  });
+
+  root.addEventListener("mouseenter", function(){ hover = true; });
+  root.addEventListener("mouseleave", function(){ hover = false; });
+  // The button is the one control inside the reel that must not pause it by
+  // being focused — it is how you un-pause.
+  root.addEventListener("focusin",  function(e){ if (e.target !== hold) hover = true; });
+  root.addEventListener("focusout", function(e){ if (e.target !== hold) hover = false; });
   // nothing should animate in a background tab
   document.addEventListener("visibilitychange", function(){
     if (document.hidden) { clearInterval(timer); } else { restart(); }
